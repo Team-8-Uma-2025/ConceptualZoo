@@ -1,74 +1,119 @@
+# ConceptualZoo Project
 
-# ConceptualZoo - Fullstack Project
-
-This repository contains the full-stack code for the Team 8 Zoo DB project, which includes both the **frontend** (React) and **backend** (Node.js, MySQL) components.
+A full-stack application built with React, Node.js, Express, and MySQL for the Team 8 Zoo DB project.
 
 ## Project Structure
 
-- **Frontend**: A React app styled with Tailwind CSS.
-- **Backend**: A Node.js API that connects to a MySQL database hosted on Google Cloud Platform (GCP).
+```
+my-fullstack-app/
+├── frontend/  (React application with Tailwind CSS)
+├── backend/   (Node.js and Express API)
+```
+
+## Prerequisites
+
+- Node.js (v14 or later)
+- npm or yarn
+- Git
 
 ## Getting Started
 
-To get started with the project, follow these steps:
-
 ### 1. Clone the Repository
-
-Clone the repository to your local machine:
 
 ```bash
 git clone https://github.com/Team-8-Uma-2025/ConceptualZoo.git
 cd ConceptualZoo
 ```
 
-### 2. Set Up the Frontend
+### 2. Set Up the Backend
 
-Navigate to the `frontend` directory and install the dependencies:
+Navigate to the backend directory:
 
 ```bash
-cd frontend
+cd backend
+```
+
+Install dependencies:
+
+```bash
 npm install
 ```
 
-### 3. Set Up the Backend
+Create a `.env` file in the backend directory:
 
-Navigate to the `backend` directory and install the dependencies:
+```
+DB_HOST=your-server-name.mysql.database.azure.com
+DB_USER=your-username
+DB_PASSWORD=your-password
+DB_NAME=your-database-name
+PORT=5000
+```
+
+> **Note**: Contact the team lead for the actual database credentials. DO NOT commit the `.env` file to Git.
+
+### 3. Set Up the Frontend
+
+Navigate to the frontend directory:
 
 ```bash
-cd ../backend
+cd ../frontend
+```
+
+Install dependencies:
+
+```bash
 npm install
 ```
 
-### 4. Set Up MySQL Database
+### 4. Run the Application
 
-The MySQL database is hosted on Google Cloud Platform. Make sure you have the credentials for accessing it and that the necessary tables are set up. Refer to the documentation or ask the project admin for database access.
-
-To connect your backend to the database, ensure that you update the database connection configuration in your backend code (`dbConfig.js` or similar) with your GCP MySQL credentials.
-
-### 5. Running the Project
-
-After installing the dependencies and setting up the database, run the project locally:
-
-#### Frontend
-
-To start the frontend, run:
+Start the backend server:
 
 ```bash
+# In the backend directory
 npm start
 ```
 
-This will start the React development server and open the app in your default browser.
-
-#### Backend
-
-To start the backend API, run:
+Start the frontend development server:
 
 ```bash
+# In the frontend directory
 npm start
 ```
 
-This will start the Node.js server, and the backend should be available on the configured port (usually `http://localhost:5000` or similar).
+The application should now be running:
+- Frontend: [http://localhost:3000](http://localhost:3000)
+- Backend API: [http://localhost:5000](http://localhost:5000)
 
+## Database Information
+
+We're using Azure Database for MySQL Flexible Server for our database. The connection details are in the `.env` file.
+
+### Connecting to the Database
+
+You can connect to the database using MySQL Workbench or the MySQL CLI:
+
+```bash
+mysql -h your-server-name.mysql.database.azure.com -u your-username -p
+```
+
+### Database Connection Issues
+
+If you're having trouble connecting to the database on your backend:
+
+1. Check that your `.env` file has the correct credentials
+2. Make sure your IP is allowed in the Azure MySQL firewall rules
+3. Verify that the SSL configuration is correct
+
+## More Troubleshooting
+
+- If you encounter issues with the MySQL database connection, make sure your credentials are correct and that the database is running.
+- If there are any conflicts during pushing or pulling, make sure to resolve them before pushing.
+
+## Contributing
+
+- If you're adding a new feature or fixing a bug, create a new branch off `main` and open a pull request.
+- Make sure to update the README or document any changes that might affect the setup or usage of the project.
 ### 6. Pushing Changes to GitHub
 
 Before pushing any changes to the repository, make sure to pull the latest changes from the remote repository to avoid conflicts.
@@ -87,16 +132,7 @@ git commit -m "Your commit message"
 git push origin main
 ```
 
-### 7. Troubleshooting
 
-- If you encounter issues with the MySQL database connection, make sure your credentials are correct and that the database is running.
-- If there are any conflicts during pushing or pulling, make sure to resolve them before pushing.
+## Deployment
 
-## Contributing
-
-- If you're adding a new feature or fixing a bug, create a new branch off `main` and open a pull request.
-- Make sure to update the README or document any changes that might affect the setup or usage of the project.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+Instructions for deployment will be added soon.
