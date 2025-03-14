@@ -9,8 +9,17 @@ module.exports = (pool) => {
     try {
       // TODO: Implement getting all animals with pagination
       // HINT: Use query parameters like ?limit=10&offset=0
+
+      const {limit = 10, offset = 0} = req.query;
+      const parsedLimit = parseInt(limit, 10) || 10;
+      const parsedOffset = parseInt(offset, 10) || 0;
+
+      const [rows] = await pool.query(
+        'SELECT * FROM animals LIMIT ? OFFSET ?',
+        [parsedLimit, parsedOffset]
+      );
       
-      res.json({ message: "This endpoint will return all animals" });
+      res.json(rows);
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: 'Failed to fetch animals' });
