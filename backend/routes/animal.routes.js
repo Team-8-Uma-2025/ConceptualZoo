@@ -35,7 +35,7 @@ module.exports = (pool) => {
       const [rows] = await pool.query(
         'SELECT * FROM zoodb.animals as a WHERE a.AnimalID = ?',
         [animalId]
-      )
+      );
 
       if(rows.length === 0)
         return res.status(404).json({error: 'Animal not found'});
@@ -52,8 +52,26 @@ module.exports = (pool) => {
     try {
       // TODO: Implement adding a new animal
       // Check that the user is staff and has appropriate permissions
-      
-      res.status(201).json({ message: 'This endpoint will create a new animal' });
+
+      const {Name, Species, DateOfBirth, Gender, HealthStatus, LastVetCheckup, EnclosureID, DangerLevel} = req.body;
+
+      // Validate input
+      if (!Name || !Species || !DateOfBirth || !Gender || !HealthStatus|| !LastVetCheckup || !EnclosureID || !DangerLevel) {
+        return res.status(400).json({ error: 'All required fields must be provided' });
+      }
+
+      if(req.user.role !== 'staff')
+        return res.status(403).json({error: 'You do not have permission to add animals.'});
+
+      const [result] = await pool.query(
+        'INSERT INTO zoodb.animals (Name, Species, DateOfBirth, Gender, HealthStatus, LastVetCheckup, EnclosureID, DangerLevel) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [Name, Species, DateOfBirth, Gender, HealthStatus, LastVetCheckup, EnclosureID, DangerLevel]
+      );
+
+      res.status(201).json({ 
+        message: 'Animal added successfully',
+        AnimalID: result.insertId
+      });
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: 'Failed to add animal' });
