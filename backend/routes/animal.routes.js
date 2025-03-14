@@ -15,7 +15,7 @@ module.exports = (pool) => {
       const parsedOffset = parseInt(offset, 10) || 0;
 
       const [rows] = await pool.query(
-        'SELECT * FROM animals LIMIT ? OFFSET ?',
+        'SELECT * FROM zoodb.animals LIMIT ? OFFSET ?',
         [parsedLimit, parsedOffset]
       );
       
@@ -31,8 +31,16 @@ module.exports = (pool) => {
     try {
       // TODO: Implement getting a single animal by ID
       const animalId = req.params.id;
+
+      const [rows] = await pool.query(
+        'SELECT * FROM zoodb.animals as a WHERE a.AnimalID = ?',
+        [animalId]
+      )
+
+      if(rows.length === 0)
+        return res.status(404).json({error: 'Animal not found'});
       
-      res.json({ message: `This endpoint will return animal with ID ${animalId}` });
+      res.json(rows[0]);
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: 'Failed to fetch animal' });
