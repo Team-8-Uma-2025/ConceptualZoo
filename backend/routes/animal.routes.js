@@ -60,7 +60,7 @@ module.exports = (pool) => {
         return res.status(400).json({ error: 'All required fields must be provided' });
       }
 
-      if(req.user.role !== 'staff')
+      if(req.user.role !== 'staff' && req.user.staffRole !== 'Manager')
         return res.status(403).json({error: 'You do not have permission to add animals.'});
 
       const [result] = await pool.query(
