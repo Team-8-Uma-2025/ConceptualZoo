@@ -5,6 +5,7 @@ const mysql = require('mysql2/promise'); // Using promise version
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const attractionsRoutes = require('./routes/attractions.routes');
 
 // Create express app
 const app = express();
@@ -56,7 +57,8 @@ const authenticateToken = (req, res, next) => {
 const authRoutes = require('./routes/auth.routes')(pool, jwt, bcrypt);
 const staffRoutes = require('./routes/staff.routes')(pool, authenticateToken);
 // const animalRoutes = require('./routes/animal.routes')(pool, authenticateToken);
-// const enclosureRoutes = require('./routes/enclosure.routes')(pool, authenticateToken);
+const enclosureRoutes = require('./routes/enclosure.routes')(pool, authenticateToken);
+const attractionRoutes = require('./routes/attractions.routes')(pool, authenticateToken);
 // const visitorRoutes = require('./routes/visitor.routes')(pool, authenticateToken);
 // const ticketRoutes = require('./routes/ticket.routes')(pool, authenticateToken);
 
@@ -64,7 +66,8 @@ const staffRoutes = require('./routes/staff.routes')(pool, authenticateToken);
 app.use('/api/auth', authRoutes);
 app.use('/api/staff', staffRoutes);
 // app.use('/api/animals', animalRoutes);
-// app.use('/api/enclosures', enclosureRoutes);
+app.use('/api/enclosures', enclosureRoutes(pool));
+app.use('/api/attractions', attractionRoutes(pool));
 // app.use('/api/visitors', visitorRoutes);
 // app.use('/api/tickets', ticketRoutes);
 
