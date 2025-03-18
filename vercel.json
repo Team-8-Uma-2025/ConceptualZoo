@@ -1,9 +1,24 @@
 {
     "version": 2,
+    "buildCommand": "cd frontend && CI=false npm run build && cd ../backend && npm install",
     "outputDirectory": "frontend/build",
-    "buildCommand": "cd frontend && CI=false npm run build",
+    "builds": [
+      {
+        "src": "backend/server.js",
+        "use": "@vercel/node"
+      }
+    ],
     "routes": [
-      { "handle": "filesystem" },
-      { "src": "/(.*)", "dest": "/index.html" }
+      {
+        "src": "/api/(.*)",
+        "dest": "backend/server.js"
+      },
+      {
+        "handle": "filesystem"
+      },
+      {
+        "src": "/(.*)",
+        "dest": "/index.html"
+      }
     ]
   }
