@@ -1,4 +1,4 @@
-// server.js - Updated version
+// server.js - Updated for Vercel deployment
 require('dotenv').config();
 const express = require('express');
 const mysql = require('mysql2/promise'); // Using promise version
@@ -11,7 +11,9 @@ const app = express();
 
 // Middleware
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' ? process.env.FRONTEND_URL : true
+}));
 
 // Database connection pool
 const pool = mysql.createPool({
@@ -22,21 +24,24 @@ const pool = mysql.createPool({
   database: process.env.DB_NAME,
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0
+  queueLimit: 0,
+  // Important for serverless: don't keep connections idle for too long
+  connectTimeout: 60000, // Increase connection timeout for serverless cold starts
 });
 
-// Test database connection
-async function testConnection() {
-  try {
-    const connection = await pool.getConnection();
-    console.log('Connected to MySQL database');
-    connection.release();
-  } catch (err) {
-    console.error('Database connection failed:', err);
+// Test database connection (only when not in serverless environment)
+if (process.env.NODE_ENV !== 'production') {
+  async function testConnection() {
+    try {
+      const connection = await pool.getConnection();
+      console.log('Connected to MySQL database');
+      connection.release();
+    } catch (err) {
+      console.error('Database connection failed:', err);
+    }
   }
+  testConnection();
 }
-
-testConnection();
 
 // Auth middleware
 const authenticateToken = (req, res, next) => {
@@ -79,6 +84,11 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Something went wrong!' });
 });
 
-// Start server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// For local development, start the server
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+}
+
+// Export the app for serverless deployment
+module.exports = app;

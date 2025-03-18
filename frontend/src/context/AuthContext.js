@@ -9,8 +9,8 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Configure axios default base URL
-  axios.defaults.baseURL = 'http://localhost:5000';
+  const isProduction = process.env.NODE_ENV === 'production';
+  axios.defaults.baseURL = isProduction ? '' : 'http://localhost:5000';
 
   useEffect(() => {
     // Check if user is logged in on page load

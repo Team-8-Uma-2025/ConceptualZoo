@@ -1,5 +1,21 @@
 {
-  "dependencies": {
-    "react-router-dom": "^7.3.0"
+    "name": "wildwood-conceptual-zoo",
+    "version": "1.0.0",
+    "private": true,
+    "workspaces": [
+      "frontend",
+      "backend"
+    ],
+    "scripts": {
+      "dev": "vercel dev",
+      "build": "npm run build:backend && npm run build:frontend",
+      "build:frontend": "cd frontend && npm install && npm run build",
+      "build:backend": "cd backend && npm install",
+      "start:frontend": "cd frontend && npm start",
+      "start:backend": "cd backend && npm start",
+      "deploy": "vercel deploy --prod"
+    },
+    "devDependencies": {
+      "vercel": "latest"
+    }
   }
-}
