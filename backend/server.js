@@ -55,7 +55,7 @@ const authenticateToken = (req, res, next) => {
 // Import routes
 const authRoutes = require('./routes/auth.routes')(pool, jwt, bcrypt);
 const staffRoutes = require('./routes/staff.routes')(pool, authenticateToken);
-// const animalRoutes = require('./routes/animal.routes')(pool, authenticateToken);
+const animalRoutes = require('./routes/animal.routes')(pool, authenticateToken);
 // const enclosureRoutes = require('./routes/enclosure.routes')(pool, authenticateToken);
 // const visitorRoutes = require('./routes/visitor.routes')(pool, authenticateToken);
 // const ticketRoutes = require('./routes/ticket.routes')(pool, authenticateToken);
@@ -63,7 +63,7 @@ const staffRoutes = require('./routes/staff.routes')(pool, authenticateToken);
 // Use routes
 app.use('/api/auth', authRoutes);
 app.use('/api/staff', staffRoutes);
-// app.use('/api/animals', animalRoutes);
+app.use('/api/animals', animalRoutes);
 // app.use('/api/enclosures', enclosureRoutes);
 // app.use('/api/visitors', visitorRoutes);
 // app.use('/api/tickets', ticketRoutes);
