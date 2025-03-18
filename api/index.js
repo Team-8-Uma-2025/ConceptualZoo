@@ -1,6 +1,4 @@
-// api/index.js - Adapter for Vercel serverless functions
-const path = require('path');
+// This file acts as the serverless function entry point
 const app = require('../backend/server');
 
-// Export the Express app as a Vercel serverless function
 module.exports = app;
