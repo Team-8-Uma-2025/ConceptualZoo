@@ -1,14 +1,16 @@
 {
     "version": 2,
-    "buildCommand": "npm run build",
     "builds": [
-      {
-        "src": "frontend/build/**",
-        "use": "@vercel/static"
-      },
       {
         "src": "backend/server.js",
         "use": "@vercel/node"
+      },
+      {
+        "src": "frontend/package.json",
+        "use": "@vercel/static-build",
+        "config": {
+          "distDir": "build"
+        }
       }
     ],
     "routes": [
@@ -17,8 +19,11 @@
         "dest": "backend/server.js"
       },
       {
+        "handle": "filesystem"
+      },
+      {
         "src": "/(.*)",
-        "dest": "frontend/build/$1"
+        "dest": "frontend/build/index.html"
       }
     ]
   }
