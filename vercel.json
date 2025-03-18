@@ -2,14 +2,12 @@
     "version": 2,
     "buildCommand": "cd frontend && CI=false npm run build",
     "outputDirectory": "frontend/build",
-    "functions": {
-      "backend/server.js": {
-        "memory": 1024,
-        "maxDuration": 10
-      }
-    },
-    "rewrites": [
-      { "source": "/api/(.*)", "destination": "/backend/server.js" },
-      { "source": "/(.*)", "destination": "/index.html" }
+    "builds": [
+      { "src": "api/index.js", "use": "@vercel/node" }
+    ],
+    "routes": [
+      { "src": "/api/(.*)", "dest": "/api/index.js" },
+      { "handle": "filesystem" },
+      { "src": "/(.*)", "dest": "/index.html" }
     ]
   }

@@ -1,7 +1,6 @@
-// server.js - Updated for Vercel deployment
 require('dotenv').config();
 const express = require('express');
-const mysql = require('mysql2/promise'); // Using promise version
+const mysql = require('mysql2/promise');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
@@ -12,24 +11,22 @@ const app = express();
 // Middleware
 app.use(express.json());
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' ? process.env.FRONTEND_URL : true
+  origin: process.env.NODE_ENV === 'production' ? true : 'http://localhost:3000'
 }));
 
 // Database connection pool
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
-  port: process.env.DB_PORT || 3306, // Default MySQL port
+  port: process.env.DB_PORT || 3306,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-  // Important for serverless: don't keep connections idle for too long
-  connectTimeout: 60000, // Increase connection timeout for serverless cold starts
+  connectionLimit: 5,  // Reduced for serverless
+  queueLimit: 0
 });
 
-// Test database connection (only when not in serverless environment)
+// Test database connection only in development
 if (process.env.NODE_ENV !== 'production') {
   async function testConnection() {
     try {
@@ -84,11 +81,11 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Something went wrong!' });
 });
 
-// For local development, start the server
+// Only start server in development, not in Vercel
 if (process.env.NODE_ENV !== 'production') {
   const PORT = process.env.PORT || 5000;
   app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 }
 
-// Export the app for serverless deployment
+// For Vercel serverless
 module.exports = app;
