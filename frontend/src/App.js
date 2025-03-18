@@ -82,7 +82,8 @@ function AppContent() {
           
           {/* Protected staff routes */}
           <Route element={<ProtectedRoute requiredRole="staff" />}>
-            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboard" element={<Dashboard />}> </Route>
+              <Route path="/animals" element={<Dashboard />}> </Route>
             {/* Additional staff routes will go here */}
           </Route>
         </Routes>
