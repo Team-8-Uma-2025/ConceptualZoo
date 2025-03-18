@@ -13,16 +13,16 @@ const Footer = () => {
               Explore the wonders of wildlife in the heart of Manhattan.
             </p>
             <div className="flex space-x-4">
-              <a href="#" className="text-white hover:text-green-400 transition duration-300">
+              <a href="/" className="text-white hover:text-green-400 transition duration-300">
                 <span>📱</span>
               </a>
-              <a href="#" className="text-white hover:text-green-400 transition duration-300">
+              <a href="/" className="text-white hover:text-green-400 transition duration-300">
                 <span>📷</span>
               </a>
-              <a href="#" className="text-white hover:text-green-400 transition duration-300">
+              <a href="/" className="text-white hover:text-green-400 transition duration-300">
                 <span>🐦</span>
               </a>
-              <a href="#" className="text-white hover:text-green-400 transition duration-300">
+              <a href="/" className="text-white hover:text-green-400 transition duration-300">
                 <span>📺</span>
               </a>
             </div>
