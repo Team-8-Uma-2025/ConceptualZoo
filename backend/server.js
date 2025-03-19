@@ -11,7 +11,14 @@ const app = express();
 // Middleware
 app.use(express.json());
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' ? true : 'http://localhost:3000'
+  origin: [
+    'https://conceptual-zoo-wildwood.vercel.app',
+    'https://conceptual-zoo-wildwood.vercel.app/',
+    'http://localhost:3000'
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
 // Database connection pool
@@ -73,6 +80,16 @@ app.use('/api/animals', animalRoutes);
 // Root route
 app.get('/', (req, res) => {
   res.send('Wild Wood Zoo API is running');
+});
+
+app.get('/api/test', (req, res) => {
+  res.json({
+    message: 'API is working correctly',
+    method: req.method,
+    url: req.url,
+    environment: process.env.NODE_ENV,
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Error handling middleware
