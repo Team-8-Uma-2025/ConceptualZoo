@@ -1,5 +1,6 @@
 // src/context/AuthContext.js
 import React, { createContext, useState, useEffect, useContext } from 'react';
+import API_URL from '../config/api';
 import axios from 'axios';
 
 const AuthContext = createContext(null);
@@ -9,8 +10,8 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const isProduction = process.env.NODE_ENV === 'production';
-  axios.defaults.baseURL = isProduction ? '' : 'http://localhost:5000';
+  axios.defaults.baseURL = API_URL;
+
 
   useEffect(() => {
     // Check if user is logged in on page load
