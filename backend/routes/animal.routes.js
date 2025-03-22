@@ -10,14 +10,23 @@ module.exports = (pool) => {
       // TODO: Implement getting all animals with pagination
       // HINT: Use query parameters like ?limit=10&offset=0
 
-      const {limit = 10, offset = 0} = req.query;
+      const {limit = 10, offset = 0, healthStatus} = req.query;
       const parsedLimit = parseInt(limit, 10) || 10;
       const parsedOffset = parseInt(offset, 10) || 0;
 
-      const [rows] = await pool.query(
-        'SELECT * FROM zoodb.animals LIMIT ? OFFSET ?',
-        [parsedLimit, parsedOffset]
-      );
+
+      let query = 'SELECT * FROM zoodb.animals';
+      let params = [];
+
+      if(healthStatus){
+        query += ' WHERE HealthStatus = ?';
+        params.push(healthStatus);
+      }
+
+      query += ' LIMIT ? OFFSET ?';
+      params.push(parsedLimit, parsedOffset);
+
+      const [rows] = await pool.query(query, params);
       
       res.json(rows);
     } catch (err) {
@@ -109,8 +118,13 @@ module.exports = (pool) => {
     try {
       // TODO: Implement getting animals by enclosure
       const enclosureId = req.params.id;
+
+      const [rows] = await pool.query(
+        'SELECT * FROM zoodb.animals as a WHERE a.EnclosureID = ?',
+        [enclosureId]
+      );
       
-      res.json({ message: `This endpoint will return animals in enclosure ${enclosureId}` });
+      res.json(rows);
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: 'Failed to fetch animals by enclosure' });

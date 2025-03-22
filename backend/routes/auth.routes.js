@@ -171,7 +171,7 @@ module.exports = (pool) => {
         // Generate token for staff
         const token = jwt.sign(
           { 
-            id: staff.StaffID, 
+            id: staff.Staff, 
             username: staff.Username, 
             role: 'staff',
             staffRole: staff.Role
@@ -183,10 +183,11 @@ module.exports = (pool) => {
         return res.json({ 
           token,
           user: {
-            id: staff.StaffID,
+            id: staff.Staff,
             name: staff.Name,
             role: 'staff',
-            staffRole: staff.Role
+            staffRole: staff.Role,
+            staffType: staff.StaffType
           }
         });
       }
@@ -247,10 +248,11 @@ module.exports = (pool) => {
           }
           
           return res.json({
-            id: staffMembers[0].StaffID,
+            id: staffMembers[0].staff,
             name: staffMembers[0].Name,
             role: 'staff',
             staffRole: staffMembers[0].Role,
+            staffType: staffMembers[0].StaffType,
             username: staffMembers[0].Username
           });
         }
