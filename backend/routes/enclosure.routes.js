@@ -74,9 +74,9 @@ module.exports = (pool) => {
     try {
       // TODO: Implement assigning staff to an enclosure
       const enclosureId = req.params.id;
-      const { staffId } = req.body;
+      const { Staff } = req.body;
       
-      res.json({ message: `This endpoint will assign staff ${staffId} to enclosure ${enclosureId}` });
+      res.json({ message: `This endpoint will assign staff ${Staff} to enclosure ${enclosureId}` });
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: 'Failed to assign staff to enclosure' });

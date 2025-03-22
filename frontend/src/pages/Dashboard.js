@@ -192,9 +192,9 @@ const Dashboard = () => {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200 font-['Lora']">
                     {staffMembers.map((staff) => (
-                      <tr key={staff.StaffID}>
+                      <tr key={staff.Staff}>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{staff.StaffID}</div>
+                          <div className="text-sm text-gray-900">{staff.Staff}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">{staff.Name}</div>
@@ -204,13 +204,13 @@ const Dashboard = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <Link 
-                            to={`/dashboard/staff/${staff.StaffID}`} 
+                            to={`/dashboard/staff/${staff.Staff}`} 
                             className="text-green-600 hover:text-green-900 mr-3 font-['Mukta_Mahee']"
                           >
                             View
                           </Link>
                           <Link 
-                            to={`/dashboard/staff/${staff.StaffID}/edit`} 
+                            to={`/dashboard/staff/${staff.Staff}/edit`} 
                             className="text-blue-600 hover:text-blue-900 font-['Mukta_Mahee']"
                           >
                             Edit
