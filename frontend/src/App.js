@@ -18,6 +18,7 @@ import StaffLogin from './pages/StaffLogin';
 import Profile from './pages/Profile';
 import Dashboard from './pages/Dashboard';
 import Unauthorized from './pages/Unauthorized';
+import Messages from './pages/Messages';
 
 // Components
 import Navbar from './components/Navbar';
@@ -71,10 +72,12 @@ function AppContent() {
           
           {/* Protected staff routes */}
           <Route element={<ProtectedRoute requiredRole="staff" />}>
-            <Route path="/dashboard" element={<Dashboard />}> </Route>
-              <Route path="/animals" element={<Dashboard />}> </Route>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboard/messages" element={<Messages />} />
+            <Route path="/animals" element={<Dashboard />} />
             {/* Additional staff routes will go here */}
           </Route>
+
         </Routes>
       </main>
       <Footer />

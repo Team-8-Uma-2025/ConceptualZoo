@@ -1,14 +1,43 @@
 // src/components/Navbar.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { User, LogOut, Menu, X, ChevronDown } from 'lucide-react';
+import { User, LogOut, Menu, X, ChevronDown, Bell } from 'lucide-react';
+import axios from 'axios';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const { currentUser, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      if (currentUser && currentUser.role === 'staff') {
+        try {
+          const response = await axios.get('/api/notifications', {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          });
+          
+          // Count unacknowledged notifications
+          const unread = response.data.filter(notification => !notification.Acknowledged).length;
+          setUnreadNotifications(unread);
+        } catch (err) {
+          console.error('Failed to fetch notifications count:', err);
+        }
+      }
+    };
+
+    fetchNotifications();
+    
+    // Set up interval to check for new notifications every minute
+    const interval = setInterval(fetchNotifications, 60000);
+    
+    return () => clearInterval(interval);
+  }, [currentUser]);
 
   const handleLogout = () => {
     logout();
@@ -41,6 +70,21 @@ const Navbar = () => {
           <Link to="/plan-visit" className="hover:text-green-300 transition duration-300">Plan Your Visit</Link>
           <Link to="/animals" className="hover:text-green-300 transition duration-300">Animals</Link>
           <Link to="/attractions" className="hover:text-green-300 transition duration-300">Attractions</Link>
+          
+          {/* Notifications for staff */}
+          {currentUser && currentUser.role === 'staff' && (
+            <Link 
+              to="/dashboard/messages" 
+              className="hover:text-green-300 transition duration-300 relative"
+            >
+              <Bell size={20} />
+              {unreadNotifications > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {unreadNotifications}
+                </span>
+              )}
+            </Link>
+          )}
           
           {/* Auth Items */}
           {isAuthenticated ? (
@@ -123,6 +167,23 @@ const Navbar = () => {
           <Link to="/animals" className="block py-2 px-4 hover:bg-green-700 transition duration-300">Animals</Link>
           <Link to="/attractions" className="block py-2 px-4 hover:bg-green-700 transition duration-300">Attractions</Link>
           <Link to="/tickets" className="block py-2 px-4 bg-green-600 hover:bg-green-500 transition duration-300 font-bold mt-2 mb-2">BUY TICKETS</Link>
+          
+          {/* Notifications for staff in mobile menu */}
+          {currentUser && currentUser.role === 'staff' && (
+            <Link 
+              to="/dashboard/messages" 
+              className="block py-2 px-4 hover:bg-green-700 transition duration-300 flex items-center"
+              onClick={() => setIsOpen(false)}
+            >
+              <Bell size={16} className="mr-2" />
+              Notifications
+              {unreadNotifications > 0 && (
+                <span className="ml-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {unreadNotifications}
+                </span>
+              )}
+            </Link>
+          )}
           
           {/* Auth Items for Mobile */}
           <div className="border-t border-gray-700 my-2"></div>
