@@ -90,10 +90,70 @@ module.exports = (pool) => {
   // Update animal (staff only)
   router.put('/:id', authenticateToken, async (req, res) => {
     try {
-      // TODO: Implement updating an animal
+      // Ensure the user is staff
+      if (req.user.role !== 'staff' && req.user.staffRole !== 'Manager') {
+        return res.status(403).json({ error: 'You do not have permission to update animals' });
+      }
+  
       const animalId = req.params.id;
-      
-      res.json({ message: `This endpoint will update animal with ID ${animalId}` });
+  
+      // Build a dynamic UPDATE query
+      const fields = [];
+      const values = [];
+  
+      // Only push fields that were actually provided in the body
+      if (req.body.Name !== undefined) {
+        fields.push('Name = ?');
+        values.push(req.body.Name);
+      }
+      if (req.body.Species !== undefined) {
+        fields.push('Species = ?');
+        values.push(req.body.Species);
+      }
+      if (req.body.DateOfBirth !== undefined) {
+        fields.push('DateOfBirth = ?');
+        values.push(req.body.DateOfBirth);
+      }
+      if (req.body.Gender !== undefined) {
+        fields.push('Gender = ?');
+        values.push(req.body.Gender);
+      }
+      if (req.body.HealthStatus !== undefined) {
+        fields.push('HealthStatus = ?');
+        values.push(req.body.HealthStatus);
+      }
+      if (req.body.LastVetCheckup !== undefined) {
+        fields.push('LastVetCheckup = ?');
+        values.push(req.body.LastVetCheckup);
+      }
+      if (req.body.EnclosureID !== undefined) {
+        fields.push('EnclosureID = ?');
+        values.push(req.body.EnclosureID);
+      }
+      if (req.body.DangerLevel !== undefined) {
+        fields.push('DangerLevel = ?');
+        values.push(req.body.DangerLevel);
+      }
+  
+      // If no fields were provided, return an error
+      if (fields.length === 0) {
+        return res.status(400).json({ error: 'No fields to update' });
+      }
+  
+      // Build the final SQL, e.g. "UPDATE animals SET Name=?, Species=? WHERE AnimalID=?"
+      const sql = `UPDATE animals SET ${fields.join(', ')} WHERE AnimalID = ?`;
+      values.push(animalId); // the last parameter in the WHERE clause
+  
+      // Execute the query
+      const [result] = await pool.query(sql, values);
+  
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ error: 'Animal not found' });
+      }
+  
+      // Optionally, fetch the updated row to return it
+      const [updatedRows] = await pool.query('SELECT * FROM animals WHERE AnimalID = ?', [animalId]);
+      res.json({ message: 'Animal updated successfully', animal: updatedRows[0] });
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: 'Failed to update animal' });
@@ -102,16 +162,31 @@ module.exports = (pool) => {
   
   // Delete animal (staff only)
   router.delete('/:id', authenticateToken, async (req, res) => {
-    try {
-      // TODO: Implement deleting an animal
-      const animalId = req.params.id;
-      
-      res.json({ message: `This endpoint will delete animal with ID ${animalId}` });
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: 'Failed to delete animal' });
+  try {
+    // Ensure the user is staff
+    if (req.user.role !== 'staff' && req.user.staffRole !== 'Manager') {
+      return res.status(403).json({ error: 'You do not have permission to delete animals' });
     }
-  });
+
+    const animalId = req.params.id;
+
+    // Perform the DELETE query
+    const [result] = await pool.query(
+      'DELETE FROM animals WHERE AnimalID = ?',
+      [animalId]
+    );
+
+    // If no rows were deleted, the animal doesn't exist
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Animal not found' });
+    }
+
+    res.json({ message: 'Animal deleted successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to delete animal' });
+  }
+});
   
   // Get animals by enclosure
   router.get('/enclosure/:id', async (req, res) => {
