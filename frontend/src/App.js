@@ -19,6 +19,8 @@ import Profile from './pages/Profile';
 import Dashboard from './pages/Dashboard';
 import Unauthorized from './pages/Unauthorized';
 import Messages from './pages/Messages';
+import EnclosureList from './pages/EnclosureList';
+import EnclosureDetails from './pages/EnclosureDetails';
 
 // Components
 import Navbar from './components/Navbar';
@@ -64,6 +66,10 @@ function AppContent() {
           <Route path="/register" element={<Register />} />
           <Route path="/staff-login" element={<StaffLogin />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
+
+          {/*javier routes */}
+          <Route path="/enclosure-list" element={<EnclosureList />} />
+          
           
           {/* Protected visitor routes */}
           <Route element={<ProtectedRoute requiredRole="visitor" />}>
@@ -75,9 +81,12 @@ function AppContent() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/dashboard/messages" element={<Messages />} />
             <Route path="/animals" element={<Dashboard />} />
+            <Route path="/enclosure-details" element={<EnclosureDetails />} /> 
             {/* Additional staff routes will go here */}
           </Route>
 
+            {/* Additional staff routes will go here */}
+            
         </Routes>
       </main>
       <Footer />
