@@ -69,11 +69,11 @@ module.exports = (pool) => {
     try {
       const { 
         name, role, ssn, birthdate, sex, address, 
-        supervisorID, username, password
+        supervisorID, username, password, stafftype
       } = req.body;
       
       // Validate input
-      if (!name || !role || !ssn || !birthdate || !sex || !address || !username || !password) {
+      if (!name || !role || !ssn || !birthdate || !sex || !address || !username || !password || !stafftype) {
         return res.status(400).json({ error: 'All required fields must be provided' });
       }
       
@@ -94,8 +94,8 @@ module.exports = (pool) => {
       const hireDate = new Date().toISOString().split('T')[0]; // Current date
       
       const [result] = await pool.query(
-        'INSERT INTO staff (Name, Role, SSN, Birthdate, Sex, Address, HireDate, SupervisorID, Username, Password) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [name, role, ssn, birthdate, sex, address, hireDate, supervisorID, username, hashedPassword]
+        'INSERT INTO staff (Name, Role, SSN, Birthdate, Sex, Address, HireDate, SupervisorID, Username, Password, StaffType) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [name, role, ssn, birthdate, sex, address, hireDate, supervisorID, username, hashedPassword, stafftype]
       );
       
       res.status(201).json({ 
