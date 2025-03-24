@@ -13,7 +13,7 @@ const EnclosureList = () => {
 
     // Fetch enclosure data
     useEffect(() => {
-        axios.get('localhost:5000/api/enclosures')
+        axios.get('http://localhost:5000/api/enclosures')
             .then(response => {
                 setEnclosures(response.data); // sets data
             })
@@ -23,7 +23,7 @@ const EnclosureList = () => {
     }, []); // run once 
 
     return (
-        <div>
+        <div className='min-h-screen bg-white pt-20'>
             <h1>Enclosure List</h1>
             <table>
                 <thead>

@@ -66,8 +66,8 @@ const attractionRoutes = require('./routes/attractions.routes')(pool, authentica
 app.use('/api/auth', authRoutes);
 app.use('/api/staff', staffRoutes);
 // app.use('/api/animals', animalRoutes);
-app.use('/api/enclosures', enclosureRoutes(pool));
-app.use('/api/attractions', attractionRoutes(pool));
+app.use('/api/enclosures', enclosureRoutes);
+app.use('/api/attractions', attractionRoutes);
 // app.use('/api/visitors', visitorRoutes);
 // app.use('/api/tickets', ticketRoutes);
 

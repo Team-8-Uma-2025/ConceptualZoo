@@ -58,6 +58,13 @@ const Dashboard = () => {
         description: 'Check internal communications',
         link: '/dashboard/messages',
         color: 'bg-indigo-600'
+      },
+      {
+        title: 'Enclosure Information',
+        icon: '🐒',
+        description: 'View and edit(if applicable) enclosure information',
+        link: '/enclosure-details',
+        color: 'bg-cyan-600'
       }
     ];
 
@@ -194,7 +201,7 @@ const Dashboard = () => {
                     {staffMembers.map((staff) => (
                       <tr key={staff.StaffID}>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{staff.StaffID}</div>
+                          <div className="text-sm text-gray-900">{staff.Staff}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">{staff.Name}</div>
