@@ -69,10 +69,10 @@ const Profile = () => {
                       <p className="text-gray-800">{currentUser.lastName}</p>
                     </div>
                     
-                    {/* <div>
+                    <div>
                       <p className="text-sm text-gray-500">Username</p>
                       <p className="text-gray-800">{currentUser.username}</p>
-                    </div> */}
+                    </div>
                     
                     <div>
                       <p className="text-sm text-gray-500">Membership Status</p>
