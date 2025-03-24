@@ -16,7 +16,7 @@ module.exports = (pool) => {
   router.get('/', authenticateToken, isAdminOrManager, async (req, res) => {
     try {
       const [staff] = await pool.query(
-        'SELECT StaffID, Name, Role, Username FROM staff'
+        'SELECT Staff, Name, Role, Username FROM staff'
       );
       
       res.json(staff);
@@ -39,7 +39,7 @@ module.exports = (pool) => {
       }
       
       const [staff] = await pool.query(
-        'SELECT StaffID, Name, Role, Birthdate, Sex, Address, HireDate, SupervisorID, Username FROM staff WHERE StaffID = ?',
+        'SELECT Staff, Name, Role, Birthdate, Sex, Address, HireDate, SupervisorID, Username FROM staff WHERE Staff = ?',
         [id]
       );
       
@@ -70,7 +70,7 @@ module.exports = (pool) => {
       // Regular staff can only update their address
       if (req.user.id === parseInt(id) && req.user.staffRole !== 'Manager') {
         await pool.query(
-          'UPDATE staff SET Address = ? WHERE StaffID = ?',
+          'UPDATE staff SET Address = ? WHERE Staff = ?',
           [address, id]
         );
         
@@ -79,7 +79,7 @@ module.exports = (pool) => {
       
       // Managers can update more fields
       await pool.query(
-        'UPDATE staff SET Name = ?, Role = ?, Address = ?, SupervisorID = ? WHERE StaffID = ?',
+        'UPDATE staff SET Name = ?, Role = ?, Address = ?, SupervisorID = ? WHERE Staff = ?',
         [name, role, address, supervisorID, id]
       );
       
@@ -96,7 +96,7 @@ module.exports = (pool) => {
       const enclosureId = req.params.id;
       
       const [staff] = await pool.query(
-        'SELECT s.StaffID, s.Name, s.Role FROM staff s JOIN enclosures e ON s.StaffID = e.StaffID WHERE e.EnclosureID = ?',
+        'SELECT s.Staff, s.Name, s.Role FROM staff s JOIN enclosures e ON s.Staff = e.Staff WHERE e.EnclosureID = ?',
         [enclosureId]
       );
       

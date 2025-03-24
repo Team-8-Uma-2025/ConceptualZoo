@@ -5,7 +5,7 @@ import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
 // Pages
-import Home from './pages/Home';
+import Home from './pages/home';
 import Animals from './pages/Animals';
 import Attractions from './pages/Attractions';
 import PlanVisit from './pages/PlanVisit';
@@ -18,8 +18,8 @@ import StaffLogin from './pages/StaffLogin';
 import Profile from './pages/Profile';
 import Dashboard from './pages/Dashboard';
 import Unauthorized from './pages/Unauthorized';
-import EnclosureList from './pages/EnclosureList'; //investigate why it doesnt work
-import Test from './pages/Test'; // test to see if page renders
+import EnclosureList from './pages/EnclosureList';
+import EnclosureDetails from './pages/EnclosureDetails';
 
 // Components
 import Navbar from './components/Navbar';
@@ -79,7 +79,7 @@ function AppContent() {
 
           {/*javier routes */}
           <Route path="/enclosure-list" element={<EnclosureList />} />
-          <Route path="/test" element={<Test />} />
+          
           
           {/* Protected visitor routes */}
           <Route element={<ProtectedRoute requiredRole="visitor" />}>
@@ -90,6 +90,7 @@ function AppContent() {
           <Route element={<ProtectedRoute requiredRole="staff" />}>
             <Route path="/dashboard" element={<Dashboard />} />
             {/* Additional staff routes will go here */}
+            <Route path="/enclosure-details" element={<EnclosureDetails />} /> 
           </Route>
         </Routes>
       </main>

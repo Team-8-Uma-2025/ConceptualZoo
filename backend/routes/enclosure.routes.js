@@ -77,7 +77,7 @@ module.exports = (pool) => {
     try {
 
       // Check that the user is staff with appropriate permissions
-      if(req.user.role !== 'staff'){
+      if(req.user.staffRole !== 'Manager'){
         return res.status(403).json({error: 'Denied. Appropriate staff only'})
       }
       
@@ -108,7 +108,7 @@ module.exports = (pool) => {
     }
   });
   
-  // Update enclosure (staff only)
+  // Update enclosure (Manager only)
   router.put('/:id', authenticateToken, async (req, res) => {
     try {
       // TODO: Implement updating an enclosure
@@ -120,7 +120,7 @@ module.exports = (pool) => {
       }
 
       // Check that the user is staff with appropriate permissions
-      if(req.user.role !== 'staff'){
+      if(req.user.staffRole !== 'Manager'){
         return res.status(403).json({error: 'Denied. staff only'})
       }
 
@@ -185,7 +185,7 @@ module.exports = (pool) => {
       }
 
       // Check that the user is staff with appropriate permissions
-      if(req.user.role !== 'staff'){
+      if(req.user.staffRole !== 'Manager'){
         return res.status(403).json({error: 'Denied. staff only'})
       }
 
@@ -220,6 +220,7 @@ module.exports = (pool) => {
       console.error(err);
       res.status(500).json({ error: 'Failed to assign staff to enclosure' });
     }
+    
   });
   
   return router;
