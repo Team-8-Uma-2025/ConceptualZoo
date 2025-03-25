@@ -21,6 +21,7 @@ import Unauthorized from './pages/Unauthorized';
 import Messages from './pages/Messages';
 import EnclosureList from './pages/EnclosureList';
 import EnclosureDetails from './pages/EnclosureDetails';
+import AnimalDetails from './pages/AnimalDetails';
 
 // Components
 import Navbar from './components/Navbar';
@@ -28,6 +29,7 @@ import Footer from './components/Footer';
 
 // Styles
 import './index.css';
+
 
 // Main App component
 function App() {
@@ -82,6 +84,7 @@ function AppContent() {
             <Route path="/dashboard/messages" element={<Messages />} />
             <Route path="/animals" element={<Dashboard />} />
             <Route path="/enclosure-details" element={<EnclosureDetails />} /> 
+            <Route path="/dashboard/test1" element={<AnimalDetails />} /> 
             {/* Additional staff routes will go here */}
           </Route>
 
