@@ -20,6 +20,28 @@ const AttractionDetails = () => {
 
     });
 
+    // handle changes in form inputs
+    const handleChange = (a) => {
+        setFormData({
+            ...formData,
+            [a.target.name]: a.target.value
+        });
+    };
+
+    // Toggle edit mode (for managers)
+    const handleToggleEdit = () => {
+        if (selectedEnclosure) {
+            setIsEditing(true);
+            setIsAdding(false);
+        }
+    };
+
+    // Cancel add/edit mode
+    const handleCancel = () => {
+        setIsEditing(false);
+        setIsAdding(false);
+    };
+
 
 
     return (
