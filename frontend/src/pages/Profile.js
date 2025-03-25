@@ -232,7 +232,6 @@ const Profile = () => {
                       return (
                         <div key={date} className="mb-8">
                           <h4 className="text-xl font-bold mb-4">{date}</h4>
-
                           {/* Display regular tickets for this date */}
                           {group.regular.map((ticket) => (
                             <div
@@ -243,8 +242,6 @@ const Profile = () => {
                                 <div>
                                   <p className="font-semibold text-gray-800 font-['Mukta_Mahee']">
                                     {ticket.TicketType} Ticket
-                                    {ticket.EnclosureAccess !== "None" &&
-                                      ` - ${ticket.EnclosureAccess}`}
                                   </p>
                                   <p className="text-sm text-gray-600 font-['Lora']">
                                     Valid: {formatDate(ticket.StartDate)}
@@ -252,6 +249,9 @@ const Profile = () => {
                                   <p className="text-sm text-gray-600 font-['Lora']">
                                     Price: $
                                     {parseFloat(ticket.Price).toFixed(2)}
+                                  </p>
+                                  <p className="text-sm text-gray-600 font-['Lora']">
+                                    Add-on: {ticket.addons}
                                   </p>
                                 </div>
                                 <div>
@@ -268,107 +268,18 @@ const Profile = () => {
                               </div>
                             </div>
                           ))}
-
                           {/* Display add-on tickets for this date */}
                           {group.addons.map((addon) => (
                             <div
                               key={addon.TicketID}
                               className="border border-gray-200 rounded-md p-4 mb-2 ml-4"
                             >
-                              <div className="flex justify-between items-center">
-                                <div>
-                                  <p className="font-semibold text-gray-800 font-['Mukta_Mahee']">
-                                    Addon Ticket - {addon.EnclosureAccess}
-                                  </p>
-                                  <p className="text-sm text-gray-600 font-['Lora']">
-                                    Valid: {formatDate(addon.StartDate)}
-                                  </p>
-                                  <p className="text-sm text-gray-600 font-['Lora']">
-                                    Price: ${parseFloat(addon.Price).toFixed(2)}
-                                  </p>
-                                </div>
-                                <div>
-                                  <span
-                                    className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
-                                      addon.Used
-                                        ? "bg-gray-100 text-gray-800"
-                                        : "bg-green-100 text-green-800"
-                                    }`}
-                                  >
-                                    {addon.Used ? "Used" : "Valid"}
-                                  </span>
-                                </div>
-                              </div>
+                              {/* Addon content */}
                             </div>
                           ))}
                         </div>
                       );
                     })
-                  )}
-                </div>
-
-                {/* Add-ons Section */}
-                <div className="bg-gray-50 rounded-lg p-6 shadow-sm mt-6">
-                  <h3 className="text-xl font-semibold mb-4 font-['Mukta_Mahee']">
-                    Your Add-ons
-                  </h3>
-
-                  {loading ? (
-                    <div className="flex justify-center items-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-700"></div>
-                    </div>
-                  ) : error ? (
-                    <p className="text-red-600 text-center py-4 font-['Lora']">
-                      {error}
-                    </p>
-                  ) : addons && addons.length === 0 ? (
-                    <div className="text-center py-6">
-                      <p className="text-gray-500 mb-4 font-['Lora']">
-                        You haven't purchased any add-ons yet.
-                      </p>
-                      <a
-                        href="/tickets"
-                        className="text-green-700 hover:text-green-600 underline font-['Mukta_Mahee']"
-                      >
-                        Enhance Your Visit
-                      </a>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {addons &&
-                        addons.map((addon) => (
-                          <div
-                            key={addon.TicketID}
-                            className="border border-gray-200 rounded-md p-4"
-                          >
-                            <div className="flex justify-between items-center">
-                              <div>
-                                <p className="font-semibold text-gray-800 font-['Mukta_Mahee']">
-                                  Addon Ticket - {addon.EnclosureAccess}
-                                </p>
-                                <p className="text-sm text-gray-600 font-['Lora']">
-                                  Valid: {formatDate(addon.StartDate)}
-                                </p>
-                                <p className="text-sm text-gray-600 font-['Lora']">
-                                  Price: ${parseFloat(addon.Price).toFixed(2)}
-                                </p>
-                              </div>
-                              <div>
-                                <span
-                                  className={`inline-block px-3 py-1 rounded-full text-xs font-semibold
-                                  ${
-                                    addon.Used
-                                      ? "bg-gray-100 text-gray-800"
-                                      : "bg-green-100 text-green-800"
-                                  }`}
-                                >
-                                  {addon.Used ? "Used" : "Valid"}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                    </div>
                   )}
                 </div>
               </div>
