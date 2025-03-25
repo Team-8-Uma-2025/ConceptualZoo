@@ -25,20 +25,20 @@ module.exports = (pool) => {
                 return res.status(400).json({ error: 'Invalid Attraction ID. ID must be a number' });
             }
             
-            /* Come back to it later(javier)
+            // fetch attractions
             const [rows] = await pool.query(`
                 SELECT Title, AttractionID, StaffID, Location, StartTimeStamp, EndTimeStamp, Description
-                FROM attraction`
-
+                FROM attraction
+                WHERE AttractionId = ?`,
+                [attractionId]
             );
-            */
 
             // If enclosure does not exist
             if (rows.length === 0) {
                 return res.status(404).json({ error: 'Attraction not found' });
             }
 
-
+            res.json(rows);
         }catch (err){
             console.error(err);
             res.status(500).json({ error: 'Failed to fetch enclosure' });
