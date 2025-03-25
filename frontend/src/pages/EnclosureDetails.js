@@ -451,5 +451,5 @@ const EnclosureDetails = () => {
       </div>
     </div>
   );
-};
+}};
 export default EnclosureDetails;
