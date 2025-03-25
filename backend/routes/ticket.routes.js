@@ -218,5 +218,63 @@ module.exports = (pool) => {
     }
   });
 
+  // Get revenue reports (managers only)
+  router.get("/revenue", authenticateToken, async (req, res) => {
+    try {
+      // Check that user is manager
+      if (req.user.role !== "staff" || req.user.staffRole !== "Manager") {
+        return res
+          .status(403)
+          .json({ error: "Unauthorized. Manager access only." });
+      }
+
+      // Optional date range filters
+      const { startDate, endDate } = req.query;
+
+      let query = "SELECT * FROM TicketRevenueSummary";
+      const params = [];
+
+      if (startDate && endDate) {
+        query += " WHERE Date BETWEEN ? AND ?";
+        params.push(startDate, endDate);
+      } else if (startDate) {
+        query += " WHERE Date >= ?";
+        params.push(startDate);
+      } else if (endDate) {
+        query += " WHERE Date <= ?";
+        params.push(endDate);
+      }
+
+      query += " ORDER BY Date DESC";
+
+      const [data] = await pool.query(query, params);
+
+      // Get total revenue summary
+      const [totals] = await pool.query(
+        `
+        SELECT 
+          PurchaseType,
+          SUM(Quantity) as TotalQuantity,
+          SUM(TotalRevenue) as TotalRevenue
+        FROM TicketRevenueSummary
+        ${startDate || endDate ? "WHERE " : ""}
+        ${startDate ? "Date >= ? " : ""}
+        ${startDate && endDate ? "AND " : ""}
+        ${endDate ? "Date <= ? " : ""}
+        GROUP BY PurchaseType
+      `,
+        params.filter(Boolean)
+      );
+
+      res.json({
+        details: data,
+        summary: totals,
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to fetch revenue data" });
+    }
+  });
+
   return router;
 };
