@@ -65,6 +65,7 @@ const Dashboard = () => {
           const enclosureResponse = await axios.get(enclosureUrl, {
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
           });
+          console.log(enclosureResponse.data)
           setEnclosures(enclosureResponse.data || []);
         }
 
@@ -78,6 +79,8 @@ const Dashboard = () => {
 
     fetchDashboardData();
   }, [currentUser]);
+
+  console.log(staffMembers)
 
   // Function to toggle section expansion
   const toggleSection = (section) => {
@@ -111,20 +114,13 @@ const Dashboard = () => {
           link: '/dashboard/staff',
           color: 'bg-purple-600'
         },
-        {
-          title: 'System Overview',
-          icon: <Activity size={20} className="mr-2" />,
-          description: 'View system-wide metrics and status',
-          link: '/dashboard/overview',
-          color: 'bg-pink-600'
-        },
-        {
-          title: 'Enclosure Information',
-          icon: '🐒',
-          description: 'View and edit(if applicable) enclosure information',
-          link: '/enclosure-details',
-          color: 'bg-cyan-600'
-        }
+        // {
+        //   title: 'System Overview',
+        //   icon: <Activity size={20} className="mr-2" />,
+        //   description: 'View system-wide metrics and status',
+        //   link: '/dashboard/overview',
+        //   color: 'bg-pink-600'
+        // },
       ],
     };
     const staffTypeModules = {
@@ -136,41 +132,41 @@ const Dashboard = () => {
           link: '/dashboard/enclosures',
           color: 'bg-green-600'
         },
-        {
-          title: 'Animals',
-          icon: <Activity size={20} className="mr-2" />,
-          description: 'View and monitor animals in your care',
-          link: '/dashboard/animals',
-          color: 'bg-yellow-600'
-        },
-        {
-          title: 'Enclosure Information',
-          icon: '🐒',
-          description: 'View and edit(if applicable) enclosure information',
-          link: '/enclosure-details',
-          color: 'bg-cyan-600'
-        }
+        // {
+        //   title: 'Animals',
+        //   icon: <Activity size={20} className="mr-2" />,
+        //   description: 'View and monitor animals in your care',
+        //   link: '/dashboard/animals',
+        //   color: 'bg-yellow-600'
+        // },
+        // {
+        //   title: 'Enclosure Information',
+        //   icon: '🐒',
+        //   description: 'View and edit(if applicable) enclosure information',
+        //   link: '/dashboard/enclosures',
+        //   color: 'bg-cyan-600'
+        // }
       ],
       'Vet': [
-        {
-          title: 'Health Monitoring',
-          icon: <Heart size={20} className="mr-2" />,
-          description: 'Monitor animal health status',
-          link: '/dashboard/health',
-          color: 'bg-red-600'
-        },
-        {
-          title: 'Medical Records',
-          icon: <Clipboard size={20} className="mr-2" />,
-          description: 'Access and update animal medical information',
-          link: '/dashboard/medical-records',
-          color: 'bg-orange-600'
-        },
+        // {
+        //   title: 'Health Monitoring',
+        //   icon: <Heart size={20} className="mr-2" />,
+        //   description: 'Monitor animal health status',
+        //   link: '/dashboard/health',
+        //   color: 'bg-red-600'
+        // },
+        // {
+        //   title: 'Medical Records',
+        //   icon: <Clipboard size={20} className="mr-2" />,
+        //   description: 'Access and update animal medical information',
+        //   link: '/dashboard/medical-records',
+        //   color: 'bg-orange-600'
+        // },
         {
           title: 'Enclosure Information',
           icon: '🐒',
           description: 'View and edit(if applicable) enclosure information',
-          link: '/enclosure-details',
+          link: '/dashboard/enclosures',
           color: 'bg-cyan-600'
         }
       ],
@@ -299,6 +295,9 @@ const Dashboard = () => {
                             ID
                           </th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            EnclosureID
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Name
                           </th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -317,6 +316,9 @@ const Dashboard = () => {
                           <tr key={animal.AnimalID}>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                               {animal.AnimalID}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {animal.EnclosureID}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                               {animal.Name}
@@ -402,7 +404,7 @@ const Dashboard = () => {
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                               {enclosure.Capacity}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                               <Link to={`/dashboard/enclosures/${enclosure.EnclosureID}`} className="text-green-600 hover:text-green-900">
                                 View
                               </Link>
