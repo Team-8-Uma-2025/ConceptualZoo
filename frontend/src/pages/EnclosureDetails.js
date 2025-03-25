@@ -9,7 +9,7 @@ const EnclosureDetails = () =>{
     const [enclosureList, setEnclosureList] = useState([]); //preload enclosures for manager functions
 
     const [selectedEnclosure, setSelectedEnclosure] = useState(null); //fetch enclosure details
-    const [loading, setLoading] = useState(false); // change to true if you see behavior change
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null); 
 
     // For managers when editing or adding
