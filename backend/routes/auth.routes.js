@@ -248,7 +248,7 @@ module.exports = (pool) => {
           }
           
           return res.json({
-            id: staffMembers[0].staff,
+            id: staffMembers[0].Staff,
             name: staffMembers[0].Name,
             role: 'staff',
             staffRole: staffMembers[0].Role,
