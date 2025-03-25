@@ -91,15 +91,19 @@ module.exports = (pool) => {
             const startDate = new Date(visitDate);
             const endDate = new Date(visitDate);
             endDate.setDate(endDate.getDate() + 1);
+
+            // Insert into addons table instead of tickets table
             const [result] = await connection.query(
-              "INSERT INTO tickets (VisitorID, TicketType, Price, EnclosureAccess, StartDate, EndDate, Used) VALUES (?, ?, ?, ?, ?, ?, ?)",
-              [visitorId, "Addon", price, accessType, startDate, endDate, 0]
+              "INSERT INTO addons (VisitorID, Type, Price, Description, StartDate, EndDate, Used) VALUES (?, ?, ?, ?, ?, ?, ?)",
+              [visitorId, addon, price, accessType, startDate, endDate, 0]
             );
+
             purchasedTickets.push({
               id: result.insertId,
               type: "Addon: " + accessType,
               access: accessType,
               price,
+              isAddon: true,
             });
           }
         }
@@ -120,27 +124,58 @@ module.exports = (pool) => {
     }
   });
 
-  // Get visitor's tickets
+  // Update the visitor/:id route
   router.get("/visitor/:id", authenticateToken, async (req, res) => {
     try {
       const visitorId = req.params.id;
-
-      // Ensure user is accessing their own tickets or is staff
+      // Only allow the visitor their own tickets (or staff viewing)
       if (req.user.id !== parseInt(visitorId) && req.user.role !== "staff") {
-        return res
-          .status(403)
-          .json({ error: "Unauthorized to view these tickets" });
+        return res.status(403).json({ error: "Unauthorized" });
       }
 
-      const [tickets] = await pool.query(
-        "SELECT * FROM tickets WHERE VisitorID = ? ORDER BY StartDate DESC",
+      // Regular tickets exclude add-on tickets
+      const [regularTickets] = await pool.query(
+        "SELECT * FROM tickets WHERE VisitorID = ? AND TicketType NOT LIKE 'Addon' ORDER BY StartDate DESC",
         [visitorId]
       );
 
-      res.json(tickets);
+      // Add-on tickets include any ticket with TicketType = 'Addon' or with specific EnclosureAccess values.
+      const [addonTickets] = await pool.query(
+        "SELECT * FROM tickets WHERE VisitorID = ? AND (TicketType = 'Addon' OR EnclosureAccess LIKE '%Feeding%' OR EnclosureAccess LIKE '%Tour%' OR EnclosureAccess LIKE '%Encounter%' OR EnclosureAccess LIKE '%Parking%') ORDER BY StartDate DESC",
+        [visitorId]
+      );
+
+      res.json({
+        regularTickets: regularTickets || [],
+        addonTickets: addonTickets || [],
+      });
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: "Failed to fetch tickets" });
+    }
+  });
+
+  // Add a new route to get visitor's addons
+  router.get("/visitor/:id/addons", authenticateToken, async (req, res) => {
+    try {
+      const visitorId = req.params.id;
+
+      // Ensure user is accessing their own addons or is staff
+      if (req.user.id !== parseInt(visitorId) && req.user.role !== "staff") {
+        return res
+          .status(403)
+          .json({ error: "Unauthorized to view these addons" });
+      }
+
+      const [addons] = await pool.query(
+        "SELECT * FROM addons WHERE VisitorID = ? ORDER BY StartDate DESC",
+        [visitorId]
+      );
+
+      res.json(addons);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to fetch addons" });
     }
   });
 
