@@ -3,7 +3,6 @@ import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 
 const EnclosureDetails = () =>{
-    /*States*/
     const {currentUser} = useAuth(); // user from authContext
     const [search_eID, setEnclosureId] = useState(''); // search variable
     const [enclosureList, setEnclosureList] = useState([]); //preload enclosures for manager functions
