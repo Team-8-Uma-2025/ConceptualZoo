@@ -5,7 +5,7 @@ import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
 // Pages
-import Home from './pages/home';
+import Home from './pages/Home';
 import Animals from './pages/Animals';
 import Attractions from './pages/Attractions';
 import PlanVisit from './pages/PlanVisit';
