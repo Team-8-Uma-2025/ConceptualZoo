@@ -15,14 +15,36 @@ module.exports = (pool) => {
         }
     });
 
-    // get enclosure by ID
+    // get attraction details by ID 
     router.get('/:id', async (req, res) => {
         try{
+            const attractionId = req.params.id;
 
+            // Verify attraction ID is number
+            if(isNaN(attractionId)){
+                return res.status(400).json({ error: 'Invalid Attraction ID. ID must be a number' });
+            }
+            
+            // fetch attractions
+            const [rows] = await pool.query(`
+                SELECT Title, AttractionID, StaffID, Location, StartTimeStamp, EndTimeStamp, Description
+                FROM attraction
+                WHERE AttractionId = ?`,
+                [attractionId]
+            );
+
+            // If enclosure does not exist
+            if (rows.length === 0) {
+                return res.status(404).json({ error: 'Attraction not found' });
+            }
+
+            res.json(rows);
         }catch (err){
+            console.error(err);
+            res.status(500).json({ error: 'Failed to fetch enclosure' });
 
         }
-    })
+    });
 
     // add new attraction (staff'Manager' only)
     router.post('/', authenticateToken, async (req, res) =>{
@@ -136,14 +158,35 @@ module.exports = (pool) => {
 
     router.delete('/:id', authenticateToken, async (req, res) => {
         try {
+            const attractionId = req.params.id;
+
+            // Verify attraction ID is number
+            if(isNaN(attractionId)){
+                return res.status(400).json({ error: 'Invalid Attraction ID. ID must be a number' });
+            }
+
+            // Check that the user is staff with appropriate permissions
+            if(req.user.staffRole !== 'Manager'){
+                return res.status(403).json({error: 'Denied. Manager only'})
+            }
+
+            // check if enclosure to delete exists
+            const [attractionCheck] = await pool.query( 'SELECT * FROM attraction WHERE AttractionID = ?',
+                [attractionId]
+            );
+            if (attractionCheck.length === 0) {
+                return res.status(404).json({ error: 'Attraction not found' });
+            }
+
+            // delete enclosure (cascade will also remove associated)
+            await pool.query(`DELETE FROM attraction WHERE AttractionID = ?`, [attractionId]);
+            res.json({ message: `Attraction with ID ${attractionId} was deleted` });
 
         } catch(err) {
             console.error(err);
-            res.status(500).json({ error: 'Failed to assign staff to enclosure' });
+            res.status(500).json({ error: 'Failed to delete attraction' });
         }
     });
-
-
 
     return router;
 };

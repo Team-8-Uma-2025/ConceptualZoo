@@ -137,7 +137,6 @@ const EnclosureDetails = () => {
       alert("Failed to update enclosure");
     }
   };
-
   // add enclosure (Manager only)
   const handleAdd = async (e) => {
     e.preventDefault();
@@ -177,7 +176,6 @@ const EnclosureDetails = () => {
       console.error(err);
       alert("Failed to delete enclosure.");
     }
-  };
 
   return (
     /*displays*/
