@@ -71,7 +71,7 @@ const animalRoutes = require('./routes/animal.routes')(pool, authenticateToken);
 const notificationRoutes = require('./routes/notification.routes')(pool, authenticateToken);
 const enclosureRoutes = require('./routes/enclosure.routes')(pool, authenticateToken);
 // const visitorRoutes = require('./routes/visitor.routes')(pool, authenticateToken);
-// const ticketRoutes = require('./routes/ticket.routes')(pool, authenticateToken);
+const ticketRoutes = require('./routes/ticket.routes')(pool, authenticateToken);
 const observationRoutes = require('./routes/observation.routes')(pool, authenticateToken);
 
 // Use routes
