@@ -15,7 +15,7 @@ module.exports = (pool) => {
         }
     });
 
-    // get attraction by ID
+    // get attraction details by ID 
     router.get('/:id', async (req, res) => {
         try{
             const attractionId = req.params.id;
