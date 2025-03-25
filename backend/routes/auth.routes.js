@@ -239,7 +239,7 @@ module.exports = (pool) => {
           });
         } else if (role === 'staff') {
           const [staffMembers] = await pool.query(
-            'SELECT Staff, Name, Role, Username FROM staff WHERE Staff = ?',
+            'SELECT Staff, Name, Role, StaffType, Username FROM staff WHERE Staff = ?',
             [id]
           );
           
