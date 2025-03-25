@@ -117,6 +117,13 @@ const Dashboard = () => {
           description: 'View system-wide metrics and status',
           link: '/dashboard/overview',
           color: 'bg-pink-600'
+        },
+        {
+          title: 'Enclosure Information',
+          icon: '🐒',
+          description: 'View and edit(if applicable) enclosure information',
+          link: '/enclosure-details',
+          color: 'bg-cyan-600'
         }
       ],
       'Zookeeper': [
@@ -133,6 +140,13 @@ const Dashboard = () => {
           description: 'View and monitor animals in your care',
           link: '/dashboard/animals',
           color: 'bg-yellow-600'
+        },
+        {
+          title: 'Enclosure Information',
+          icon: '🐒',
+          description: 'View and edit(if applicable) enclosure information',
+          link: '/enclosure-details',
+          color: 'bg-cyan-600'
         }
       ],
       'Vet': [
@@ -149,6 +163,13 @@ const Dashboard = () => {
           description: 'Access and update animal medical information',
           link: '/dashboard/medical-records',
           color: 'bg-orange-600'
+        },
+        {
+          title: 'Enclosure Information',
+          icon: '🐒',
+          description: 'View and edit(if applicable) enclosure information',
+          link: '/enclosure-details',
+          color: 'bg-cyan-600'
         }
       ],
       'Gift Shop Clerk': [

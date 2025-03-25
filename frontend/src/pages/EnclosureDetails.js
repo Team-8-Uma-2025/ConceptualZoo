@@ -224,7 +224,7 @@ const EnclosureDetails = () =>{
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr className="border-b">
+                                <tr className="border-b text-center">
                                     <td className="py-2 px-4">{selectedEnclosure.Name}</td>
                                     <td className="py-2 px-4">{selectedEnclosure.Type}</td>
                                     <td className="py-2 px-4">{selectedEnclosure.Capacity}</td>
