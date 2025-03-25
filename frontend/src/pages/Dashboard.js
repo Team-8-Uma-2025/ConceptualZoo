@@ -119,6 +119,8 @@ const Dashboard = () => {
           color: 'bg-pink-600'
         }
       ],
+    };
+    const staffTypeModules = {
       'Zookeeper': [
         {
           title: 'Assigned Enclosures',
@@ -172,7 +174,9 @@ const Dashboard = () => {
     // Get modules specific to the user's role
     const userRoleModules = roleSpecificModules[currentUser.staffRole] || [];
 
-    return [...commonModules, ...userRoleModules];
+    const userTypeModules = staffTypeModules[currentUser.staffType] || [];
+
+    return [...commonModules, ...userRoleModules, ...userTypeModules];
   };
 
   if (!currentUser || currentUser.role !== 'staff') {
