@@ -1,13 +1,14 @@
 // src/pages/Profile.js
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
-import { useLocation } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import axios from "axios";
 
 const Profile = () => {
   const { currentUser } = useAuth();
-  const [tickets, setTickets] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [tickets, setTickets] = useState([]); // Initialize as empty array
+  const [addons, setAddons] = useState([]); // Initialize as empty array
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const location = useLocation();
   const [notification, setNotification] = useState(
@@ -15,25 +16,33 @@ const Profile = () => {
   );
 
   useEffect(() => {
-    const fetchUserTickets = async () => {
+    const fetchTickets = async () => {
+      setLoading(true);
       try {
-        setLoading(true);
-        if (!currentUser?.id) return;
-
         const response = await axios.get(
           `/api/tickets/visitor/${currentUser.id}`
         );
-        setTickets(response.data);
-      } catch (err) {
-        console.error("Failed to fetch tickets:", err);
-        setError("Unable to load your tickets. Please try again later.");
+
+        // Check if we got the expected response format
+        console.log("Ticket response:", response.data); // For debugging
+
+        // Handle the response carefully, with fallbacks
+        const regularTickets = response.data?.regularTickets || [];
+        const addonTickets = response.data?.addonTickets || [];
+
+        setTickets(regularTickets);
+        setAddons(addonTickets);
+        setError(null);
+      } catch (error) {
+        console.error("Error fetching tickets:", error);
+        setError("Failed to load ticket information");
       } finally {
         setLoading(false);
       }
     };
 
     if (currentUser) {
-      fetchUserTickets();
+      fetchTickets();
     }
 
     // Clear notification after 5 seconds
@@ -51,6 +60,28 @@ const Profile = () => {
       day: "numeric",
     });
   };
+
+  // Group tickets (regular and add-on) by date (using StartDate)
+  const groupedTickets = {};
+  tickets.forEach((ticket) => {
+    const dateKey = formatDate(ticket.StartDate);
+    if (!groupedTickets[dateKey]) {
+      groupedTickets[dateKey] = { regular: [], addons: [] };
+    }
+    groupedTickets[dateKey].regular.push(ticket);
+  });
+  addons.forEach((ticket) => {
+    const dateKey = formatDate(ticket.StartDate);
+    if (!groupedTickets[dateKey]) {
+      groupedTickets[dateKey] = { regular: [], addons: [] };
+    }
+    groupedTickets[dateKey].addons.push(ticket);
+  });
+
+  // Get sorted dates in descending order
+  const sortedDates = Object.keys(groupedTickets).sort(
+    (a, b) => new Date(b) - new Date(a)
+  );
 
   if (!currentUser) {
     return (
@@ -183,53 +214,160 @@ const Profile = () => {
                     <p className="text-red-600 text-center py-4 font-['Lora']">
                       {error}
                     </p>
-                  ) : tickets.length === 0 ? (
+                  ) : sortedDates.length === 0 ? (
                     <div className="text-center py-6">
                       <p className="text-gray-500 mb-4 font-['Lora']">
                         You haven't purchased any tickets yet.
+                      </p>
+                      <Link
+                        to="/tickets"
+                        className="text-green-700 hover:text-green-600 underline font-['Mukta_Mahee']"
+                      >
+                        Buy Tickets
+                      </Link>
+                    </div>
+                  ) : (
+                    sortedDates.map((date) => {
+                      const group = groupedTickets[date];
+                      return (
+                        <div key={date} className="mb-8">
+                          <h4 className="text-xl font-bold mb-4">{date}</h4>
+
+                          {/* Display regular tickets for this date */}
+                          {group.regular.map((ticket) => (
+                            <div
+                              key={ticket.TicketID}
+                              className="border border-gray-200 rounded-md p-4 mb-2"
+                            >
+                              <div className="flex justify-between items-center">
+                                <div>
+                                  <p className="font-semibold text-gray-800 font-['Mukta_Mahee']">
+                                    {ticket.TicketType} Ticket
+                                    {ticket.EnclosureAccess !== "None" &&
+                                      ` - ${ticket.EnclosureAccess}`}
+                                  </p>
+                                  <p className="text-sm text-gray-600 font-['Lora']">
+                                    Valid: {formatDate(ticket.StartDate)}
+                                  </p>
+                                  <p className="text-sm text-gray-600 font-['Lora']">
+                                    Price: $
+                                    {parseFloat(ticket.Price).toFixed(2)}
+                                  </p>
+                                </div>
+                                <div>
+                                  <span
+                                    className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+                                      ticket.Used
+                                        ? "bg-gray-100 text-gray-800"
+                                        : "bg-green-100 text-green-800"
+                                    }`}
+                                  >
+                                    {ticket.Used ? "Used" : "Valid"}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+
+                          {/* Display add-on tickets for this date */}
+                          {group.addons.map((addon) => (
+                            <div
+                              key={addon.TicketID}
+                              className="border border-gray-200 rounded-md p-4 mb-2 ml-4"
+                            >
+                              <div className="flex justify-between items-center">
+                                <div>
+                                  <p className="font-semibold text-gray-800 font-['Mukta_Mahee']">
+                                    Addon Ticket - {addon.EnclosureAccess}
+                                  </p>
+                                  <p className="text-sm text-gray-600 font-['Lora']">
+                                    Valid: {formatDate(addon.StartDate)}
+                                  </p>
+                                  <p className="text-sm text-gray-600 font-['Lora']">
+                                    Price: ${parseFloat(addon.Price).toFixed(2)}
+                                  </p>
+                                </div>
+                                <div>
+                                  <span
+                                    className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+                                      addon.Used
+                                        ? "bg-gray-100 text-gray-800"
+                                        : "bg-green-100 text-green-800"
+                                    }`}
+                                  >
+                                    {addon.Used ? "Used" : "Valid"}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Add-ons Section */}
+                <div className="bg-gray-50 rounded-lg p-6 shadow-sm mt-6">
+                  <h3 className="text-xl font-semibold mb-4 font-['Mukta_Mahee']">
+                    Your Add-ons
+                  </h3>
+
+                  {loading ? (
+                    <div className="flex justify-center items-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-700"></div>
+                    </div>
+                  ) : error ? (
+                    <p className="text-red-600 text-center py-4 font-['Lora']">
+                      {error}
+                    </p>
+                  ) : addons && addons.length === 0 ? (
+                    <div className="text-center py-6">
+                      <p className="text-gray-500 mb-4 font-['Lora']">
+                        You haven't purchased any add-ons yet.
                       </p>
                       <a
                         href="/tickets"
                         className="text-green-700 hover:text-green-600 underline font-['Mukta_Mahee']"
                       >
-                        Buy Tickets
+                        Enhance Your Visit
                       </a>
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {tickets.map((ticket) => (
-                        <div
-                          key={ticket.TicketID}
-                          className="border border-gray-200 rounded-md p-4"
-                        >
-                          <div className="flex justify-between items-center">
-                            <div>
-                              <p className="font-semibold text-gray-800 font-['Mukta_Mahee']">
-                                {ticket.TicketType} Ticket -{" "}
-                                {ticket.EnclosureAccess}
-                              </p>
-                              <p className="text-sm text-gray-600 font-['Lora']">
-                                Valid: {formatDate(ticket.StartDate)}
-                              </p>
-                              <p className="text-sm text-gray-600 font-['Lora']">
-                                Price: ${parseFloat(ticket.Price).toFixed(2)}
-                              </p>
-                            </div>
-                            <div>
-                              <span
-                                className={`inline-block px-3 py-1 rounded-full text-xs font-semibold
-                                ${
-                                  ticket.Used
-                                    ? "bg-gray-100 text-gray-800"
-                                    : "bg-green-100 text-green-800"
-                                }`}
-                              >
-                                {ticket.Used ? "Used" : "Valid"}
-                              </span>
+                      {addons &&
+                        addons.map((addon) => (
+                          <div
+                            key={addon.TicketID}
+                            className="border border-gray-200 rounded-md p-4"
+                          >
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <p className="font-semibold text-gray-800 font-['Mukta_Mahee']">
+                                  Addon Ticket - {addon.EnclosureAccess}
+                                </p>
+                                <p className="text-sm text-gray-600 font-['Lora']">
+                                  Valid: {formatDate(addon.StartDate)}
+                                </p>
+                                <p className="text-sm text-gray-600 font-['Lora']">
+                                  Price: ${parseFloat(addon.Price).toFixed(2)}
+                                </p>
+                              </div>
+                              <div>
+                                <span
+                                  className={`inline-block px-3 py-1 rounded-full text-xs font-semibold
+                                  ${
+                                    addon.Used
+                                      ? "bg-gray-100 text-gray-800"
+                                      : "bg-green-100 text-green-800"
+                                  }`}
+                                >
+                                  {addon.Used ? "Used" : "Valid"}
+                                </span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
                     </div>
                   )}
                 </div>
