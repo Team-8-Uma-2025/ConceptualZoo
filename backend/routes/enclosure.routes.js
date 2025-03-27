@@ -72,15 +72,31 @@ module.exports = (pool) => {
     }
   });
 
-  // Get enclosures managed by a specific staff member
+  // Get enclosures for a specific staff member (considering both direct management and assignments)
   router.get('/staff/:id', authenticateToken, async (req, res) => {
     try {
       const staffId = req.params.id;
 
-      const [enclosures] = await pool.query(
-        'SELECT * FROM enclosures WHERE StaffID = ?',
-        [staffId]
-      );
+      // Query to get enclosures managed directly or assigned to the staff member
+      const [enclosures] = await pool.query(`
+        SELECT DISTINCT 
+          e.EnclosureID, 
+          e.Name, 
+          e.Type, 
+          e.Capacity, 
+          e.Location, 
+          s.Staff AS ManagerID, 
+          s.Name AS ManagerName,
+          s.StaffType AS ManagerType,
+          CASE 
+            WHEN e.StaffID = ? THEN 'Manager'
+            ELSE 'Assigned'
+          END AS StaffRelation
+        FROM enclosures e
+        LEFT JOIN staff s ON e.StaffID = s.Staff
+        LEFT JOIN staff_enclosure_assignments sea ON e.EnclosureID = sea.EnclosureID
+        WHERE e.StaffID = ? OR sea.StaffID = ?
+      `, [staffId, staffId, staffId]);
 
       res.json(enclosures);
     } catch (err) {
