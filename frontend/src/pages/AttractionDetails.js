@@ -156,7 +156,29 @@ const AttractionDetails = () => {
     const handleCancel = () => {
         setIsEditing(false);
         setIsAdding(false);
-    }; // come back here and mimic enclosure stuff.
+
+        if(selectedAttraction){
+            // Restore form data from selected attraction if any
+            setFormData({
+                AttractionID: selectedAttraction.data.AttractionID || "",
+                StaffID: selectedAttraction.data.StaffID || "",
+                Location: selectedAttraction.data.Location || "",
+                StartTimeStamp: selectedAttraction.data.StartTimeStamp || "",
+                EndTimeStamp: selectedAttraction.data.EndTimeStamp || "",
+                Title: selectedAttraction.data.Title || "",
+                Description: selectedAttraction.data.Description || "",
+                Picture: selectedAttraction.data.Picture || "",
+            })
+        }
+    }; 
+
+    // update attraction (manager only)
+
+    // add attraction (manager only)
+
+    // delete attraction (manager only)
+
+    // Select attraction  from dropdown (for zookeepers)
 
 
 
