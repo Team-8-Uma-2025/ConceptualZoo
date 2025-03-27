@@ -68,7 +68,46 @@ const AttractionDetails = () => {
         }
     }, [currentUser]);
 
-    
+    //load attraction by its ID
+    const loadAttraction = async (id) => {
+        if (!id) return;
+        setError(null);
+        setLoading(true);
+
+        try{
+            const response = await axios.get(`/api/attraction/${id}`, {
+                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+            });
+              
+            /*
+            // Get staff in this enclosure
+            const animalsResponse = await axios.get(`/api/animals/enclosure/${id}`, {
+                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+            });
+            */
+            setSelectedAttraction(response);
+            
+            // fill form data
+            setFormData({
+                AttractionID: response.data.AttractionID || "",
+                StaffID: response.data.StaffID || "",
+                Location: response.data.Location || "",
+                StartTimeStamp: response.data.StartTimeStamp || "",
+                EndTimeStamp: response.data.EndTimeStamp || "",
+                Title: response.data.Title || "",
+                Description: response.data.Description || "",
+                Picture: response.data.Picture || "",
+            });
+            setIsEditing(false);
+            setIsAdding(false);
+        } catch (err) {
+            console.error(err);
+            setError("Failed to get attraction. Enter valid ID");
+            setSelectedAttraction(null);
+        } finally {
+            setLoading(null);
+        }
+    };
 
     // handle changes in form inputs
     const handleChange = (a) => {
