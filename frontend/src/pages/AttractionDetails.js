@@ -236,9 +236,44 @@ const AttractionDetails = () => {
     };
 
     // delete attraction (manager only)
+    const handleDelete = async () => {
+        if(!selectedAttraction) return;
+        if(!window.confirm("Are you sure you want to delete this enclosure? This action cannot be undone."))
+            return;
 
-    // Select attraction  from dropdown (for zookeepers)
+        try {
+            await axios.delete(`/api/attractions/${selectedAttraction.AttractionID}`, {
+                headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+            });
 
+            setSelectedAttraction(null); // Clear the current enclosure from state
+            setSearchAID(""); // clear the search input
+
+            // refresh attraction list for managers
+            if (currentUser && currentUser.staffRole === "Manager") {
+                const response = await axios.get("/api/attractions", {
+                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                });
+                setAttractionList(response.data);
+            }
+
+            alert("Attraction deleted successfully");
+
+        } catch (err) {
+            console.error(err);
+            alert("Failed to delete attraction");
+        }
+    };
+
+    // Select attraction from dropdown (for zookeepers)
+    const handleAttractionSelect = (a) => {
+        const attractionId = a.target.value;
+        if(attractionId) {
+            loadAttraction(attractionId);
+        } else {
+            setSelectedAttraction(null);
+        }
+    };
 
 
     return (
