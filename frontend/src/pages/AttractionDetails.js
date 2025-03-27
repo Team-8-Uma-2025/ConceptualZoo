@@ -109,6 +109,16 @@ const AttractionDetails = () => {
         }
     };
 
+    // get attraction by ID (event handler)
+    const searchAttractiom = async (a) => {
+        a.preventDefault();
+        if (!search_aID) {
+            setError("Enter an enclosure ID.");
+            return;
+        }
+        loadAttraction(search_aID);
+    }
+
     // handle changes in form inputs
     const handleChange = (a) => {
         setFormData({
@@ -125,11 +135,28 @@ const AttractionDetails = () => {
         }
     };
 
+    // add (for managers)
+    const handleToggleAdd = () => {
+        setIsAdding(true);
+        setIsEditing(false);
+        setSelectedEnclosure(null); // Clear any displayed enclosure when adding new one
+        setFormData({
+            AttractionID: "",
+            StaffID: "",
+            Location: "",
+            StartTimeStamp: "",
+            EndTimeStamp: "",
+            Title: "",
+            Description: "",
+            Picture: "",
+        });
+    };
+
     // Cancel add/edit mode
     const handleCancel = () => {
         setIsEditing(false);
         setIsAdding(false);
-    };
+    }; // come back here and mimic enclosure stuff.
 
 
 
