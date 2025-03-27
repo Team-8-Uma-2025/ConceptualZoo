@@ -7,7 +7,7 @@ const AttractionDetails = () => {
 
     /*States*/
     const {currentUser} = useAuth(); // user from authContext
-    const [search_aID, setAttractionId] = useState(''); // search variable
+    const [search_aID, setSearchAID] = useState(urlAttractionId || ''); // search variable
     const [attractionList, setAttractionList] = useState([]); //preload attractions for manager functions
     const [assignedAttractions, setAssignedAttractions] = useState([]); // for regular staff
     const [selectedAttraction, setSelectedAttraction] = useState(null); //fetch enclosure details
@@ -19,7 +19,6 @@ const AttractionDetails = () => {
     const [isAdding, setIsAdding] = useState(false);
 
     const [formData, setFormData] = useState({
-        AttractionID: "",
         StaffID: "",
         Location: "",
         StartTimeStamp: "",
@@ -55,16 +54,16 @@ const AttractionDetails = () => {
     useEffect(() => {
         const fetchAttractions = async () => {
             try {
-                const response = await axios.get("/api/enclosures", {
+                const response = await axios.get("/api/attractions", {
                     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
                 });
-                setEnclosureList(response.data);
+                setAttractionList(response.data);
             } catch (err) {
-                console.error("Error fetching enclosures list:", err);
+                console.error("Error fetching attractions list:", err);
             }
         };
         if (currentUser && currentUser.staffRole === "Manager") {
-            fetchEnclosures();
+            fetchAttractions();
         }
     }, [currentUser]);
 
@@ -89,7 +88,6 @@ const AttractionDetails = () => {
             
             // fill form data
             setFormData({
-                AttractionID: response.data.AttractionID || "",
                 StaffID: response.data.StaffID || "",
                 Location: response.data.Location || "",
                 StartTimeStamp: response.data.StartTimeStamp || "",
@@ -98,6 +96,7 @@ const AttractionDetails = () => {
                 Description: response.data.Description || "",
                 Picture: response.data.Picture || "",
             });
+
             setIsEditing(false);
             setIsAdding(false);
         } catch (err) {
@@ -141,7 +140,6 @@ const AttractionDetails = () => {
         setIsEditing(false);
         setSelectedEnclosure(null); // Clear any displayed enclosure when adding new one
         setFormData({
-            AttractionID: "",
             StaffID: "",
             Location: "",
             StartTimeStamp: "",
@@ -160,7 +158,6 @@ const AttractionDetails = () => {
         if(selectedAttraction){
             // Restore form data from selected attraction if any
             setFormData({
-                AttractionID: selectedAttraction.data.AttractionID || "",
                 StaffID: selectedAttraction.data.StaffID || "",
                 Location: selectedAttraction.data.Location || "",
                 StartTimeStamp: selectedAttraction.data.StartTimeStamp || "",
@@ -173,8 +170,70 @@ const AttractionDetails = () => {
     }; 
 
     // update attraction (manager only)
+    const handleUpdate = async (a) => {
+        a.preventDefault();
+        try{
+            await axios.put(
+                `/api/attractions/${selectedAttraction.AttractionID}`,
+                formData,
+                {
+                    headers: {Authorization: `Bearer ${localStorage.getItem("token")}` },
+                }
+            );
+
+            // update the local state with new data
+            setSelectedAttraction({
+                ...selectedAttraction,
+                ...formData
+            });
+
+            setIsEditing(false);
+            alert("Attraction updated successfully");
+
+            // refresh attraction list for managers
+            if (currentUser && currentUser.staffRole === "Manager") {
+                const response = await axios.get("/api/attractions", {
+                    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+                });
+                setAttractionList(response.data);
+            }
+        } catch (err){
+            console.error(err);
+            alert("Failed to update attraction")
+        }
+    };
 
     // add attraction (manager only)
+    const handleAdd = async (a) => {
+        a.preventDefault();
+        try {
+            const response = await axios.post(`/api/attractions`, formData, {
+                headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+            });
+
+            // new enclosure object using new returned AttractionID
+            const newAttraction = {
+                ...formData,
+                AttractionID: response.data.AttractionID,
+                Staff: [] // initialize with empty staff array
+            };
+
+            setSelectedAttraction(newAttraction); // set the new attraction as the current one
+            setIsAdding(false); // exit add mode
+            alert("Attraction added successfully");
+
+            // refresh attraction list for managers
+            if (currentUser && currentUser.staffRole === "Manager") {
+                const response = await axios.get("/api/attractions", {
+                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                });
+                setAttractionList(response.data);
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Failed to add attraction");
+        }
+    };
 
     // delete attraction (manager only)
 
