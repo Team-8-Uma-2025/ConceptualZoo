@@ -124,7 +124,7 @@ module.exports = (pool) => {
     }
   });
 
-  // Update the visitor/:id route
+  // Update the visitor/:id route to fetch and combine data
   router.get("/visitor/:id", authenticateToken, async (req, res) => {
     try {
       const visitorId = req.params.id;
@@ -133,21 +133,46 @@ module.exports = (pool) => {
         return res.status(403).json({ error: "Unauthorized" });
       }
 
-      // Regular tickets exclude add-on tickets
+      // Get regular tickets
       const [regularTickets] = await pool.query(
-        "SELECT * FROM tickets WHERE VisitorID = ? AND TicketType NOT LIKE 'Addon' ORDER BY StartDate DESC",
+        "SELECT * FROM tickets WHERE VisitorID = ? ORDER BY StartDate DESC",
         [visitorId]
       );
 
-      // Add-on tickets include any ticket with TicketType = 'Addon' or with specific EnclosureAccess values.
-      const [addonTickets] = await pool.query(
-        "SELECT * FROM tickets WHERE VisitorID = ? AND (TicketType = 'Addon' OR EnclosureAccess LIKE '%Feeding%' OR EnclosureAccess LIKE '%Tour%' OR EnclosureAccess LIKE '%Encounter%' OR EnclosureAccess LIKE '%Parking%') ORDER BY StartDate DESC",
+      // Get add-ons from addons table
+      const [addonRecords] = await pool.query(
+        "SELECT * FROM addons WHERE VisitorID = ? ORDER BY StartDate DESC",
         [visitorId]
       );
+
+      // Group addons by date for easy lookup
+      const addonsByDate = {};
+      addonRecords.forEach((addon) => {
+        const dateKey = new Date(addon.StartDate).toISOString().split("T")[0];
+        if (!addonsByDate[dateKey]) {
+          addonsByDate[dateKey] = [];
+        }
+        addonsByDate[dateKey].push(addon.Description);
+      });
+
+      // Add addon information to each ticket
+      const ticketsWithAddons = regularTickets.map((ticket) => {
+        const ticketDate = new Date(ticket.StartDate)
+          .toISOString()
+          .split("T")[0];
+        const addonsForTicket = addonsByDate[ticketDate] || [];
+
+        return {
+          ...ticket,
+          addons:
+            addonsForTicket.length > 0 ? addonsForTicket.join(", ") : "None",
+        };
+      });
 
       res.json({
-        regularTickets: regularTickets || [],
-        addonTickets: addonTickets || [],
+        regularTickets: ticketsWithAddons,
+        // Still include this for backward compatibility, but you'll remove its display
+        addonTickets: addonRecords,
       });
     } catch (err) {
       console.error(err);
@@ -190,6 +215,64 @@ module.exports = (pool) => {
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: "Failed to validate ticket" });
+    }
+  });
+
+  // Get revenue reports (managers only)
+  router.get("/revenue", authenticateToken, async (req, res) => {
+    try {
+      // Check that user is manager
+      if (req.user.role !== "staff" || req.user.staffRole !== "Manager") {
+        return res
+          .status(403)
+          .json({ error: "Unauthorized. Manager access only." });
+      }
+
+      // Optional date range filters
+      const { startDate, endDate } = req.query;
+
+      let query = "SELECT * FROM TicketRevenueSummary";
+      const params = [];
+
+      if (startDate && endDate) {
+        query += " WHERE Date BETWEEN ? AND ?";
+        params.push(startDate, endDate);
+      } else if (startDate) {
+        query += " WHERE Date >= ?";
+        params.push(startDate);
+      } else if (endDate) {
+        query += " WHERE Date <= ?";
+        params.push(endDate);
+      }
+
+      query += " ORDER BY Date DESC";
+
+      const [data] = await pool.query(query, params);
+
+      // Get total revenue summary
+      const [totals] = await pool.query(
+        `
+        SELECT 
+          PurchaseType,
+          SUM(Quantity) as TotalQuantity,
+          SUM(TotalRevenue) as TotalRevenue
+        FROM TicketRevenueSummary
+        ${startDate || endDate ? "WHERE " : ""}
+        ${startDate ? "Date >= ? " : ""}
+        ${startDate && endDate ? "AND " : ""}
+        ${endDate ? "Date <= ? " : ""}
+        GROUP BY PurchaseType
+      `,
+        params.filter(Boolean)
+      );
+
+      res.json({
+        details: data,
+        summary: totals,
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to fetch revenue data" });
     }
   });
 

@@ -8,6 +8,8 @@ import {
   AlertTriangle, Heart, Home, Package,
   Users, Bell, ChevronDown, ChevronUp
 } from 'lucide-react';
+import RevenueReport from "../components/RevenueReport";
+
 
 const Dashboard = () => {
   const { currentUser } = useAuth();
@@ -420,7 +422,7 @@ const Dashboard = () => {
 
             {/* Staff List (Managers Only) */}
             {currentUser.staffRole === 'Manager' && staffMembers.length > 0 && (
-              <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="bg-white rounded-lg shadow-md p-6 mb-8">
                 <div
                   className="flex justify-between items-center cursor-pointer"
                   onClick={() => toggleSection('staff')}
@@ -491,6 +493,32 @@ const Dashboard = () => {
                         ))}
                       </tbody>
                     </table>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Ticket Revenue Section (Managers Only) */}
+            {currentUser.staffRole === "Manager" && (
+              <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+                <div
+                  className="flex justify-between items-center cursor-pointer"
+                  onClick={() => toggleSection("revenue")}
+                >
+                  <h2 className="text-2xl font-bold font-['Roboto_Flex'] flex items-center">
+                    <Activity size={24} className="mr-2 text-green-600" />
+                    Ticket Revenue Report
+                  </h2>
+                  {expandedSection === "revenue" ? (
+                    <ChevronUp size={20} />
+                  ) : (
+                    <ChevronDown size={20} />
+                  )}
+                </div>
+
+                {expandedSection === "revenue" && (
+                  <div className="mt-6">
+                    <RevenueReport />
                   </div>
                 )}
               </div>
