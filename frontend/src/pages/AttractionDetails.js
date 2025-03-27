@@ -3,6 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 
 const AttractionDetails = () => {
+    const {id: urlEnclosureId} = useParams();
+
     /*States*/
     const {currentUser} = useAuth(); // user from authContext
     const [search_aID, setAttractionId] = useState(''); // search variable
@@ -17,7 +19,14 @@ const AttractionDetails = () => {
     const [isAdding, setIsAdding] = useState(false);
 
     const [formData, setFormData] = useState({
-
+        AttractionID: "",
+        StaffID: "",
+        Location: "",
+        StartTimeStamp: "",
+        EndTimeStamp: "",
+        Title: "",
+        Description: "",
+        Picture: "",
     });
 
     // handle changes in form inputs
@@ -30,7 +39,7 @@ const AttractionDetails = () => {
 
     // Toggle edit mode (for managers)
     const handleToggleEdit = () => {
-        if (selectedEnclosure) {
+        if (selectedAttraction) {
             setIsEditing(true);
             setIsAdding(false);
         }

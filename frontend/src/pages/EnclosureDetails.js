@@ -32,7 +32,7 @@ const EnclosureDetails = () => {
   });
 
   // Modified first useEffect
-useEffect(() => {
+  useEffect(() => {
     const fetchAssignedEnclosures = async () => {
       if (!currentUser) return;
       
