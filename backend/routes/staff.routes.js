@@ -16,7 +16,7 @@ module.exports = (pool) => {
   router.get('/', authenticateToken, isAdminOrManager, async (req, res) => {
     try {
       const [staff] = await pool.query(
-        'SELECT Staff, Name, Role, Username FROM staff'
+        'SELECT Staff, Name, Role, StaffType, Username FROM staff'
       );
       
       res.json(staff);

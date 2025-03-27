@@ -83,7 +83,8 @@ function AppContent() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/dashboard/messages" element={<Messages />} />
             <Route path="/animals" element={<Dashboard />} />
-            <Route path="/enclosure-details" element={<EnclosureDetails />} /> 
+            <Route path="/dashboard/enclosures/:id" element={<EnclosureDetails />} /> 
+            <Route path="/dashboard/enclosures" element={<EnclosureDetails />} /> 
             <Route path="/dashboard/test1" element={<AnimalDetails />} /> 
             {/* Additional staff routes will go here */}
           </Route>

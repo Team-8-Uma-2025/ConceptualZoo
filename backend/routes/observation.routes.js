@@ -28,14 +28,18 @@ module.exports = (pool) => {
     }
   });
   
-  // Add new observation (Zookeepers and Managers only)
+  // Add new observation (Zookeepers, Managers, and Staff)
   router.post('/', authenticateToken, async (req, res) => {
     try {
       const { animalId, title, content } = req.body;
       
       // Check if user is authorized to add observations
-      if (req.user.role !== 'staff' || 
-          (req.user.staffType !== 'Zookeeper' && req.user.staffRole !== 'Manager')) {
+      const canAddObservation = 
+        req.user.staffRole === 'Manager' || 
+        req.user.staffType === 'Zookeeper' || 
+        req.user.staffRole === 'Staff';
+      
+      if (!canAddObservation) {
         return res.status(403).json({ error: 'Not authorized to add observations' });
       }
       
@@ -54,14 +58,19 @@ module.exports = (pool) => {
     }
   });
   
-  // Acknowledge observation (Vets only)
+  // Acknowledge observation (Vets and Managers only)
   router.put('/:id/acknowledge', authenticateToken, async (req, res) => {
     try {
       const observationId = req.params.id;
       
-      // Check if user is a Vet
-      if (req.user.role !== 'staff' || req.user.staffType !== 'Vet') {
-        return res.status(403).json({ error: 'Only Vets can acknowledge observations' });
+      // Check if user is authorized to acknowledge observations
+      const canAcknowledge = 
+        req.user.staffRole === 'Manager' || 
+        req.user.staffType === 'Vet' || 
+        req.user.staffRole === 'Staff';
+      
+      if (!canAcknowledge) {
+        return res.status(403).json({ error: 'Not authorized to acknowledge observations' });
       }
       
       const [result] = await pool.query(

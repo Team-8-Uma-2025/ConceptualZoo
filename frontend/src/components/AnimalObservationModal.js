@@ -1,8 +1,8 @@
 // src/components/AnimalObservationModal.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
-import { X, CheckCircle, AlertTriangle, Clock } from 'lucide-react';
+import { X, CheckCircle, Clock } from 'lucide-react';
 
 const AnimalObservationModal = ({ animal, isOpen, onClose }) => {
   const { currentUser } = useAuth();
@@ -18,27 +18,30 @@ const AnimalObservationModal = ({ animal, isOpen, onClose }) => {
   const canAcknowledgeObservations = currentUser?.role === 'staff' &&
     currentUser?.staffType === 'Vet';
 
-  useEffect(() => {
-    if (isOpen && animal) {
-      fetchObservations();
-    }
-  }, [isOpen, animal]);
 
-  const fetchObservations = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.get(`/api/observations/animal/${animal.AnimalID}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
-      setObservations(response.data);
-      setError(null);
-    } catch (err) {
-      console.error('Failed to fetch observations:', err);
-      setError('Failed to load observations. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
+    const fetchObservations = useCallback(async () => {
+      if (!animal) return;
+      
+      try {
+        setLoading(true);
+        const response = await axios.get(`/api/observations/animal/${animal.AnimalID}`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        });
+        setObservations(response.data);
+        setError(null);
+      } catch (err) {
+        console.error('Failed to fetch observations:', err);
+        setError('Failed to load observations. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    }, [animal]);
+
+    useEffect(() => {
+      if (isOpen && animal) {
+        fetchObservations();
+      }
+    }, [isOpen, animal, fetchObservations]);
 
   const handleAddObservation = async (e) => {
     e.preventDefault();
