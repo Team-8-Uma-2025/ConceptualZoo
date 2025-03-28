@@ -289,7 +289,7 @@ const AttractionDetails = () => {
                             Select Your Assigned Attraction:
                         </label>
                         <select className="border border-gray-300 p-2 rounded w-full md:w-64 font-['Mukta_Mahee']"
-                            value={selectedEnclosure?.EnclosureID || ""}
+                            value={selectedAttraction?.AttractionID || ""}
                             onChange={handleAttractionSelect}
                         >
                             <option  value=""> Select an attraction</option>
@@ -322,9 +322,208 @@ const AttractionDetails = () => {
                                     Search
                                 </button>
                             </form>
+
+                            {/* Manager-only buttons */}
+                            {currentUser?.staffRole === "Manager" && (
+                                <div className="flex space-x-2">
+                                    <button type="button" 
+                                        onClick={handleToggleAdd}
+                                        className="bg-green-700 text-white p-2 rounded font-['Mukta_Mahee']"
+                                    >
+                                        Add Attraction
+                                    </button>
+                                    {selectedAttraction && (
+                                        <>
+                                            <button
+                                                type="button"
+                                                onClick={handleToggleEdit}
+                                                className="bg-blue-600 text-white p-2 rounded font-['Mukta_Mahee']"
+                                            >
+                                                Edit
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={handleDelete}
+                                                className="bg-red-600 text-white p-2 rounded font-['Mukta_Mahee']"
+                                            >
+                                                Delete
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
+
+                {/* Loading and error messages */}
+                {loading && (
+                    <div className="flex justify-center items-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-700"></div>
+                    </div>
+                )}
+                    
+                {error && (
+                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 font-['Lora']">
+                        {error}
+                    </div>
+                )}
+
+                {/* Add attraction form */}
+                {isAdding && currentUser?.staffRole === "Manager" && (
+                    <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+                        <h2 className="text-2xl font-semibold mb-4 font-['Roboto_Flex']"> Add New Attraction</h2>
+                        <form onSubmit={handleAdd}>
+                            {/* entry tables */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label lassName="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
+                                        Staff ID
+                                    </label>
+                                    <input 
+                                        type="text"
+                                        name="StaffID"
+                                        value={formData.StaffID}
+                                        onChange={handleChange}
+                                        className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
+                                        required
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
+                                        Attraction Title
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="Title"
+                                        value={formData.Title}
+                                        onChange={handleChange}
+                                        className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
+                                        required
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
+                                        Start Time
+                                    </label>
+                                    <input 
+                                        type="datetime-local"
+                                        name="StartTimeStamp"
+                                        value={formData.StartTimeStamp}
+                                        onChange={handleChange}
+                                        className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
+                                        required
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
+                                        End Time
+                                    </label>
+                                    <input 
+                                        type="datetime-local"
+                                        name="EndTimeStamp"
+                                        value={formData.EndTimeStamp}
+                                        onChange={handleChange}
+                                        className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
+                                        required
+                                    />
+                                </div>
+
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
+                                        Location
+                                    </label>
+                                    <input 
+                                        type="text"
+                                        name="Location"
+                                        value={formData.Location}
+                                        onChange={handleChange}
+                                        className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
+                                        required
+                                    />
+                                </div>
+
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
+                                        Description
+                                    </label>
+                                    <textarea
+                                        name="Description"
+                                        value={formData.Description}
+                                        onChange={handleChange}
+                                        rows={3}
+                                        className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
+                                        placeholder="Enter a short description..."
+                                        required
+                                    />
+                                </div>
+
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
+                                        Location
+                                    </label>
+                                    <input 
+                                        type="text"
+                                        name="Picture"
+                                        value={formData.Picture}
+                                        onChange={handleChange}
+                                        className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            {/* submit/cancel buttons */}
+                            <div className="flex space-x-2">
+                                <button
+                                    type="submit"
+                                    className="bg-green-600 text-white p-2 rounded font-['Mukta_Mahee']"
+                                >
+                                    Add Attraction
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleCancel}
+                                    className="bg-gray-600 text-white p-2 rounded font-['Mukta_Mahee']"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                )}
+
+                {/* Edit attraction form */}
+                {isEditing && currentUser?.staffRole === "Manager" && selectedAttraction && (
+                    <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+                        <h2 className="text-2xl font-semibold mb-4 font-['Roboto_Flex']">Edit Attraction</h2>
+                        <form onSubmit={handleUpdate}>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
+                                        Staff ID
+                                    </label>
+                                    <input 
+                                    type="text"
+                                    name="StaffID"
+                                    value={formData.StaffID}
+                                    onChange={handleChange}
+                                    className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
+                                    required
+                                    />
+                                </div>
+
+                            </div>
+                        </form>
+
+                    </div>
+                )}
+
+
+
             </div>
         </div>
     );
