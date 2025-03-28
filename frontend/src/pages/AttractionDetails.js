@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
+import { useParams } from 'react-router-dom'; // Import useParams
 
 const AttractionDetails = () => {
     const {id: urlAttractionId} = useParams();
@@ -10,7 +11,7 @@ const AttractionDetails = () => {
     const [search_aID, setSearchAID] = useState(urlAttractionId || ''); // search variable
     const [attractionList, setAttractionList] = useState([]); //preload attractions for manager functions
     const [assignedAttractions, setAssignedAttractions] = useState([]); // for regular staff
-    const [selectedAttraction, setSelectedAttraction] = useState(null); //fetch enclosure details
+    const [selectedAttraction, setSelectedAttraction] = useState(null); //fetch atraction details
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null); 
 
@@ -84,7 +85,7 @@ const AttractionDetails = () => {
                 headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
             });
             */
-            setSelectedAttraction(response);
+            setSelectedAttraction(response.data);
             
             // fill form data
             setFormData({
@@ -104,15 +105,15 @@ const AttractionDetails = () => {
             setError("Failed to get attraction. Enter valid ID");
             setSelectedAttraction(null);
         } finally {
-            setLoading(null);
+            setLoading(false);
         }
     };
 
     // get attraction by ID (event handler)
-    const searchAttractiom = async (a) => {
+    const searchAttraction = async (a) => {
         a.preventDefault();
         if (!search_aID) {
-            setError("Enter an enclosure ID.");
+            setError("Enter an Attraction ID.");
             return;
         }
         loadAttraction(search_aID);
@@ -138,7 +139,7 @@ const AttractionDetails = () => {
     const handleToggleAdd = () => {
         setIsAdding(true);
         setIsEditing(false);
-        setSelectedEnclosure(null); // Clear any displayed enclosure when adding new one
+        setSelectedAttraction(null); // Clear any displayed attraction when adding new one
         setFormData({
             StaffID: "",
             Location: "",
@@ -158,13 +159,13 @@ const AttractionDetails = () => {
         if(selectedAttraction){
             // Restore form data from selected attraction if any
             setFormData({
-                StaffID: selectedAttraction.data.StaffID || "",
-                Location: selectedAttraction.data.Location || "",
-                StartTimeStamp: selectedAttraction.data.StartTimeStamp || "",
-                EndTimeStamp: selectedAttraction.data.EndTimeStamp || "",
-                Title: selectedAttraction.data.Title || "",
-                Description: selectedAttraction.data.Description || "",
-                Picture: selectedAttraction.data.Picture || "",
+                StaffID: selectedAttraction.StaffID || "",
+                Location: selectedAttraction.Location || "",
+                StartTimeStamp: selectedAttraction.StartTimeStamp || "",
+                EndTimeStamp: selectedAttraction.EndTimeStamp || "",
+                Title: selectedAttraction.Title || "",
+                Description: selectedAttraction.Description || "",
+                Picture: selectedAttraction.Picture || "",
             })
         }
     }; 
@@ -211,7 +212,7 @@ const AttractionDetails = () => {
                 headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
             });
 
-            // new enclosure object using new returned AttractionID
+            // new attraction object using new returned AttractionID
             const newAttraction = {
                 ...formData,
                 AttractionID: response.data.AttractionID,
@@ -238,7 +239,7 @@ const AttractionDetails = () => {
     // delete attraction (manager only)
     const handleDelete = async () => {
         if(!selectedAttraction) return;
-        if(!window.confirm("Are you sure you want to delete this enclosure? This action cannot be undone."))
+        if(!window.confirm("Are you sure you want to delete this attraction? This action cannot be undone."))
             return;
 
         try {
@@ -246,7 +247,7 @@ const AttractionDetails = () => {
                 headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
             });
 
-            setSelectedAttraction(null); // Clear the current enclosure from state
+            setSelectedAttraction(null); // Clear the current attraction from state
             setSearchAID(""); // clear the search input
 
             // refresh attraction list for managers
@@ -310,10 +311,10 @@ const AttractionDetails = () => {
                     // manager or vet interface - Search by ID
                     <div className="mb-6">
                         <div className="flex flex-wrap items-center gap-4">
-                            <form onSubmit={searchAttractiom} className="flex items-center">
+                            <form onSubmit={searchAttraction} className="flex items-center">
                                 <input 
                                     type="text"
-                                    placeholder="Enter Enclosure ID"
+                                    placeholder="Enter Attraction ID"
                                     value={search_aID}
                                     onChange={(a) => setSearchAID(e.target.value)}
                                     className="border border-gray-300 p-2 rounded mr-2 font-['Mukta_Mahee']"
@@ -377,7 +378,7 @@ const AttractionDetails = () => {
                             {/* entry tables */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                                 <div>
-                                    <label lassName="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
                                         Staff ID
                                     </label>
                                     <input 
@@ -463,7 +464,7 @@ const AttractionDetails = () => {
 
                                 <div className="md:col-span-2">
                                     <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
-                                        Location
+                                        Picture URL
                                     </label>
                                     <input 
                                         type="text"
@@ -500,6 +501,7 @@ const AttractionDetails = () => {
                 {isEditing && currentUser?.staffRole === "Manager" && selectedAttraction && (
                     <div className="bg-white rounded-lg shadow-md p-6 mb-6">
                         <h2 className="text-2xl font-semibold mb-4 font-['Roboto_Flex']">Edit Attraction</h2>
+                        {/* Edit form entry tables */}
                         <form onSubmit={handleUpdate}>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                                 <div>
@@ -516,11 +518,112 @@ const AttractionDetails = () => {
                                     />
                                 </div>
 
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
+                                        Attraction Title
+                                    </label>
+                                    <input 
+                                    type="text"
+                                    name="Title"
+                                    value={formData.Title}
+                                    onChange={handleChange}
+                                    className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
+                                    required
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
+                                        Start Time
+                                    </label>
+                                    <input 
+                                        type="datetime-local"
+                                        name="StartTimeStamp"
+                                        value={formData.StartTimeStamp}
+                                        onChange={handleChange}
+                                        className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
+                                        required
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
+                                        End Time
+                                    </label>
+                                    <input 
+                                        type="datetime-local"
+                                        name="EndTimeStamp"
+                                        value={formData.EndTimeStamp}
+                                        onChange={handleChange}
+                                        className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
+                                        required
+                                    />
+                                </div>
+
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
+                                        Location
+                                    </label>
+                                    <input 
+                                        type="text"
+                                        name="Location"
+                                        value={formData.Location}
+                                        onChange={handleChange}
+                                        className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
+                                        required
+                                    />
+                                </div>
+
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
+                                        Description
+                                    </label>
+                                    <textarea
+                                        name="Description"
+                                        value={formData.Description}
+                                        onChange={handleChange}
+                                        rows={3}
+                                        className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
+                                        placeholder="Enter a short description..."
+                                        required
+                                    />
+                                </div>
+
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
+                                        Picture URL
+                                    </label>
+                                    <input 
+                                        type="text"
+                                        name="Picture"
+                                        value={formData.Picture}
+                                        onChange={handleChange}
+                                        className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            {/* submit/cancel buttons */}
+                            <div className="flex space-x-2">
+                                <button
+                                    type="submit"
+                                    className="bg-green-600 text-white p-2 rounded font-['Mukta_Mahee']"
+                                >
+                                    Save Changes
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleCancel}
+                                    className="bg-gray-600 text-white p-2 rounded font-['Mukta_Mahee']"
+                                >
+                                    Cancel
+                                </button>
                             </div>
                         </form>
-
                     </div>
                 )}
+                {/*stop here */}
 
 
 
