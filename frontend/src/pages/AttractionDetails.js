@@ -1,3 +1,4 @@
+// src/pages/AttractionDetails.js
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
