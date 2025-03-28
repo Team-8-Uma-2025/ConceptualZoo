@@ -46,6 +46,38 @@ module.exports = (pool) => {
         }
     });
 
+    // get staff assigned to an attraction
+    router.get('/:id/assigned-staff', authenticateToken, async (req, res) => {
+        try {
+            const attractionId = req.params.id;
+
+            // Verify attraction ID is number
+            if(isNaN(attractionId)){
+                return res.status(400).json({ error: 'Invalid Attraction ID. ID must be a number' });
+            }
+
+            const [rows] = await pool.query(`
+                SELECT 
+                    s.Staff AS StaffID, 
+                    s.NAME, 
+                    s.StaffType, 
+                    s.Role, 
+                    saa.AssignedDate
+                FROM staff s
+                JOIN staff_attraction_assignments saa ON s.Staff = saa.StaffID
+                WHERE saa.AttractionID = ?`,
+                [attractionId]
+            );
+
+            res.json(rows);
+
+        } catch (err) {
+            console.error('Error fetching staff for attraction:', err);
+            res.status(500).json({ error: 'Failed to fetch staff for attraction' });
+        }
+    });
+
+
     // add new attraction (staff'Manager' only)
     router.post('/', authenticateToken, async (req, res) =>{
         try{
