@@ -277,8 +277,55 @@ const AttractionDetails = () => {
 
 
     return (
-        <div>
-            <h1>Attractions Details</h1>
+        <div className="bg-gray-100 min-h-screen pt-20">
+            <div className="container mx-auto px-4 py-12">
+                <h1 className="text-3xl font-bold mb-6 font-['Roboto_Flex']">Attractions Management</h1>
+
+                {/* Different UI based on user role */}
+                {currentUser?.staffType === 'Zookeeper' ? (
+                    // Zookeeper interface
+                    <div className="mb-6">
+                        <label className="block text-sm font-medium text-gray-700 mb-2 font-['Mukta_Mahee']">
+                            Select Your Assigned Attraction:
+                        </label>
+                        <select className="border border-gray-300 p-2 rounded w-full md:w-64 font-['Mukta_Mahee']"
+                            value={selectedEnclosure?.EnclosureID || ""}
+                            onChange={handleAttractionSelect}
+                        >
+                            <option  value=""> Select an attraction</option>
+                            {assignedAttractions.map(attraction => (
+                                <option key={attraction.Title} value={attraction.AttractionID}>
+                                    {attraction.Title} (ID: {attraction.AttractionID})
+                                </option>
+                            ))}
+                        </select>
+
+                        {assignedAttractions.length === 0 && !loading && (
+                            <p className="mt-2 text-amber-600 font-['Lora']">
+                                You don't have any assigned attractions
+                            </p>
+                        )}
+                    </div>
+                ) : (
+                    // manager or vet interface - Search by ID
+                    <div className="mb-6">
+                        <div className="flex flex-wrap items-center gap-4">
+                            <form onSubmit={searchAttractiom} className="flex items-center">
+                                <input 
+                                    type="text"
+                                    placeholder="Enter Enclosure ID"
+                                    value={search_aID}
+                                    onChange={(a) => setSearchAID(e.target.value)}
+                                    className="border border-gray-300 p-2 rounded mr-2 font-['Mukta_Mahee']"
+                                />
+                                <button type="submit" className="bg-green-600 text-white p-2 rounded font-['Mukta_Mahee']">
+                                    Search
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };
