@@ -38,7 +38,7 @@ module.exports = (pool) => {
                 return res.status(404).json({ error: 'Attraction not found' });
             }
 
-            res.json(rows);
+            res.json(rows[0]);
         }catch (err){
             console.error(err);
             res.status(500).json({ error: 'Failed to fetch enclosure' });
@@ -57,7 +57,7 @@ module.exports = (pool) => {
             const {staffID, location, startTimeStamp, endTimeStamp, title, description, picture} = req.body;
 
             // Ensure required feilds are entered
-            if (!staffId || !location || !startTimeStamp || !endTimeStamp || !title || !description|| !picture) {
+            if (!staffID || !location || !startTimeStamp || !endTimeStamp || !title || !description|| !picture) {
                 return res.status(400).json({ error: 'All fields (staffID, location, startTimeStamp, endTimeStamp, title, picture) are required' });
             }
 
