@@ -27,7 +27,7 @@ module.exports = (pool) => {
             
             // fetch attractions
             const [rows] = await pool.query(`
-                SELECT Title, AttractionID, StaffID, Location, StartTimeStamp, EndTimeStamp, Description
+                SELECT Title, AttractionID, StaffID, Location, StartTimeStamp, EndTimeStamp, Description, Picture
                 FROM attraction
                 WHERE AttractionId = ?`,
                 [attractionId]

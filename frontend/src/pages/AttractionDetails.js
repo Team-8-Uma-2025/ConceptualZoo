@@ -76,7 +76,7 @@ const AttractionDetails = () => {
         setLoading(true);
 
         try{
-            const response = await axios.get(`/api/attraction/${id}`, {
+            const response = await axios.get(`/api/attractions/${id}`, {
                 headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
             });
               
@@ -86,6 +86,7 @@ const AttractionDetails = () => {
                 headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
             });
             */
+
             setSelectedAttraction(response.data);
             
             // fill form data
@@ -317,7 +318,7 @@ const AttractionDetails = () => {
                                     type="text"
                                     placeholder="Enter Attraction ID"
                                     value={search_aID}
-                                    onChange={(a) => setSearchAID(e.target.value)}
+                                    onChange={(a) => setSearchAID(a.target.value)}
                                     className="border border-gray-300 p-2 rounded mr-2 font-['Mukta_Mahee']"
                                 />
                                 <button type="submit" className="bg-green-600 text-white p-2 rounded font-['Mukta_Mahee']">
@@ -624,9 +625,59 @@ const AttractionDetails = () => {
                         </form>
                     </div>
                 )}
-                {/*stop here */}
+                {/* Attraction Details */}
+                {selectedAttraction && !isAdding && !isEditing && (
+                    <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+                        <h2 className="text-2xl font-semibold mb-4 font-['Roboto_Flex']">Enclosure Details</h2>
 
-
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <div>
+                                <table className="min-w-full">
+                                    <tbody>
+                                    <tr className="border-b">
+                                        <td className="py-2 pr-4 font-semibold font-['Mukta_Mahee']">Attraction ID:</td>
+                                        <td className="py-2 font-['Lora']">{selectedAttraction.AttractionID}</td>
+                                    </tr>
+                                    <tr className="border-b">
+                                        <td className="py-2 pr-4 font-semibold font-['Mukta_Mahee']">Title:</td>
+                                        <td className="py-2 font-['Lora']">{selectedAttraction.Title}</td>
+                                    </tr>
+                                    <tr className="border-b">
+                                        <td className="py-2 pr-4 font-semibold font-['Mukta_Mahee']">Location:</td>
+                                        <td className="py-2 font-['Lora']">{selectedAttraction.Location}</td>
+                                    </tr>
+                                    <tr className="border-b">
+                                        <td className="py-2 pr-4 font-semibold font-['Mukta_Mahee']">Start Time:</td>
+                                        <td className="py-2 font-['Lora']">
+                                            {new Date(selectedAttraction.StartTimeStamp).toLocaleString()}
+                                        </td>
+                                    </tr>
+                                    <tr className="border-b">
+                                        <td className="py-2 pr-4 font-semibold font-['Mukta_Mahee']">End Time:</td>
+                                        <td className="py-2 font-['Lora']">
+                                            {new Date(selectedAttraction.EndTimeStamp).toLocaleString()}
+                                        </td>
+                                    </tr>
+                                    <tr className="border-b">
+                                        <td className="py-2 pr-4 font-semibold font-['Mukta_Mahee']">Description:</td>
+                                        <td className="py-2 font-['Lora']">{selectedAttraction.Description}</td>
+                                    </tr>
+                                    <tr className="border-b">
+                                        <td className="py-2 pr-4 font-semibold font-['Mukta_Mahee']">Picture:</td>
+                                        <td className="py-2 font-['Lora']">
+                                            <img 
+                                                src={selectedAttraction.Picture}
+                                                alt="Attraction"
+                                                className="w-64 rounded border"
+                                            />
+                                        </td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
             </div>
         </div>
