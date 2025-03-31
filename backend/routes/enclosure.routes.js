@@ -6,16 +6,26 @@ const { authenticateToken } = require('../middleware/auth.middleware');
 module.exports = (pool) => {
   // Get all enclosures
   router.get('/', async (req, res) => {
-    try {
-      // TODO: Implement getting all enclosures
-      const [rows] = await pool.query('SELECT * FROM enclosures'); // done
-      
-      res.json(rows); // return all enclosures
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: 'Failed to fetch enclosures: ' + err.message });
-    }
-  });
+  try {
+    const [rows] = await pool.query('SELECT * FROM enclosures');
+    
+    // Convert ImageData BLOB to Base64 string
+    const enclosures = rows.map(enclosure => {
+      if (enclosure.ImageData) {
+        // Convert Buffer -> Base64
+        const base64Image = enclosure.ImageData.toString('base64');
+        // Optional: store it in a separate field
+        enclosure.ImageData = base64Image;
+      }
+      return enclosure;
+    });
+
+    res.json(enclosures);
+  } catch (err) {
+    console.error('Error fetching enclosures:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
   
   // Get enclosure by ID
   router.get('/:id', async (req, res) => {
@@ -102,6 +112,32 @@ module.exports = (pool) => {
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: 'Failed to fetch enclosures for staff member: ' + err.message });
+    }
+  });
+
+  //Get enclosures by type
+  router.get('/type/:type', async (req, res) => {
+    const { type } = req.params;
+    try {
+      const [rows] = await pool.query(
+        'SELECT * FROM zoodb.enclosures WHERE Type = ?',
+        [type]
+      );
+      
+      // Convert the image Buffer to a Base64 string if ImageData exists
+      const formattedRows = rows.map(enclosure => {
+        if (enclosure.ImageData) {
+          enclosure.ImageData = enclosure.ImageData.toString('base64');
+          // Optionally prepend with data URL header if you know the MIME type
+          enclosure.ImageURL = `data:image/jpeg;base64,${enclosure.ImageData}`;
+        }
+        return enclosure;
+      });
+      
+      return res.json(formattedRows);
+    } catch (err) {
+      console.error('Error fetching enclosures by type:', err);
+      return res.status(500).json({ error: 'Server error' });
     }
   });
   
