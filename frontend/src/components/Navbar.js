@@ -68,7 +68,7 @@ const Navbar = () => {
         {/* Desktop Navigation */}
         <div className="hidden md:flex md:items-center md:space-x-6 font-['Mukta_Mahee']">
           <Link to="/plan-visit" className="hover:text-green-300 transition duration-300">Plan Your Visit</Link>
-          <Link to="/animals" className="hover:text-green-300 transition duration-300">Animals</Link>
+          <Link to="/animals" className="hover:text-green-300 transition duration-300">Enclosures</Link>
           <Link to="/attractions" className="hover:text-green-300 transition duration-300">Attractions</Link>
           
           {/* Notifications for staff */}
@@ -164,7 +164,7 @@ const Navbar = () => {
       {isOpen && (
         <div className="md:hidden pt-4 pb-2 font-['Mukta_Mahee']">
           <Link to="/plan-visit" className="block py-2 px-4 hover:bg-green-700 transition duration-300">Plan Your Visit</Link>
-          <Link to="/animals" className="block py-2 px-4 hover:bg-green-700 transition duration-300">Animals</Link>
+          <Link to="/animals" className="block py-2 px-4 hover:bg-green-700 transition duration-300">Enclosures</Link>
           <Link to="/attractions" className="block py-2 px-4 hover:bg-green-700 transition duration-300">Attractions</Link>
           <Link to="/tickets" className="block py-2 px-4 bg-green-600 hover:bg-green-500 transition duration-300 font-bold mt-2 mb-2">BUY TICKETS</Link>
           
