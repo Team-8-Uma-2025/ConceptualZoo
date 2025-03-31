@@ -285,7 +285,7 @@ const AttractionDetails = () => {
                 <h1 className="text-3xl font-bold mb-6 font-['Roboto_Flex']">Attractions Management</h1>
 
                 {/* Different UI based on user role */}
-                {currentUser?.staffRole !== 'Manager' ? (
+                {currentUser?.staffType === 'Zookeeper' && currentUser?.staffRole !== 'Manager' ? (
                     // Zookeeper interface
                     <div className="mb-6">
                         <label className="block text-sm font-medium text-gray-700 mb-2 font-['Mukta_Mahee']">
@@ -310,10 +310,33 @@ const AttractionDetails = () => {
                         )}
                     </div>
                 ) : (
-                    // manager or vet interface - Search by ID
+                    // Zookeeper manager interface - Search by ID
                     <div className="mb-6">
                         <div className="flex flex-wrap items-center gap-4">
                             <form onSubmit={searchAttraction} className="flex items-center">
+                                <label className="block text-sm font-medium text-gray-700 mb-2 font-['Mukta_Mahee']">
+                                    Search:
+                                </label>
+
+                                {/* dropdown attraction search */}
+                                <select 
+                                    value={selectedAttraction?.AttractionID || ""}
+                                    onChange={(e) => {
+                                        const id = e.target.value;
+                                        if (id) loadAttraction(id);
+                                        else setSelectedAttraction(null);
+                                    }}
+                                    className="border border-gray-300 p-2 rounded w-full md:w-64 font-['Mukta_Mahee']"
+                                >
+                                    <option value="">Select an attraction</option>
+                                    {attractionList.map((attraction) => (
+                                        <option key={attraction.AttractionID} value={attraction.AttractionID}>
+                                            {attraction.Title} (ID: {attraction.AttractionID})
+                                        </option>
+                                    ))}
+                                </select>
+
+                                {/* regular search
                                 <input 
                                     type="text"
                                     placeholder="Enter Attraction ID"
@@ -324,10 +347,11 @@ const AttractionDetails = () => {
                                 <button type="submit" className="bg-green-600 text-white p-2 rounded font-['Mukta_Mahee']">
                                     Search
                                 </button>
+                                */}
                             </form>
 
                             {/* Manager-only buttons */}
-                            {currentUser?.staffRole === "Manager" && (
+                            {currentUser?.staffType === 'Zookeeper' && currentUser?.staffRole === "Manager" && (
                                 <div className="flex space-x-2">
                                     <button type="button" 
                                         onClick={handleToggleAdd}
