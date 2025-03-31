@@ -285,7 +285,7 @@ const AttractionDetails = () => {
                 <h1 className="text-3xl font-bold mb-6 font-['Roboto_Flex']">Attractions Management</h1>
 
                 {/* Different UI based on user role */}
-                {currentUser?.staffType === 'Zookeeper' ? (
+                {currentUser?.staffRole !== 'Manager' ? (
                     // Zookeeper interface
                     <div className="mb-6">
                         <label className="block text-sm font-medium text-gray-700 mb-2 font-['Mukta_Mahee']">
