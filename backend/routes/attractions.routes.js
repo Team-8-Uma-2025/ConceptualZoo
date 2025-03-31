@@ -82,14 +82,16 @@ module.exports = (pool) => {
     router.post('/', authenticateToken, async (req, res) =>{
         try{
 
+            /*
             // Check that the user is staff with appropriate permissions
             if(req.user.staffRole !== 'Manager'){
                 return res.status(403).json({error: 'Denied. Appropriate staff only'})
             }
-            const {staffID, location, startTimeStamp, endTimeStamp, title, description, picture} = req.body;
+            */
+            const {StaffID, Location, StartTimeStamp, EndTimeStamp, Title, Description, Picture} = req.body;
 
             // Ensure required feilds are entered
-            if (!staffID || !location || !startTimeStamp || !endTimeStamp || !title || !description|| !picture) {
+            if (!StaffID || !Location || !StartTimeStamp || !EndTimeStamp || !Title || !Description|| !Picture) {
                 return res.status(400).json({ error: 'All fields (staffID, location, startTimeStamp, endTimeStamp, title, picture) are required' });
             }
 
@@ -98,12 +100,14 @@ module.exports = (pool) => {
                 INSERT INTO attraction (StaffID, Location, StartTimeStamp, EndTimeStamp, 
                     Title, Description, Picture)
                 VALUES(?, ?, ?, ?, ?, ?, ?)`,
-                [staffID, location, startTimeStamp, endTimeStamp, title, description, picture]
+                [StaffID, Location, StartTimeStamp, EndTimeStamp, Title, Description, Picture]
             );
+
+            console.log("BODY RECEIVED FROM FRONTEND:", req.body);
 
             res.status(201).json({ 
                 message: `New attraction created`,
-                attraction: result.insertId, 
+                AttractionID: result.insertId, 
             })
         } catch(err) {
             console.error(err);
@@ -132,10 +136,10 @@ module.exports = (pool) => {
                 return res.status(404).json({ error: 'Attraction not found' });
             }
 
-            const {location, startTimeStamp, endTimeStamp, title, description, picture} = req.body;
+            const {Location, StartTimeStamp, EndTimeStamp, Title, Description, Picture} = req.body;
 
             // check at least 1 feild is getting updated
-            if (!location && !startTimeStamp && !endTimeStamp && !title && !description && !picture) {
+            if (!Location && !StartTimeStamp && !EndTimeStamp && !Title && !Description && !Picture) {
                 return res.status(400).json({ error: 'At least one field (location, startTimeStamp, endTimeStamp, title, description, picture) must be provided for update' });
             }
 
@@ -143,29 +147,29 @@ module.exports = (pool) => {
             const entryField = [];
             const values = [];
 
-            if(location){
+            if(Location){
                 entryField.push('location = ?');
-                values.push(location);
+                values.push(Location);
             }
-            if(startTimeStamp){
+            if(StartTimeStamp){
                 entryField.push('startTimeStamp = ?');
-                values.push(startTimeStamp);
+                values.push(StartTimeStamp);
             }
-            if(endTimeStamp){
+            if(EndTimeStamp){
                 entryField.push('endTimeStamp = ?');
-                values.push(endTimeStamp);
+                values.push(EndTimeStamp);
             }
-            if(title){
+            if(Title){
                 entryField.push('title = ?');
-                values.push(title);
+                values.push(Title);
             }
-            if(description){
+            if(Description){
                 entryField.push('description = ?');
-                values.push(description);
+                values.push(Description);
             }
-            if(picture){
+            if(Picture){
                 entryField.push('picture = ?');
-                values.push(picture);
+                values.push(Picture);
             }
             values.push(attractionId); // for where clause for which attraction tpo update
 
