@@ -82,12 +82,12 @@ module.exports = (pool) => {
     router.post('/', authenticateToken, async (req, res) =>{
         try{
 
-            /*
+            
             // Check that the user is staff with appropriate permissions
             if(req.user.staffRole !== 'Manager'){
                 return res.status(403).json({error: 'Denied. Appropriate staff only'})
             }
-            */
+            
             const {StaffID, Location, StartTimeStamp, EndTimeStamp, Title, Description, Picture} = req.body;
 
             // Ensure required feilds are entered
