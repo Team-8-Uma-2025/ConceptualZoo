@@ -1,4 +1,4 @@
-// src/pages/Dashboard.js - Updated version
+// src/pages/Dashboard.js
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -6,10 +6,10 @@ import axios from 'axios';
 import {
   Activity, Briefcase, Clipboard,
   AlertTriangle, Heart, Home, Package,
-  Users, Bell, ChevronDown, ChevronUp
+  Users, Bell, ChevronDown, ChevronUp,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import RevenueReport from "../components/RevenueReport";
-
 
 const Dashboard = () => {
   const { currentUser } = useAuth();
@@ -17,13 +17,15 @@ const Dashboard = () => {
   const [error, setError] = useState(null);
   const [expandedSection, setExpandedSection] = useState(null);
 
-  console.log(currentUser)
-
   // Data states
   const [staffMembers, setStaffMembers] = useState([]);
   const [sickAnimals, setSickAnimals] = useState([]);
   const [enclosures, setEnclosures] = useState([]);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  
+  // Pagination states for staff directory
+  const [currentPage, setCurrentPage] = useState(1);
+  const [staffPerPage] = useState(7); // Number of staff members to display per page
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -67,7 +69,6 @@ const Dashboard = () => {
           const enclosureResponse = await axios.get(enclosureUrl, {
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
           });
-          console.log(enclosureResponse.data)
           setEnclosures(enclosureResponse.data || []);
         }
 
@@ -82,14 +83,16 @@ const Dashboard = () => {
     fetchDashboardData();
   }, [currentUser]);
 
-  console.log(staffMembers)
-
   // Function to toggle section expansion
   const toggleSection = (section) => {
     if (expandedSection === section) {
       setExpandedSection(null);
     } else {
       setExpandedSection(section);
+      // Reset to first page when expanding staff directory
+      if (section === 'staff') {
+        setCurrentPage(1);
+      }
     }
   };
 
@@ -116,15 +119,9 @@ const Dashboard = () => {
           link: '/dashboard/staff',
           color: 'bg-purple-600'
         },
-        // {
-        //   title: 'System Overview',
-        //   icon: <Activity size={20} className="mr-2" />,
-        //   description: 'View system-wide metrics and status',
-        //   link: '/dashboard/overview',
-        //   color: 'bg-pink-600'
-        // },
       ],
     };
+    
     const staffTypeModules = {
       'Zookeeper': [
         {
@@ -134,40 +131,12 @@ const Dashboard = () => {
           link: '/dashboard/enclosures',
           color: 'bg-green-600'
         },
-        // {
-        //   title: 'Animals',
-        //   icon: <Activity size={20} className="mr-2" />,
-        //   description: 'View and monitor animals in your care',
-        //   link: '/dashboard/animals',
-        //   color: 'bg-yellow-600'
-        // },
-        // {
-        //   title: 'Enclosure Information',
-        //   icon: '🐒',
-        //   description: 'View and edit(if applicable) enclosure information',
-        //   link: '/dashboard/enclosures',
-        //   color: 'bg-cyan-600'
-        // }
       ],
       'Vet': [
-        // {
-        //   title: 'Health Monitoring',
-        //   icon: <Heart size={20} className="mr-2" />,
-        //   description: 'Monitor animal health status',
-        //   link: '/dashboard/health',
-        //   color: 'bg-red-600'
-        // },
-        // {
-        //   title: 'Medical Records',
-        //   icon: <Clipboard size={20} className="mr-2" />,
-        //   description: 'Access and update animal medical information',
-        //   link: '/dashboard/medical-records',
-        //   color: 'bg-orange-600'
-        // },
         {
           title: 'Enclosure Information',
-          icon: '🐒',
-          description: 'View and edit(if applicable) enclosure information',
+          icon: <Home size={20} className="mr-2" />,
+          description: 'View and edit enclosure information',
           link: '/dashboard/enclosures',
           color: 'bg-cyan-600'
         }
@@ -192,11 +161,21 @@ const Dashboard = () => {
 
     // Get modules specific to the user's role
     const userRoleModules = roleSpecificModules[currentUser.staffRole] || [];
-
     const userTypeModules = staffTypeModules[currentUser.staffType] || [];
 
     return [...commonModules, ...userRoleModules, ...userTypeModules];
   };
+
+  // Pagination logic for staff directory
+  const indexOfLastStaff = currentPage * staffPerPage;
+  const indexOfFirstStaff = indexOfLastStaff - staffPerPage;
+  const currentStaff = staffMembers.slice(indexOfFirstStaff, indexOfLastStaff);
+  const totalPages = Math.ceil(staffMembers.length / staffPerPage);
+
+  // Change page
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+  const goToNextPage = () => setCurrentPage(prev => Math.min(prev + 1, totalPages));
+  const goToPrevPage = () => setCurrentPage(prev => Math.max(prev - 1, 1));
 
   if (!currentUser || currentUser.role !== 'staff') {
     return (
@@ -331,7 +310,7 @@ const Dashboard = () => {
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                               {new Date(animal.LastVetCheckup).toLocaleDateString()}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                               <Link to={`/dashboard/animals/${animal.AnimalID}`} className="text-green-600 hover:text-green-900">
                                 View
                               </Link>
@@ -420,7 +399,7 @@ const Dashboard = () => {
               </div>
             )}
 
-            {/* Staff List (Managers Only) */}
+            {/* Staff List (Managers Only) with Pagination */}
             {currentUser.staffRole === 'Manager' && staffMembers.length > 0 && (
               <div className="bg-white rounded-lg shadow-md p-6 mb-8">
                 <div
@@ -439,67 +418,124 @@ const Dashboard = () => {
                 </div>
 
                 {expandedSection === 'staff' && (
-                  <div className="mt-4 overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            ID
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Name
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Role
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Type
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Actions
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {staffMembers.map((staff) => (
-                          <tr key={staff.Staff}>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {staff.Staff}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                              {staff.Name}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {staff.Role}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {staff.StaffType}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                              <Link
-                                to={`/dashboard/staff/${staff.Staff}`}
-                                className="text-green-600 hover:text-green-900 mr-3"
-                              >
-                                View
-                              </Link>
-                              <Link
-                                to={`/dashboard/staff/${staff.Staff}/edit`}
-                                className="text-blue-600 hover:text-blue-900"
-                              >
-                                Edit
-                              </Link>
-                            </td>
+                  <div className="mt-4">
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              ID
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Name
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Role
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Type
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Actions
+                            </th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {currentStaff.map((staff) => (
+                            <tr key={staff.Staff}>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {staff.Staff}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                {staff.Name}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {staff.Role}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {staff.StaffType}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <Link
+                                  to={`/dashboard/staff/${staff.Staff}`}
+                                  className="text-green-600 hover:text-green-900 mr-3"
+                                >
+                                  View
+                                </Link>
+                                <Link
+                                  to={`/dashboard/staff/${staff.Staff}/edit`}
+                                  className="text-blue-600 hover:text-blue-900"
+                                >
+                                  Edit
+                                </Link>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-center mt-6">
+                        <div className="flex items-center space-x-4">
+                          <button 
+                            onClick={goToPrevPage} 
+                            disabled={currentPage === 1}
+                            className={`p-2 rounded-full ${
+                              currentPage === 1 
+                                ? 'text-gray-400 cursor-not-allowed' 
+                                : 'text-gray-700 hover:bg-purple-100'
+                            }`}
+                            aria-label="Previous page"
+                          >
+                            <ChevronLeft size={20} />
+                          </button>
+                          
+                          <div className="flex items-center space-x-1">
+                            {/* Page numbers */}
+                            {[...Array(totalPages)].map((_, i) => (
+                              <button
+                                key={i}
+                                onClick={() => paginate(i + 1)}
+                                className={`px-3 py-1 rounded-md ${
+                                  currentPage === i + 1
+                                    ? 'bg-purple-600 text-white font-medium'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-purple-100'
+                                }`}
+                              >
+                                {i + 1}
+                              </button>
+                            ))}
+                          </div>
+                          
+                          <button 
+                            onClick={goToNextPage} 
+                            disabled={currentPage === totalPages}
+                            className={`p-2 rounded-full ${
+                              currentPage === totalPages 
+                                ? 'text-gray-400 cursor-not-allowed' 
+                                : 'text-gray-700 hover:bg-purple-100'
+                            }`}
+                            aria-label="Next page"
+                          >
+                            <ChevronRight size={20} />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Showing entries info */}
+                    <div className="mt-4 text-sm text-gray-500 text-center">
+                      Showing {indexOfFirstStaff + 1} to {Math.min(indexOfLastStaff, staffMembers.length)} of {staffMembers.length} staff members
+                    </div>
                   </div>
                 )}
               </div>
             )}
 
             {/* Ticket Revenue Section (Managers Only) */}
-            {currentUser.staffRole === "Manager" && (
+            {currentUser.staffRole === "Manager" && currentUser.staffType === 'Admin' && (
               <div className="bg-white rounded-lg shadow-md p-6 mb-8">
                 <div
                   className="flex justify-between items-center cursor-pointer"
