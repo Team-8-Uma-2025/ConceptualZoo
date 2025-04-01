@@ -28,62 +28,6 @@ const Attractions = () => {
     fetchAttractions();
 
   }, [] );
-
-
-
-
-  /*
-  const attractions = [
-    {
-      id: 1,
-      name: 'Jungle Trek',
-      description: 'Experience a guided walk through our tropical jungle environment with exotic plants and animals.',
-      image: 'https://placehold.co/600x400/222222/EEEEEE',
-      duration: '45 minutes',
-      age: 'All ages'
-    },
-    {
-      id: 2,
-      name: 'Feeding Shows',
-      description: 'Watch our zookeepers feed various animals and learn about their diets and behaviors.',
-      image: 'https://placehold.co/600x400/222222/EEEEEE',
-      duration: '30 minutes',
-      age: 'All ages'
-    },
-    {
-      id: 3,
-      name: 'Safari Train',
-      description: 'Take a scenic train ride around the zoo and visit areas not accessible by foot.',
-      image: 'https://placehold.co/600x400/222222/EEEEEE',
-      duration: '20 minutes',
-      age: 'All ages'
-    },
-    {
-      id: 4,
-      name: 'Animal Encounters',
-      description: 'Get up close with some of our friendliest residents in a supervised environment.',
-      image: 'https://placehold.co/600x400/222222/EEEEEE',
-      duration: '40 minutes',
-      age: '6+'
-    },
-    {
-      id: 5,
-      name: 'Nocturnal House',
-      description: 'Discover the fascinating world of animals that come alive at night.',
-      image: 'https://placehold.co/600x400/222222/EEEEEE',
-      duration: 'Self-guided',
-      age: 'All ages'
-    },
-    {
-      id: 6,
-      name: 'Conservation Center',
-      description: 'Learn about our global conservation efforts and how you can help protect wildlife.',
-      image: 'https://placehold.co/600x400/222222/EEEEEE',
-      duration: 'Self-guided',
-      age: 'All ages'
-    }
-  ];
-  */
   
   return (
     <div className="bg-gray-100 min-h-screen">
