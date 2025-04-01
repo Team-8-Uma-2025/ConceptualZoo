@@ -21,7 +21,7 @@ const Home = () => {
 			<section className="relative h-[90vh] overflow-hidden">
 				{/* Background image with overlay */}
 				<img
-					src="/background/tree_bg.png"
+					src="/background/tree_bg.webp"
 					alt="Jungle background"
 					className="absolute inset-0 w-full h-full object-cover"
 				/>

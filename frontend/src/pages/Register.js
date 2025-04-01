@@ -59,7 +59,7 @@ const Register = () => {
   return (
     <div className="bg-gray-900 min-h-screen pt-20 bg-opacity-90" 
          style={{
-           backgroundImage: "url('/background/tree_bg.png')",
+           backgroundImage: "url('/background/tree_bg.webp')",
            backgroundSize: "cover",
            backgroundPosition: "center",
            backgroundBlendMode: "overlay"
