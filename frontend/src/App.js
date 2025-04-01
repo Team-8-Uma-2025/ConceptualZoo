@@ -22,6 +22,7 @@ import Messages from './pages/Messages';
 import EnclosureList from './pages/EnclosureList';
 import EnclosureDetails from './pages/EnclosureDetails';
 import AnimalDetails from './pages/AnimalDetails';
+import AttractionDetails from './pages/AttractionDetails'
 
 // Components
 import Navbar from './components/Navbar';
@@ -86,6 +87,9 @@ function AppContent() {
             <Route path="/dashboard/enclosures/:id" element={<EnclosureDetails />} /> 
             <Route path="/dashboard/enclosures" element={<EnclosureDetails />} /> 
             <Route path="/dashboard/test1" element={<AnimalDetails />} /> 
+            <Route path="/dashboard/attractions" element={<AttractionDetails />} />
+            <Route path="/dashboard/attractions/:id" element={<AttractionDetails />} />
+
             {/* Additional staff routes will go here */}
           </Route>
 
