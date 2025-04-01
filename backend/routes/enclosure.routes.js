@@ -123,18 +123,7 @@ module.exports = (pool) => {
         'SELECT * FROM zoodb.enclosures WHERE Type = ?',
         [type]
       );
-      
-      // Convert the image Buffer to a Base64 string if ImageData exists
-      const formattedRows = rows.map(enclosure => {
-        if (enclosure.ImageData) {
-          enclosure.ImageData = enclosure.ImageData.toString('base64');
-          // Optionally prepend with data URL header if you know the MIME type
-          enclosure.ImageURL = `data:image/jpeg;base64,${enclosure.ImageData}`;
-        }
-        return enclosure;
-      });
-      
-      return res.json(formattedRows);
+      return res.json(rows);
     } catch (err) {
       console.error('Error fetching enclosures by type:', err);
       return res.status(500).json({ error: 'Server error' });
