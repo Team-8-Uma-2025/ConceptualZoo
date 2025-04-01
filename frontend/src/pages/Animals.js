@@ -2,36 +2,40 @@
 import React, { useState, useEffect } from 'react';
 
 const Animals = () => {
+  // Define the enclosure types you want to fetch.
+  const types = ["Mammal", "Avian", "Reptile", "Amphibian"]; // adjust as needed
+
+  // State to store enclosures grouped by type.
   const [groupedEnclosures, setGroupedEnclosures] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Fetch all enclosures from the API
-    const fetchEnclosures = async () => {
+    // Function to fetch enclosures for a given type using your API route.
+    const fetchEnclosuresByType = async (type) => {
       try {
-        const response = await fetch('http://localhost:5000/api/enclosures');
+        const response = await fetch(`http://localhost:5000/api/enclosures/type/${type}`);
         if (!response.ok) {
-          throw new Error('Failed to fetch enclosures');
+          throw new Error(`Failed to fetch enclosures of type ${type}`);
         }
-        const enclosures = await response.json();
-        // Group enclosures by their Type
-        const groups = enclosures.reduce((acc, enclosure) => {
-          const type = enclosure.Type || 'Unknown';
-          if (!acc[type]) {
-            acc[type] = [];
-          }
-          acc[type].push(enclosure);
-          return acc;
-        }, {});
-        setGroupedEnclosures(groups);
+        return await response.json();
       } catch (error) {
-        console.error('Error fetching enclosures:', error);
-      } finally {
-        setLoading(false);
+        console.error(error);
+        return [];
       }
     };
 
-    fetchEnclosures();
+    // Fetch enclosures for all types.
+    const fetchAllEnclosures = async () => {
+      let groups = {};
+      for (const type of types) {
+        const data = await fetchEnclosuresByType(type);
+        groups[type] = data;
+      }
+      setGroupedEnclosures(groups);
+      setLoading(false);
+    };
+
+    fetchAllEnclosures();
   }, []);
 
   if (loading) {
@@ -58,29 +62,31 @@ const Animals = () => {
           Discover the diverse collection of enclosures at Wild Wood Zoo.
         </p>
         
-        {Object.keys(groupedEnclosures).map((type, idx) => (
+        {types.map((type, idx) => (
           <div key={idx} className="mb-16">
             <h2 className="text-3xl font-bold mb-8 text-gray-800 font-['Roboto_Flex']">{type}</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {groupedEnclosures[type].map((enclosure) => (
-                <div 
-                  key={enclosure.EnclosureID} 
-                  className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition duration-300"
-                >
-                  {/* Using placeholder images for now */}
-                  <img
-                    src={enclosure.ImageURL}
-                    alt={enclosure.Name}
-                    className="w-full h-56 object-cover"
-                  />
-                  <div className="p-6">
-                    <h3 className="text-xl font-semibold mb-2 text-gray-800 font-['Mukta_Mahee']">
-                      {enclosure.Name}
-                    </h3>
-                    {/* Removed description text and Learn More button */}
+              {groupedEnclosures[type] && groupedEnclosures[type].length > 0 ? (
+                groupedEnclosures[type].map((enclosure) => (
+                  <div 
+                    key={enclosure.EnclosureID} 
+                    className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition duration-300"
+                  >
+                    <img
+                      src={enclosure.ImageURL} // Should be a valid URL (e.g., /images/savannahHabitat.jpg or a full URL)
+                      alt={enclosure.Name}
+                      className="w-full h-56 object-cover"
+                    />
+                    <div className="p-6">
+                      <h3 className="text-xl font-semibold mb-2 text-gray-800 font-['Mukta_Mahee']">
+                        {enclosure.Name}
+                      </h3>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              ) : (
+                <div>No enclosures available for {type}</div>
+              )}
             </div>
           </div>
         ))}
