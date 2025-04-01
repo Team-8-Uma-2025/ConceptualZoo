@@ -287,7 +287,7 @@ module.exports = (pool) => {
       res.json({ message: `This endpoint will assign staff ${Staff} to enclosure ${enclosureId}` });
     } catch (err) {
       console.error(err);
-      res.status(500).json({ error: 'Failed to delete enclosure' });
+      res.status(500).json({ error: 'Failed to fetch staff assigned to enclosure' });
     }
     
   });

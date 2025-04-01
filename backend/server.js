@@ -73,6 +73,7 @@ const enclosureRoutes = require('./routes/enclosure.routes')(pool, authenticateT
 // const visitorRoutes = require('./routes/visitor.routes')(pool, authenticateToken);
 const ticketRoutes = require('./routes/ticket.routes')(pool, authenticateToken);
 const observationRoutes = require('./routes/observation.routes')(pool, authenticateToken);
+const attractionRoutes = require('./routes/attractions.routes')(pool, authenticateToken);
 
 // Use routes
 app.use('/api/auth', authRoutes);
@@ -83,6 +84,7 @@ app.use('/api/enclosures', enclosureRoutes);
 // app.use('/api/visitors', visitorRoutes);
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/observations', observationRoutes);
+app.use('/api/attractions', attractionRoutes);
 
 // Root route
 app.get("/", (req, res) => {
