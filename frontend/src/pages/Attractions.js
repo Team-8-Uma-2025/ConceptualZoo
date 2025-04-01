@@ -59,7 +59,7 @@ const Attractions = () => {
       {/* Page Header */}
       <div className="relative h-96 overflow-hidden">
         <img 
-          src="/background/tree_bg.png" 
+          src="/background/tree_bg.webp" 
           alt="Attractions Banner" 
           className="w-full h-full object-cover"
         />

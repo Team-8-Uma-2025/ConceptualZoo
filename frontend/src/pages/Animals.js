@@ -43,7 +43,7 @@ const Animals = () => {
       {/* Page Header */}
       <div className="relative h-96 overflow-hidden">
         <img 
-          src="/background/tree_bg.png" 
+          src="/background/tree_bg.webp" 
           alt="Enclosures Banner" 
           className="w-full h-full object-cover"
         />

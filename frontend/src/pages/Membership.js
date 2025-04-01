@@ -74,7 +74,7 @@ const Membership = () => {
       {/* Page Header */}
       <div className="relative h-96 overflow-hidden">
         <img 
-          src="/background/tree_bg.png" 
+          src="/background/tree_bg.webp" 
           alt="Membership Banner" 
           className="w-full h-full object-cover"
         />
