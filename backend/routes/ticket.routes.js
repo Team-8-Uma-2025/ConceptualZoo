@@ -1,4 +1,4 @@
-// routes/ticket.routes.js
+// routes/ticket.routes.js - Updated with better error handling
 const express = require("express");
 const router = express.Router();
 const { authenticateToken } = require("../middleware/auth.middleware");
@@ -15,7 +15,7 @@ module.exports = (pool) => {
 
       res.json(types);
     } catch (err) {
-      console.error(err);
+      console.error("Error in /types:", err);
       res.status(500).json({ error: "Failed to fetch ticket types" });
     }
   });
@@ -114,12 +114,13 @@ module.exports = (pool) => {
         });
       } catch (err) {
         await connection.rollback();
+        console.error("Transaction error in /purchase:", err);
         throw err;
       } finally {
         connection.release();
       }
     } catch (err) {
-      console.error(err);
+      console.error("Error in /purchase:", err);
       res.status(500).json({ error: "Failed to purchase tickets" });
     }
   });
@@ -128,8 +129,19 @@ module.exports = (pool) => {
   router.get("/visitor/:id", authenticateToken, async (req, res) => {
     try {
       const visitorId = req.params.id;
+
+      // Debugging log
+      console.log(
+        `Processing ticket request for visitorId: ${visitorId}, auth user id: ${req.user.id}, auth role: ${req.user.role}`
+      );
+
       // Only allow the visitor their own tickets (or staff viewing)
       if (req.user.id !== parseInt(visitorId) && req.user.role !== "staff") {
+        console.log(
+          "Unauthorized access attempt - IDs don't match:",
+          req.user.id,
+          visitorId
+        );
         return res.status(403).json({ error: "Unauthorized" });
       }
 
@@ -143,6 +155,10 @@ module.exports = (pool) => {
       const [addonRecords] = await pool.query(
         "SELECT * FROM addons WHERE VisitorID = ? ORDER BY StartDate DESC",
         [visitorId]
+      );
+
+      console.log(
+        `Found ${regularTickets.length} regular tickets and ${addonRecords.length} addons`
       );
 
       // Group addons by date for easy lookup
@@ -171,11 +187,10 @@ module.exports = (pool) => {
 
       res.json({
         regularTickets: ticketsWithAddons,
-        // Still include this for backward compatibility, but you'll remove its display
         addonTickets: addonRecords,
       });
     } catch (err) {
-      console.error(err);
+      console.error("Error in /visitor/:id:", err);
       res.status(500).json({ error: "Failed to fetch tickets" });
     }
   });
@@ -199,7 +214,7 @@ module.exports = (pool) => {
 
       res.json(addons);
     } catch (err) {
-      console.error(err);
+      console.error("Error in /visitor/:id/addons:", err);
       res.status(500).json({ error: "Failed to fetch addons" });
     }
   });
@@ -213,7 +228,7 @@ module.exports = (pool) => {
 
       res.json({ message: `This endpoint will validate ticket ${ticketId}` });
     } catch (err) {
-      console.error(err);
+      console.error("Error in /validate/:id:", err);
       res.status(500).json({ error: "Failed to validate ticket" });
     }
   });
@@ -271,7 +286,7 @@ module.exports = (pool) => {
         summary: totals,
       });
     } catch (err) {
-      console.error(err);
+      console.error("Error in /revenue:", err);
       res.status(500).json({ error: "Failed to fetch revenue data" });
     }
   });
