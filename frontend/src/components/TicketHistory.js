@@ -1,53 +1,54 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import axios from "axios";
 import { Ticket, ChevronDown, ChevronUp, Calendar } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 const TicketHistory = () => {
   const { currentUser } = useAuth();
   const [tickets, setTickets] = useState([]);
+  //eslint-disable-next-line
   const [addons, setAddons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedDate, setExpandedDate] = useState(null);
 
-  useEffect(() => {
-    const fetchTickets = async () => {
-      if (!currentUser) return;
+  // Wrapped fetchTickets in useCallback to use it in the dependency array
+  const fetchTickets = useCallback(async () => {
+    if (!currentUser) return;
 
-      try {
-        setLoading(true);
-        const token = localStorage.getItem("token");
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
 
-        const response = await fetch(`/api/tickets/visitor/${currentUser.id}`, {
+      const response = await axios.get(
+        `/api/tickets/visitor/${currentUser.id}`,
+        {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch tickets");
+          timeout: 10000,
         }
+      );
 
-        const data = await response.json();
+      // Handle the response with fallbacks
+      const regularTickets = response.data?.regularTickets || [];
+      const addonTickets = response.data?.addonTickets || [];
 
-        // Handle the response with fallbacks
-        const regularTickets = data?.regularTickets || [];
-        const addonTickets = data?.addonTickets || [];
-
-        setTickets(regularTickets);
-        setAddons(addonTickets);
-        setError(null);
-      } catch (err) {
-        console.error("Failed to fetch tickets:", err);
-        setError("Unable to load your ticket history. Please try again later.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTickets();
+      setTickets(regularTickets);
+      setAddons(addonTickets);
+      setError(null);
+    } catch (err) {
+      console.error("Failed to fetch tickets:", err);
+      setError("Unable to load your ticket history. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
   }, [currentUser]);
+
+  useEffect(() => {
+    fetchTickets();
+  }, [fetchTickets]); // Fixed dependency array
 
   const toggleDate = (date) => {
     if (expandedDate === date) {
@@ -59,20 +60,27 @@ const TicketHistory = () => {
 
   // Format date for display
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    } catch (e) {
+      console.error("Date formatting error:", e);
+      return "Invalid date";
+    }
   };
 
-  // Group tickets by date
+  // Group tickets by date - only include regular tickets, not add-ons
   const groupTicketsByDate = () => {
     const grouped = {};
 
-    // Group regular tickets
+    // Group regular tickets only
     tickets.forEach((ticket) => {
+      if (!ticket.StartDate) return; // Skip tickets without dates
+
       const dateKey = formatDate(ticket.StartDate);
       if (!grouped[dateKey]) {
         grouped[dateKey] = {
@@ -80,24 +88,11 @@ const TicketHistory = () => {
           tickets: [],
         };
       }
+
+      // Only add regular tickets to the display
       grouped[dateKey].tickets.push({
         ...ticket,
         type: "regular",
-      });
-    });
-
-    // Add addons to their respective dates
-    addons.forEach((addon) => {
-      const dateKey = formatDate(addon.StartDate);
-      if (!grouped[dateKey]) {
-        grouped[dateKey] = {
-          date: new Date(addon.StartDate),
-          tickets: [],
-        };
-      }
-      grouped[dateKey].tickets.push({
-        ...addon,
-        type: "addon",
       });
     });
 
@@ -141,6 +136,14 @@ const TicketHistory = () => {
         </h3>
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
           {error}
+          <div className="mt-2">
+            <button
+              onClick={() => fetchTickets()}
+              className="bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded transition duration-200"
+            >
+              Retry
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -202,9 +205,7 @@ const TicketHistory = () => {
                       <div className="flex justify-between items-start">
                         <div>
                           <div className="font-semibold text-gray-800 font-['Mukta_Mahee']">
-                            {ticket.type === "regular"
-                              ? `${ticket.TicketType} Ticket`
-                              : `Add-on: ${ticket.Description}`}
+                            {ticket.TicketType} Ticket
                           </div>
                           <div className="text-sm text-gray-600 font-['Lora']">
                             Price: ${formatPrice(ticket.Price)}
