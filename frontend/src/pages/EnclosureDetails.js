@@ -343,21 +343,23 @@ const EnclosureDetails = () => {
           // Manager or Vet Interface - Search by ID
           <div className="mb-6">
             <div className="flex flex-wrap items-center gap-4">
-              <form onSubmit={searchEnclosure} className="flex items-center">
-                <input
-                  type="text"
-                  placeholder="Enter Enclosure ID"
-                  value={search_eID}
-                  onChange={(e) => setSearchEID(e.target.value)}
-                  className="border border-gray-300 p-2 rounded mr-2 font-['Mukta_Mahee']"
-                />
-                <button
-                  type="submit"
-                  className="bg-green-600 text-white p-2 rounded font-['Mukta_Mahee']"
-                >
-                  Search
-                </button>
-              </form>
+              <select
+                value={selectedEnclosure?.EnclosureID || ""}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  if (id) loadEnclosure(id);
+                  else setSelectedEnclosure(null);
+                }}
+                className="border border-gray-300 p-2 rounded w-full md:w-64 font-['Mukta_Mahee']"
+              >
+                <option value="">Select an enclosure</option>
+                {enclosureList.map((enclosure) => (
+                  <option key={enclosure.EnclosureID} value={enclosure.EnclosureID}>
+                    {enclosure.Name} (ID: {enclosure.EnclosureID})
+                  </option>
+                ))}
+
+              </select>
 
               {/* Manager-only buttons */}
               {currentUser?.staffRole === "Manager" && (
