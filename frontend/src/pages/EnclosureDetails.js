@@ -313,11 +313,6 @@ const EnclosureDetails = () => {
         <h1 className="text-3xl font-bold mb-6 font-['Roboto_Flex']">
           Enclosure Management
         </h1>
-
-        <div className="mb-4 p-2 bg-gray-100 rounded">
-          <p>Debug - staffType: {currentUser?.staffType}</p>
-          <p>Debug - staffRole: {currentUser?.staffRole}</p>
-        </div>
         
         {/* Different UI based on user role */}
         {currentUser?.staffType === 'Zookeeper' && currentUser.staffRole === "Staff" ? (
