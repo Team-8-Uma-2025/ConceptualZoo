@@ -32,28 +32,7 @@ const AttractionDetails = () => {
         Picture: "",
     });
 
-    /* joshua code to refernece
-    useEffect(() => {
-        const fetchAssignedAttraction = async () => {
-            if(!currentUser) return;
-            try {
-                setLoading(true);
-                let endpoint = '/api/attraction';
-
-                // if user is a zookeeper, get their assigned attraction
-                if(currentUser.staffType === 'Zookeeper'){
-                    endpoint = `/api/attraction/staff/${currentUser.id}`;
-                }
-
-            } catch (err) {
-                console.error("Failed to fetch attraction", err);
-                setError("Failed to load your assigned enclosures. Please try again.");
-            } finally {
-                setLoading(false);
-            }
-        }
-    }, [currentUser, urlAttractionId]);
-    */
+    
 
     useEffect(() => {
         const fetchAttractions = async () => {
