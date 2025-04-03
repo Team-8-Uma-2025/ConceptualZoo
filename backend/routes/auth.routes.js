@@ -146,6 +146,7 @@ module.exports = (pool) => {
             id: visitor.VisitorID,
             firstName: visitor.firstName,
             lastName: visitor.lastName,
+            username: visitor.Username,
             role: 'visitor',
             membership: visitor.Membership
           }
