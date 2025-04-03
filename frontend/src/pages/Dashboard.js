@@ -131,6 +131,13 @@ const Dashboard = () => {
           link: '/dashboard/enclosures',
           color: 'bg-green-600'
         },
+        {
+          title: 'Attraction Information',
+          icon: <Home size={20} className="mr-2" />,
+          description: 'View and edit attraction information',
+          link: '/dashboard/attractions',
+          color: 'bg-rose-600'
+        }
       ],
       'Vet': [
         {

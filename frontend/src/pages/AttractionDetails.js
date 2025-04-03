@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import { useParams } from 'react-router-dom'; // Import useParams
+import StaffCard from '../components/StaffCard'; // import staffCard component for staff data
 
 const AttractionDetails = () => {
     const {id: urlAttractionId} = useParams();
@@ -13,6 +14,7 @@ const AttractionDetails = () => {
     const [attractionList, setAttractionList] = useState([]); //preload attractions for manager functions
     const [assignedAttractions, setAssignedAttractions] = useState([]); // for regular staff
     const [selectedAttraction, setSelectedAttraction] = useState(null); //fetch atraction details
+    const [assignedStaff, setAssignedStaff] = useState([]); // store and set staff working an enclosure 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null); 
 
@@ -79,15 +81,13 @@ const AttractionDetails = () => {
             const response = await axios.get(`/api/attractions/${id}`, {
                 headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
             });
-              
-            /*
-            // Get staff in this enclosure
-            const animalsResponse = await axios.get(`/api/animals/enclosure/${id}`, {
-                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-            });
-            */
-
             setSelectedAttraction(response.data);
+
+            // this is what we are working on 
+            const staffResponse = await axios.get(`/api/attractions/${id}/assigned-staff`, {
+                headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+            });
+            setAssignedStaff(staffResponse.data);
             
             // fill form data
             setFormData({
@@ -335,20 +335,8 @@ const AttractionDetails = () => {
                                         </option>
                                     ))}
                                 </select>
-
-                                {/* regular search
-                                <input 
-                                    type="text"
-                                    placeholder="Enter Attraction ID"
-                                    value={search_aID}
-                                    onChange={(a) => setSearchAID(a.target.value)}
-                                    className="border border-gray-300 p-2 rounded mr-2 font-['Mukta_Mahee']"
-                                />
-                                <button type="submit" className="bg-green-600 text-white p-2 rounded font-['Mukta_Mahee']">
-                                    Search
-                                </button>
-                                */}
                             </form>
+
 
                             {/* Manager-only buttons */}
                             {currentUser?.staffType === 'Zookeeper' && currentUser?.staffRole === "Manager" && (
@@ -700,9 +688,22 @@ const AttractionDetails = () => {
                                 </table>
                             </div>
                         </div>
+                        {/* Staff cards section */}
+                        <h3 className="text-xl font-semibold mb-4 font-['Roboto_Flex']">
+                            Staff Assigned to This Attraction
+                        </h3>
+
+                        {assignedStaff.length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {assignedStaff.map((staff) => (
+                                    <StaffCard key={staff.StaffID} staff={staff} />
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-gray-500 py-4 font-['Lora']">No staff assigned to this attraction.</p>
+                        )}
                     </div>
                 )}
-
             </div>
         </div>
     );
