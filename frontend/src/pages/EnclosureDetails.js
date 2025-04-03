@@ -306,15 +306,21 @@ const EnclosureDetails = () => {
     }
   };
 
+  console.log(currentUser)
   return (
     <div className="bg-gray-100 min-h-screen pt-20">
       <div className="container mx-auto px-4 py-12">
         <h1 className="text-3xl font-bold mb-6 font-['Roboto_Flex']">
           Enclosure Management
         </h1>
+
+        <div className="mb-4 p-2 bg-gray-100 rounded">
+          <p>Debug - staffType: {currentUser?.staffType}</p>
+          <p>Debug - staffRole: {currentUser?.staffRole}</p>
+        </div>
         
         {/* Different UI based on user role */}
-        {currentUser?.staffType === 'Zookeeper' ? (
+        {currentUser?.staffType === 'Zookeeper' && currentUser.staffRole === "Staff" ? (
           // Zookeeper Interface - Dropdown of assigned enclosures
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2 font-['Mukta_Mahee']">
@@ -340,29 +346,31 @@ const EnclosureDetails = () => {
             )}
           </div>
         ) : (
-          // Manager or Vet Interface - Search by ID
+          // Manager Interface - Search by ID
           <div className="mb-6">
             <div className="flex flex-wrap items-center gap-4">
-              <select
-                value={selectedEnclosure?.EnclosureID || ""}
-                onChange={(e) => {
-                  const id = e.target.value;
-                  if (id) loadEnclosure(id);
-                  else setSelectedEnclosure(null);
-                }}
-                className="border border-gray-300 p-2 rounded w-full md:w-64 font-['Mukta_Mahee']"
-              >
-                <option value="">Select an enclosure</option>
-                {enclosureList.map((enclosure) => (
-                  <option key={enclosure.EnclosureID} value={enclosure.EnclosureID}>
-                    {enclosure.Name} (ID: {enclosure.EnclosureID})
-                  </option>
-                ))}
-
-              </select>
+            <select
+                 value={selectedEnclosure?.EnclosureID || ""}
+                 onChange={(e) => {
+                   const id = e.target.value;
+                   if (id) loadEnclosure(id);
+                   else setSelectedEnclosure(null);
+                 }}
+                 className="border border-gray-300 p-2 rounded w-full md:w-64 font-['Mukta_Mahee']"
+               >
+                 <option value="">Select an enclosure</option>
+                 {enclosureList.map((enclosure) => (
+                   <option key={enclosure.EnclosureID} value={enclosure.EnclosureID}>
+                     {enclosure.Name} (ID: {enclosure.EnclosureID})
+                   </option>
+                  ))}
+ 
+               </select>
+               
 
               {/* Manager-only buttons */}
-              {currentUser?.staffRole === "Manager" && (
+              {/* {currentUser?.staffType === 'Zookeeper' && currentUser?.staffRole === 'Manager' && ( */}
+              {currentUser?.staffRole === "Manager" && currentUser.staffType === "Zookeeper" && (
                 <div className="flex space-x-2">
                   <button
                     type="button"
