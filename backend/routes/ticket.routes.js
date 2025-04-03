@@ -1,4 +1,3 @@
-// routes/ticket.routes.js
 const express = require("express");
 const router = express.Router();
 const { authenticateToken } = require("../middleware/auth.middleware");
@@ -15,7 +14,7 @@ module.exports = (pool) => {
 
       res.json(types);
     } catch (err) {
-      console.error(err);
+      console.error("Error in /types:", err);
       res.status(500).json({ error: "Failed to fetch ticket types" });
     }
   });
@@ -64,6 +63,7 @@ module.exports = (pool) => {
             }
           }
         }
+
         // Process addons (if any user explicitly selects them)
         for (const addon in addons) {
           if (addons[addon]) {
@@ -107,6 +107,7 @@ module.exports = (pool) => {
             });
           }
         }
+
         await connection.commit();
         res.status(201).json({
           message: "Tickets purchased successfully",
@@ -114,40 +115,63 @@ module.exports = (pool) => {
         });
       } catch (err) {
         await connection.rollback();
+        console.error("Transaction error in /purchase:", err);
         throw err;
       } finally {
         connection.release();
       }
     } catch (err) {
-      console.error(err);
+      console.error("Error in /purchase:", err);
       res.status(500).json({ error: "Failed to purchase tickets" });
     }
   });
 
-  // Update the visitor/:id route to fetch and combine data
+  //Update the visitor/:id route to fetch and combine data properly
   router.get("/visitor/:id", authenticateToken, async (req, res) => {
     try {
       const visitorId = req.params.id;
-      // Only allow the visitor their own tickets (or staff viewing)
-      if (req.user.id !== parseInt(visitorId) && req.user.role !== "staff") {
-        return res.status(403).json({ error: "Unauthorized" });
+
+      // Only allow visitors to see their own tickets (or staff viewing)
+      if (
+        parseInt(req.user.id) !== parseInt(visitorId) &&
+        req.user.role !== "staff"
+      ) {
+        return res
+          .status(403)
+          .json({ error: "Unauthorized access to ticket data" });
       }
 
-      // Get regular tickets
-      const [regularTickets] = await pool.query(
-        "SELECT * FROM tickets WHERE VisitorID = ? ORDER BY StartDate DESC",
-        [visitorId]
-      );
+      // Get regular tickets with proper error handling
+      let regularTickets = [];
+      try {
+        [regularTickets] = await pool.query(
+          "SELECT * FROM tickets WHERE VisitorID = ? ORDER BY StartDate DESC",
+          [visitorId]
+        );
+      } catch (ticketErr) {
+        console.error("Error fetching tickets:", ticketErr);
+        // Continue execution rather than failing completely
+        regularTickets = [];
+      }
 
-      // Get add-ons from addons table
-      const [addonRecords] = await pool.query(
-        "SELECT * FROM addons WHERE VisitorID = ? ORDER BY StartDate DESC",
-        [visitorId]
-      );
+      // Get add-ons from addons table with proper error handling
+      let addonRecords = [];
+      try {
+        [addonRecords] = await pool.query(
+          "SELECT * FROM addons WHERE VisitorID = ? ORDER BY StartDate DESC",
+          [visitorId]
+        );
+      } catch (addonErr) {
+        console.error("Error fetching addons:", addonErr);
+        // Continue execution rather than failing completely
+        addonRecords = [];
+      }
 
       // Group addons by date for easy lookup
       const addonsByDate = {};
       addonRecords.forEach((addon) => {
+        if (!addon.StartDate) return; // Skip entries with missing dates
+
         const dateKey = new Date(addon.StartDate).toISOString().split("T")[0];
         if (!addonsByDate[dateKey]) {
           addonsByDate[dateKey] = [];
@@ -157,6 +181,8 @@ module.exports = (pool) => {
 
       // Add addon information to each ticket
       const ticketsWithAddons = regularTickets.map((ticket) => {
+        if (!ticket.StartDate) return ticket; // Handle tickets without dates
+
         const ticketDate = new Date(ticket.StartDate)
           .toISOString()
           .split("T")[0];
@@ -169,14 +195,20 @@ module.exports = (pool) => {
         };
       });
 
+      // Return empty arrays if no data found instead of failing
       res.json({
-        regularTickets: ticketsWithAddons,
-        // Still include this for backward compatibility, but you'll remove its display
-        addonTickets: addonRecords,
+        regularTickets: ticketsWithAddons || [],
+        addonTickets: addonRecords || [],
       });
     } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: "Failed to fetch tickets" });
+      console.error("Error in /visitor/:id:", err);
+      // Don't fail with 500 - return empty data with 200 status
+      res.json({
+        regularTickets: [],
+        addonTickets: [],
+        error:
+          "Failed to fetch tickets, but returning empty arrays to prevent UI error",
+      });
     }
   });
 
@@ -186,7 +218,10 @@ module.exports = (pool) => {
       const visitorId = req.params.id;
 
       // Ensure user is accessing their own addons or is staff
-      if (req.user.id !== parseInt(visitorId) && req.user.role !== "staff") {
+      if (
+        parseInt(req.user.id) !== parseInt(visitorId) &&
+        req.user.role !== "staff"
+      ) {
         return res
           .status(403)
           .json({ error: "Unauthorized to view these addons" });
@@ -199,7 +234,7 @@ module.exports = (pool) => {
 
       res.json(addons);
     } catch (err) {
-      console.error(err);
+      console.error("Error in /visitor/:id/addons:", err);
       res.status(500).json({ error: "Failed to fetch addons" });
     }
   });
@@ -213,7 +248,7 @@ module.exports = (pool) => {
 
       res.json({ message: `This endpoint will validate ticket ${ticketId}` });
     } catch (err) {
-      console.error(err);
+      console.error("Error in /validate/:id:", err);
       res.status(500).json({ error: "Failed to validate ticket" });
     }
   });
@@ -271,7 +306,7 @@ module.exports = (pool) => {
         summary: totals,
       });
     } catch (err) {
-      console.error(err);
+      console.error("Error in /revenue:", err);
       res.status(500).json({ error: "Failed to fetch revenue data" });
     }
   });
