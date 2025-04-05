@@ -42,7 +42,7 @@ module.exports = (pool) => {
       const [rows] = await pool.query(
         `SELECT e.EnclosureID, e.Name AS EnclosureName, e.Type AS EnclosureType, 
             e.Capacity AS AnimalCapacity, e.Location, a.AnimalID, a.Name AS AnimalName,
-            a.Species, a.Gender, a.DateOfBirth, a.HealthStatus, a.DangerLevel
+            a.Species, a.Gender, a.DateOfBirth, a.HealthStatus, a.DangerLevel, a.Image
         FROM enclosures AS e  
         LEFT JOIN animals AS a ON e.EnclosureID = a.EnclosureID
         WHERE e.EnclosureID = ?`,
@@ -69,7 +69,8 @@ module.exports = (pool) => {
           Gender: row.Gender,
           DateOfBirth: row.DateOfBirth,
           HealthStatus: row.HealthStatus,
-          DangerLevel: row.DangerLevel
+          DangerLevel: row.DangerLevel,
+          Image: row.Image,
         }))
       }
 

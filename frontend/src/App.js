@@ -12,6 +12,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 // Pages
 import Home from "./pages/Home";
 import Animals from "./pages/Animals";
+import VisitorAnimalView from "./pages/VisitorAnimalView"
 import Attractions from "./pages/Attractions";
 import PlanVisit from "./pages/PlanVisit";
 import Tickets from "./pages/Tickets";
@@ -67,6 +68,7 @@ function AppContent() {
           <Route path="/" element={<Home />} />
           <Route path="/animals" element={<Animals />} />
           <Route path="/attractions" element={<Attractions />} />
+          <Route path="/enclosures/:id" element={<VisitorAnimalView />} />
           <Route path="/plan-visit" element={<PlanVisit />} />
           <Route path="/tickets" element={<Tickets />} />
           <Route path="/membership" element={<Membership />} />
