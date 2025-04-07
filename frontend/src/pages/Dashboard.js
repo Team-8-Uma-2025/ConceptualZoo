@@ -1,14 +1,23 @@
 // src/pages/Dashboard.js
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import axios from 'axios';
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import axios from "axios";
 import {
-  Activity, Briefcase, Clipboard,
-  AlertTriangle, Heart, Home, Package,
-  Users, Bell, ChevronDown, ChevronUp,
-  ChevronLeft, ChevronRight
-} from 'lucide-react';
+  Activity,
+  Briefcase,
+  Clipboard,
+  AlertTriangle,
+  Heart,
+  Home,
+  Package,
+  Users,
+  Bell,
+  ChevronDown,
+  ChevronUp,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import RevenueReport from "../components/RevenueReport";
 
 const Dashboard = () => {
@@ -22,7 +31,7 @@ const Dashboard = () => {
   const [sickAnimals, setSickAnimals] = useState([]);
   const [enclosures, setEnclosures] = useState([]);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
-  
+
   // Pagination states for staff directory
   const [currentPage, setCurrentPage] = useState(1);
   const [staffPerPage] = useState(7); // Number of staff members to display per page
@@ -103,7 +112,7 @@ const Dashboard = () => {
     } else {
       setExpandedSection(section);
       // Reset to first page when expanding staff directory
-      if (section === 'staff') {
+      if (section === "staff") {
         setCurrentPage(1);
       }
     }
@@ -134,7 +143,7 @@ const Dashboard = () => {
         },
       ],
     };
-    
+
     const staffTypeModules = {
       Zookeeper: [
         {
@@ -145,37 +154,23 @@ const Dashboard = () => {
           color: "bg-green-600",
         },
         {
-          title: 'Attraction Information',
+          title: "Attraction Information",
           icon: <Home size={20} className="mr-2" />,
-          description: 'View and edit attraction information',
-          link: '/dashboard/attractions',
-          color: 'bg-rose-600'
-        }
+          description: "View and edit attraction information",
+          link: "/dashboard/attractions",
+          color: "bg-rose-600",
+        },
       ],
-      'Vet': [
+      Vet: [
         {
-          title: 'Enclosure Information',
+          title: "Enclosure Information",
           icon: <Home size={20} className="mr-2" />,
-          description: 'View and edit enclosure information',
-          link: '/dashboard/enclosures',
-          color: 'bg-cyan-600'
-        }
-      ],
-      "Gift Shop Clerk": [
-        {
-          title: "Inventory Management",
-          icon: <Package size={20} className="mr-2" />,
-          description: "Manage product inventory and stock levels",
-          link: "/dashboard/inventory",
+          description: "View and edit enclosure information",
+          link: "/dashboard/enclosures",
           color: "bg-cyan-600",
         },
-        {
-          title: "Sales",
-          icon: <Briefcase size={20} className="mr-2" />,
-          description: "Track sales and transactions",
-          link: "/dashboard/sales",
-          color: "bg-slate-600",
-        },
+      ],
+      "Gift Shop Clerk": [
         {
           title: "Gift Shop Management",
           icon: <Package size={20} className="mr-2" />,
@@ -201,10 +196,11 @@ const Dashboard = () => {
 
   // Change page
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
-  const goToNextPage = () => setCurrentPage(prev => Math.min(prev + 1, totalPages));
-  const goToPrevPage = () => setCurrentPage(prev => Math.max(prev - 1, 1));
+  const goToNextPage = () =>
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+  const goToPrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
 
-  if (!currentUser || currentUser.role !== 'staff') {
+  if (!currentUser || currentUser.role !== "staff") {
     return (
       <div className="bg-gray-100 min-h-screen pt-20">
         <div className="container mx-auto px-4 py-16 text-center">
@@ -456,7 +452,7 @@ const Dashboard = () => {
               )}
 
             {/* Staff List (Managers Only) with Pagination */}
-            {currentUser.staffRole === 'Manager' && staffMembers.length > 0 && (
+            {currentUser.staffRole === "Manager" && staffMembers.length > 0 && (
               <div className="bg-white rounded-lg shadow-md p-6 mb-8">
                 <div
                   className="flex justify-between items-center cursor-pointer"
@@ -473,7 +469,7 @@ const Dashboard = () => {
                   )}
                 </div>
 
-                {expandedSection === 'staff' && (
+                {expandedSection === "staff" && (
                   <div className="mt-4">
                     <div className="overflow-x-auto">
                       <table className="min-w-full divide-y divide-gray-200">
@@ -530,24 +526,24 @@ const Dashboard = () => {
                         </tbody>
                       </table>
                     </div>
-                    
+
                     {/* Pagination Controls */}
                     {totalPages > 1 && (
                       <div className="flex items-center justify-center mt-6">
                         <div className="flex items-center space-x-4">
-                          <button 
-                            onClick={goToPrevPage} 
+                          <button
+                            onClick={goToPrevPage}
                             disabled={currentPage === 1}
                             className={`p-2 rounded-full ${
-                              currentPage === 1 
-                                ? 'text-gray-400 cursor-not-allowed' 
-                                : 'text-gray-700 hover:bg-purple-100'
+                              currentPage === 1
+                                ? "text-gray-400 cursor-not-allowed"
+                                : "text-gray-700 hover:bg-purple-100"
                             }`}
                             aria-label="Previous page"
                           >
                             <ChevronLeft size={20} />
                           </button>
-                          
+
                           <div className="flex items-center space-x-1">
                             {/* Page numbers */}
                             {[...Array(totalPages)].map((_, i) => (
@@ -556,22 +552,22 @@ const Dashboard = () => {
                                 onClick={() => paginate(i + 1)}
                                 className={`px-3 py-1 rounded-md ${
                                   currentPage === i + 1
-                                    ? 'bg-purple-600 text-white font-medium'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-purple-100'
+                                    ? "bg-purple-600 text-white font-medium"
+                                    : "bg-gray-100 text-gray-700 hover:bg-purple-100"
                                 }`}
                               >
                                 {i + 1}
                               </button>
                             ))}
                           </div>
-                          
-                          <button 
-                            onClick={goToNextPage} 
+
+                          <button
+                            onClick={goToNextPage}
                             disabled={currentPage === totalPages}
                             className={`p-2 rounded-full ${
-                              currentPage === totalPages 
-                                ? 'text-gray-400 cursor-not-allowed' 
-                                : 'text-gray-700 hover:bg-purple-100'
+                              currentPage === totalPages
+                                ? "text-gray-400 cursor-not-allowed"
+                                : "text-gray-700 hover:bg-purple-100"
                             }`}
                             aria-label="Next page"
                           >
@@ -580,10 +576,12 @@ const Dashboard = () => {
                         </div>
                       </div>
                     )}
-                    
+
                     {/* Showing entries info */}
                     <div className="mt-4 text-sm text-gray-500 text-center">
-                      Showing {indexOfFirstStaff + 1} to {Math.min(indexOfLastStaff, staffMembers.length)} of {staffMembers.length} staff members
+                      Showing {indexOfFirstStaff + 1} to{" "}
+                      {Math.min(indexOfLastStaff, staffMembers.length)} of{" "}
+                      {staffMembers.length} staff members
                     </div>
                   </div>
                 )}
@@ -591,30 +589,31 @@ const Dashboard = () => {
             )}
 
             {/* Ticket Revenue Section (Managers Only) */}
-            {currentUser.staffRole === "Manager" && currentUser.staffType === 'Admin' && (
-              <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-                <div
-                  className="flex justify-between items-center cursor-pointer"
-                  onClick={() => toggleSection("revenue")}
-                >
-                  <h2 className="text-2xl font-bold font-['Roboto_Flex'] flex items-center">
-                    <Activity size={24} className="mr-2 text-green-600" />
-                    Ticket Revenue Report
-                  </h2>
-                  {expandedSection === "revenue" ? (
-                    <ChevronUp size={20} />
-                  ) : (
-                    <ChevronDown size={20} />
+            {currentUser.staffRole === "Manager" &&
+              currentUser.staffType === "Admin" && (
+                <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+                  <div
+                    className="flex justify-between items-center cursor-pointer"
+                    onClick={() => toggleSection("revenue")}
+                  >
+                    <h2 className="text-2xl font-bold font-['Roboto_Flex'] flex items-center">
+                      <Activity size={24} className="mr-2 text-green-600" />
+                      Ticket Revenue Report
+                    </h2>
+                    {expandedSection === "revenue" ? (
+                      <ChevronUp size={20} />
+                    ) : (
+                      <ChevronDown size={20} />
+                    )}
+                  </div>
+
+                  {expandedSection === "revenue" && (
+                    <div className="mt-6">
+                      <RevenueReport />
+                    </div>
                   )}
                 </div>
-
-                {expandedSection === "revenue" && (
-                  <div className="mt-6">
-                    <RevenueReport />
-                  </div>
-                )}
-              </div>
-            )}
+              )}
           </>
         )}
       </div>
