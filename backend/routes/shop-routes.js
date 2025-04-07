@@ -1,4 +1,3 @@
-// routes/shop.routes.js
 const express = require("express");
 const router = express.Router();
 const { authenticateToken } = require("../middleware/auth.middleware");
@@ -262,6 +261,194 @@ module.exports = (pool) => {
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: "Failed to fetch transaction details" });
+    }
+  });
+
+  // Get gift shop revenue reports (staff only)
+  router.get("/revenue", authenticateToken, async (req, res) => {
+    try {
+      // Check user authorization
+      if (
+        !(
+          req.user.role === "staff" &&
+          (req.user.staffType === "Gift Shop Clerk" ||
+            req.user.staffRole === "Manager" ||
+            req.user.staffRole === "Admin")
+        )
+      ) {
+        return res
+          .status(403)
+          .json({ error: "Unauthorized. Staff access only." });
+      }
+
+      // Get query parameters for filtering
+      const {
+        startDate,
+        endDate,
+        giftShopId,
+        category,
+        productName,
+        minRevenue,
+        maxRevenue,
+        sortBy = "Date",
+        sortDirection = "DESC",
+      } = req.query;
+
+      // Building WHERE conditions
+      const whereConditions = [];
+      const params = [];
+
+      if (startDate) {
+        whereConditions.push("DATE(t.Datetime) >= ?");
+        params.push(startDate);
+      }
+
+      if (endDate) {
+        whereConditions.push("DATE(t.Datetime) <= ?");
+        params.push(endDate);
+      }
+
+      if (giftShopId) {
+        whereConditions.push("g.GiftShopID = ?");
+        params.push(giftShopId);
+      }
+
+      if (category) {
+        whereConditions.push("p.Category = ?");
+        params.push(category);
+      }
+
+      if (productName) {
+        whereConditions.push("p.Name LIKE ?");
+        params.push(`%${productName}%`);
+      }
+
+      if (minRevenue) {
+        whereConditions.push("(o.AmountBought * p.Price) >= ?");
+        params.push(minRevenue);
+      }
+
+      if (maxRevenue) {
+        whereConditions.push("(o.AmountBought * p.Price) <= ?");
+        params.push(maxRevenue);
+      }
+
+      // Create the WHERE clause
+      const whereClause =
+        whereConditions.length > 0
+          ? "WHERE " + whereConditions.join(" AND ")
+          : "";
+
+      // Get detailed transaction data
+      const detailsQuery = `
+        SELECT 
+          DATE(t.Datetime) AS Date,
+          p.Name AS ProductName,
+          p.Category,
+          g.GiftShopName,
+          SUM(o.AmountBought) AS Quantity,
+          p.Price,
+          SUM(o.AmountBought * p.Price) AS TotalRevenue
+        FROM transactions t
+        JOIN orders o ON t.TransactionID = o.TransactionID
+        JOIN products p ON o.ProductID = p.ProductID
+        JOIN giftshops g ON t.GiftShopID = g.GiftShopID
+        ${whereClause}
+        GROUP BY DATE(t.Datetime), p.Name, g.GiftShopName
+      `;
+
+      // Apply sorting
+      const validSortColumns = [
+        "Date",
+        "GiftShopName",
+        "ProductName",
+        "Quantity",
+        "Price",
+        "TotalRevenue",
+        "Category",
+      ];
+      const column = validSortColumns.includes(sortBy) ? sortBy : "Date";
+      const direction =
+        sortDirection && sortDirection.toUpperCase() === "ASC" ? "ASC" : "DESC";
+
+      const finalDetailsQuery = `${detailsQuery} ORDER BY ${column} ${direction}`;
+
+      const [details] = await pool.query(finalDetailsQuery, params);
+
+      // Get summary by category
+      const summaryQuery = `
+        SELECT 
+          p.Category,
+          SUM(o.AmountBought) AS TotalQuantity,
+          SUM(o.AmountBought * p.Price) AS TotalRevenue
+        FROM transactions t
+        JOIN orders o ON t.TransactionID = o.TransactionID
+        JOIN products p ON o.ProductID = p.ProductID
+        JOIN giftshops g ON t.GiftShopID = g.GiftShopID
+        ${whereClause}
+        GROUP BY p.Category
+      `;
+
+      const [summary] = await pool.query(summaryQuery, params);
+
+      // Get top selling products
+      const topProductsQuery = `
+        SELECT 
+          p.Name AS ProductName,
+          p.Category,
+          SUM(o.AmountBought) AS TotalSold,
+          SUM(o.AmountBought * p.Price) AS TotalRevenue
+        FROM orders o
+        JOIN products p ON o.ProductID = p.ProductID
+        JOIN transactions t ON o.TransactionID = t.TransactionID
+        JOIN giftshops g ON t.GiftShopID = g.GiftShopID
+        ${whereClause}
+        GROUP BY p.Name
+        ORDER BY TotalSold DESC
+        LIMIT 10
+      `;
+
+      const [topProducts] = await pool.query(topProductsQuery, params);
+
+      // Get metadata for filters
+      const [giftShops] = await pool.query(
+        "SELECT GiftShopID, GiftShopName FROM giftshops"
+      );
+      const [categories] = await pool.query(
+        "SELECT DISTINCT Category FROM products WHERE Category IS NOT NULL ORDER BY Category"
+      );
+      const [productNames] = await pool.query(
+        "SELECT DISTINCT Name FROM products ORDER BY Name"
+      );
+
+      // Calculate overall totals
+      const overallTotalRevenue = summary.reduce(
+        (acc, item) => acc + parseFloat(item.TotalRevenue),
+        0
+      );
+      const overallTotalQuantity = summary.reduce(
+        (acc, item) => acc + parseInt(item.TotalQuantity),
+        0
+      );
+
+      // Return the comprehensive report data
+      res.json({
+        details: details,
+        summary: summary,
+        topProducts: topProducts,
+        metadata: {
+          giftShops: giftShops,
+          categories: categories.map((c) => c.Category),
+          productNames: productNames.map((p) => p.Name),
+        },
+        totals: {
+          revenue: overallTotalRevenue,
+          quantity: overallTotalQuantity,
+        },
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to generate revenue report" });
     }
   });
 

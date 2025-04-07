@@ -13,7 +13,9 @@ import {
   ChevronUp,
   Search,
   DollarSign,
+  BarChart2,
 } from "lucide-react";
+import GiftShopRevenueReport from "../components/GiftShopRevenueReport";
 
 const GiftShopManagement = () => {
   const { currentUser } = useAuth();
@@ -490,6 +492,17 @@ const GiftShopManagement = () => {
             >
               <DollarSign size={18} className="mr-2" />
               Transactions
+            </button>
+            <button
+              className={`px-6 py-3 font-medium text-sm font-['Mukta_Mahee'] flex items-center ${
+                activeTab === "reports"
+                  ? "text-green-700 border-b-2 border-green-700"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+              onClick={() => setActiveTab("reports")}
+            >
+              <BarChart2 size={18} className="mr-2" />
+              Revenue Reports
             </button>
           </div>
         </div>
@@ -1124,6 +1137,16 @@ const GiftShopManagement = () => {
               )}
             </div>
           </>
+        )}
+
+        {/* Reports Tab */}
+        {activeTab === "reports" && (
+          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 className="text-2xl font-bold mb-6 font-['Roboto_Flex']">
+              Gift Shop Revenue Reports
+            </h2>
+            <GiftShopRevenueReport />
+          </div>
         )}
       </div>
     </div>
