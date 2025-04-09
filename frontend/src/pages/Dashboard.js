@@ -145,6 +145,16 @@ const Dashboard = () => {
     };
 
     const staffTypeModules = {
+      Admin: [
+        {
+          title: "Gift Shop Management",
+          icon: <Package size={20} className="mr-2" />,
+          description: "Manage products, inventory, and sales",
+          link: "/dashboard/gift-shop",
+          color: "bg-emerald-600",
+        },
+        // ...existing Admin modules...
+      ],
       Zookeeper: [
         {
           title: "Assigned Enclosures",
