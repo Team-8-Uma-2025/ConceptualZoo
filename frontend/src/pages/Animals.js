@@ -1,9 +1,10 @@
 // src/pages/Animals.js
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom'; // Import Link
 
 const Animals = () => {
   // Define the enclosure types you want to fetch.
-  const types = ["Mammal", "Avian", "Reptile", "Amphibian"]; // adjust as needed
+  const types = ["Mammal", "Avian", "Reptile", "Amphibian", "Aquatic"]; // adjust as needed
 
   // State to store enclosures grouped by type.
   const [groupedEnclosures, setGroupedEnclosures] = useState({});
@@ -73,7 +74,7 @@ const Animals = () => {
                     className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition duration-300"
                   >
                     <img
-                      src={enclosure.ImageURL} // Should be a valid URL (e.g., /images/savannahHabitat.jpg or a full URL)
+                      src={enclosure.ImageURL} // Should be a valid URL
                       alt={enclosure.Name}
                       className="w-full h-56 object-cover"
                     />
@@ -81,6 +82,15 @@ const Animals = () => {
                       <h3 className="text-xl font-semibold mb-2 text-gray-800 font-['Mukta_Mahee']">
                         {enclosure.Name}
                       </h3>
+                      <p className="text-gray-600 mb-4">
+                        {enclosure.Description}
+                      </p>
+                      <Link
+                        to={`/enclosures/${enclosure.EnclosureID}`}
+                        className="inline-block bg-green-700 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition duration-300 font-['Mukta_Mahee']"
+                      >
+                        Animals
+                      </Link>
                     </div>
                   </div>
                 ))
