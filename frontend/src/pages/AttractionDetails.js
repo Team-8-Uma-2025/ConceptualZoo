@@ -45,7 +45,7 @@ const AttractionDetails = () => {
                 console.error("Error fetching attractions list:", err);
             }
         };
-        if (currentUser && currentUser.staffRole === "Manager") {
+        if (currentUser && currentUser.staffType === "Zookeeper") {
             fetchAttractions();
         }
     }, [currentUser]);
@@ -275,14 +275,14 @@ const AttractionDetails = () => {
                             onChange={handleAttractionSelect}
                         >
                             <option  value=""> Select an attraction</option>
-                            {assignedAttractions.map(attraction => (
-                                <option key={attraction.Title} value={attraction.AttractionID}>
+                            {attractionList.map(attraction => (
+                                <option key={attraction.AttractionID} value={attraction.AttractionID}>
                                     {attraction.Title} (ID: {attraction.AttractionID})
                                 </option>
                             ))}
                         </select>
 
-                        {assignedAttractions.length === 0 && !loading && (
+                        {attractionList.length === 0 && !loading && (
                             <p className="mt-2 text-amber-600 font-['Lora']">
                                 You don't have any assigned attractions
                             </p>
