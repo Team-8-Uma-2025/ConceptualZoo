@@ -52,11 +52,13 @@ const EnclosureDetails = () => {
         
         setAssignedEnclosures(response.data);
         
+        /*
         // If enclosure ID was in URL, we've already triggered loadEnclosure, 
         // so we don't need to auto-select the first one
         if (!urlEnclosureId && response.data.length > 0 && currentUser.staffType === 'Zookeeper' || currentUser.staffType === 'Vet') {
           loadEnclosure(response.data[0].EnclosureID);
         }
+          */
         
         setError(null);
       } catch (err) {
