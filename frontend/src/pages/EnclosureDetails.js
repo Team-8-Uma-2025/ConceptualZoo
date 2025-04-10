@@ -15,6 +15,7 @@ const EnclosureDetails = () => {
   const [enclosureList, setEnclosureList] = useState([]); // preload enclosures for dropdown
   const [assignedEnclosures, setAssignedEnclosures] = useState([]); // for zookeepers
   const [selectedEnclosure, setSelectedEnclosure] = useState(null); // fetch enclosure details
+  const [zookeepers, setZookeepers] = useState([]); // for list of Zookeepers to put in change of enclosure
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -30,6 +31,15 @@ const EnclosureDetails = () => {
     Capacity: "",
     Location: "",
   });
+
+    // hardcode to test
+  const ZOOKEEPERS = [
+    { Staff: 101, Name: "Alex Johnson" },
+    { Staff: 102, Name: "Sarah Williams" },
+    { Staff: 103, Name: "Mark Thompson" },
+    { Staff: 104, Name: "Lisa Chen" },
+    { Staff: 105, Name: "David Martinez" }
+  ];
 
   // Modified first useEffect
   useEffect(() => {
@@ -98,6 +108,27 @@ const EnclosureDetails = () => {
       fetchEnclosures();
     }
   }, [currentUser]);
+
+  // Fetch the zookeeper staff 
+  useEffect (() => {
+    
+    const fetchZookeepers = async () => {
+      try {
+        const response = await axios.get('/api/staff/zookeepers', {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        });
+        console.log("Fetched zookeepers:", response.data);
+
+        setZookeepers(response.data);
+      } catch (err) {
+        console.error("Error fetching zookeepers:", err);
+      }
+    };
+    
+
+    //setZookeepers(ZOOKEEPERS);  
+    fetchZookeepers();
+  }, []);
 
   // load enclosure by its ID
   const loadEnclosure = async (id) => {
@@ -423,18 +454,26 @@ const EnclosureDetails = () => {
             </h2>
             <form onSubmit={handleAdd}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+
+                {/* Dropdown to select a Zookeeper */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
-                    Staff ID
+                    Enclosure Lead
                   </label>
-                  <input
-                    type="text"
-                    name="StaffID"
-                    value={formData.StaffID}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
-                    required
-                  />
+                  <select
+                     name="StaffID"
+                     value={formData.StaffID}
+                     onChange={handleChange}
+                     className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
+                     required
+                  >
+                    <option value="">Select Zookeeper for Enclosure Lead</option>
+                    {zookeepers.map(zookeeper => (
+                      <option key={zookeeper.Staff} value={zookeeper.Staff}>
+                        {zookeeper.Name} (ID: {zookeeper.Staff})
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 
                 <div>
@@ -529,16 +568,22 @@ const EnclosureDetails = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
-                    Staff ID
+                    Enclosure Lead
                   </label>
-                  <input
-                    type="text"
-                    name="StaffID"
-                    value={formData.StaffID}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
-                    required
-                  />
+                  <select
+                     name="StaffID"
+                     value={formData.StaffID}
+                     onChange={handleChange}
+                     className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
+                     required
+                  >
+                    <option value="">Select Zookeeper for Enclosure Lead</option>
+                    {zookeepers.map(zookeeper => (
+                      <option key={zookeeper.Staff} value={zookeeper.Staff}>
+                        {zookeeper.Name} (ID: {zookeeper.Staff})
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 
                 <div>
