@@ -39,11 +39,12 @@ const EnclosureDetails = () => {
       try {
         setLoading(true);
         let endpoint = '/api/enclosures';
-        
+        /*
         // If user is a zookeeper, get their assigned enclosures
         if (currentUser.staffType === 'Zookeeper') {
           endpoint = `/api/enclosures/staff/${currentUser.id}`;
         }
+          */
         
         const response = await axios.get(endpoint, {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
@@ -53,7 +54,7 @@ const EnclosureDetails = () => {
         
         // If enclosure ID was in URL, we've already triggered loadEnclosure, 
         // so we don't need to auto-select the first one
-        if (!urlEnclosureId && response.data.length > 0 && currentUser.staffType === 'Zookeeper') {
+        if (!urlEnclosureId && response.data.length > 0 && currentUser.staffType === 'Zookeeper' || currentUser.staffType === 'Vet') {
           loadEnclosure(response.data[0].EnclosureID);
         }
         
@@ -90,7 +91,8 @@ const EnclosureDetails = () => {
       }
     };
     
-    if (currentUser && currentUser.staffRole === "Manager") {
+    if (currentUser && (currentUser.staffRole === "Manager" || currentUser.staffType === "Zookeeper" ||
+      currentUser.staffType === "Vet")) {
       fetchEnclosures();
     }
   }, [currentUser]);
@@ -306,7 +308,7 @@ const EnclosureDetails = () => {
     }
   };
 
-  console.log(currentUser)
+  
   return (
     <div className="bg-gray-100 min-h-screen pt-20">
       <div className="container mx-auto px-4 py-12">
@@ -315,11 +317,11 @@ const EnclosureDetails = () => {
         </h1>
         
         {/* Different UI based on user role */}
-        {currentUser?.staffType === 'Zookeeper' && currentUser.staffRole === "Staff" ? (
+        {((currentUser?.staffType === 'Zookeeper' && currentUser.staffRole === "Staff") || currentUser?.staffType === 'Vet') ? (
           // Zookeeper Interface - Dropdown of assigned enclosures
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2 font-['Mukta_Mahee']">
-              Select Your Assigned Enclosure:
+              Select An Assigned Enclosure:
             </label>
             <select
               className="border border-gray-300 p-2 rounded w-full md:w-64 font-['Mukta_Mahee']"
@@ -327,14 +329,14 @@ const EnclosureDetails = () => {
               onChange={handleEnclosureSelect}
             >
               <option value="">Select an enclosure</option>
-              {assignedEnclosures.map(enclosure => (
+              {enclosureList.map(enclosure => (
                 <option key={enclosure.EnclosureID} value={enclosure.EnclosureID}>
                   {enclosure.Name} (ID: {enclosure.EnclosureID})
                 </option>
               ))}
             </select>
             
-            {assignedEnclosures.length === 0 && !loading && (
+            {enclosureList.length === 0 && !loading && (
               <p className="mt-2 text-amber-600 font-['Lora']">
                 You don't have any assigned enclosures.
               </p>
