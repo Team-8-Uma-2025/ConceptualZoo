@@ -15,6 +15,7 @@ const EnclosureDetails = () => {
   const [enclosureList, setEnclosureList] = useState([]); // preload enclosures for dropdown
   const [assignedEnclosures, setAssignedEnclosures] = useState([]); // for zookeepers
   const [selectedEnclosure, setSelectedEnclosure] = useState(null); // fetch enclosure details
+  const [zookeepers, setZookeepers] = useState([]); // for list of Zookeepers to put in change of enclosure
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -39,11 +40,12 @@ const EnclosureDetails = () => {
       try {
         setLoading(true);
         let endpoint = '/api/enclosures';
-        
+        /*
         // If user is a zookeeper, get their assigned enclosures
         if (currentUser.staffType === 'Zookeeper') {
           endpoint = `/api/enclosures/staff/${currentUser.id}`;
         }
+          */
         
         const response = await axios.get(endpoint, {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
@@ -51,11 +53,13 @@ const EnclosureDetails = () => {
         
         setAssignedEnclosures(response.data);
         
+        /*
         // If enclosure ID was in URL, we've already triggered loadEnclosure, 
         // so we don't need to auto-select the first one
-        if (!urlEnclosureId && response.data.length > 0 && currentUser.staffType === 'Zookeeper') {
+        if (!urlEnclosureId && response.data.length > 0 && currentUser.staffType === 'Zookeeper' || currentUser.staffType === 'Vet') {
           loadEnclosure(response.data[0].EnclosureID);
         }
+          */
         
         setError(null);
       } catch (err) {
@@ -90,10 +94,32 @@ const EnclosureDetails = () => {
       }
     };
     
-    if (currentUser && currentUser.staffRole === "Manager") {
+    if (currentUser && (currentUser.staffRole === "Manager" || currentUser.staffType === "Zookeeper" ||
+      currentUser.staffType === "Vet")) {
       fetchEnclosures();
     }
   }, [currentUser]);
+
+  // Fetch the zookeeper staff 
+  useEffect (() => {
+    
+    const fetchZookeepers = async () => {
+      try {
+        const response = await axios.get('/api/staff/zookeepers', {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        });
+        console.log("Fetched zookeepers:", response.data);
+
+        setZookeepers(response.data);
+      } catch (err) {
+        console.error("Error fetching zookeepers:", err);
+      }
+    };
+    
+
+    //setZookeepers(ZOOKEEPERS);  
+    fetchZookeepers();
+  }, []);
 
   // load enclosure by its ID
   const loadEnclosure = async (id) => {
@@ -152,9 +178,11 @@ const EnclosureDetails = () => {
 
   // handle changes in form inputs
   const handleChange = (e) => {
+    //const {name, value} = e.target;
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
+      //[name]: name === "StaffID" ? parseInt(value) : value,
     });
   };
 
@@ -209,11 +237,25 @@ const EnclosureDetails = () => {
         }
       );
 
+      // Find the updated zookeeper's name based on the new StaffID
+      const updatedZookeeper = zookeepers.find(
+        (z) => z.Staff === parseInt(formData.StaffID)
+      );
+
       // Update the local state with the new data
+      setSelectedEnclosure((prev) => ({
+        ...prev, // current state before we update
+        ...formData,
+        // manually put the new zookeeper lead in the updated local state
+        ZookeeperName: updatedZookeeper ? updatedZookeeper.Name : prev.ZookeeperName,
+      }))
+      /*
+      previous code
       setSelectedEnclosure({ 
         ...selectedEnclosure, 
         ...formData 
       });
+      */
       
       setIsEditing(false);
       alert("Enclosure updated successfully");
@@ -238,12 +280,16 @@ const EnclosureDetails = () => {
       const response = await axios.post(`/api/enclosures`, formData, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
+
+      // Find the Zookeeper's name for display
+      const newZookeeper = zookeepers.find(z => z.Staff === parseInt(formData.StaffID));
       
-      // Construct a new enclosure object using the returned EnclosureID
+      // Construct a new enclosure object using the returned EnclosureID and Zookeeper
       const newEnclosure = {
         ...formData,
         EnclosureID: response.data.EnclosureID,
-        Animals: [] // Initialize with empty animals array
+        Animals: [], // Initialize with empty animals array
+        ZookeeperName: newZookeeper ? newZookeeper.Name : "Unknown"
       };
       
       setSelectedEnclosure(newEnclosure); // Set the new enclosure as the current one
@@ -306,7 +352,7 @@ const EnclosureDetails = () => {
     }
   };
 
-  console.log(currentUser)
+  
   return (
     <div className="bg-gray-100 min-h-screen pt-20">
       <div className="container mx-auto px-4 py-12">
@@ -315,11 +361,11 @@ const EnclosureDetails = () => {
         </h1>
         
         {/* Different UI based on user role */}
-        {currentUser?.staffType === 'Zookeeper' && currentUser.staffRole === "Staff" ? (
+        {((currentUser?.staffType === 'Zookeeper' && currentUser.staffRole === "Staff") || currentUser?.staffType === 'Vet') ? (
           // Zookeeper Interface - Dropdown of assigned enclosures
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2 font-['Mukta_Mahee']">
-              Select Your Assigned Enclosure:
+              Select An Assigned Enclosure:
             </label>
             <select
               className="border border-gray-300 p-2 rounded w-full md:w-64 font-['Mukta_Mahee']"
@@ -327,14 +373,14 @@ const EnclosureDetails = () => {
               onChange={handleEnclosureSelect}
             >
               <option value="">Select an enclosure</option>
-              {assignedEnclosures.map(enclosure => (
+              {enclosureList.map(enclosure => (
                 <option key={enclosure.EnclosureID} value={enclosure.EnclosureID}>
                   {enclosure.Name} (ID: {enclosure.EnclosureID})
                 </option>
               ))}
             </select>
             
-            {assignedEnclosures.length === 0 && !loading && (
+            {enclosureList.length === 0 && !loading && (
               <p className="mt-2 text-amber-600 font-['Lora']">
                 You don't have any assigned enclosures.
               </p>
@@ -419,18 +465,26 @@ const EnclosureDetails = () => {
             </h2>
             <form onSubmit={handleAdd}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+
+                {/* Dropdown to select a Zookeeper */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
-                    Staff ID
+                    Enclosure Lead
                   </label>
-                  <input
-                    type="text"
-                    name="StaffID"
-                    value={formData.StaffID}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
-                    required
-                  />
+                  <select
+                     name="StaffID"
+                     value={formData.StaffID}
+                     onChange={handleChange}
+                     className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
+                     required
+                  >
+                    <option value="">Select Zookeeper for Enclosure Lead</option>
+                    {zookeepers.map(zookeeper => (
+                      <option key={zookeeper.Staff} value={zookeeper.Staff}>
+                        {zookeeper.Name} (ID: {zookeeper.Staff})
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 
                 <div>
@@ -525,16 +579,22 @@ const EnclosureDetails = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
-                    Staff ID
+                    Enclosure Lead
                   </label>
-                  <input
-                    type="text"
-                    name="StaffID"
-                    value={formData.StaffID}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
-                    required
-                  />
+                  <select
+                     name="StaffID"
+                     value={formData.StaffID}
+                     onChange={handleChange}
+                     className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
+                     required
+                  >
+                    <option value="">Select Zookeeper for Enclosure Lead</option>
+                    {zookeepers.map(zookeeper => (
+                      <option key={zookeeper.Staff} value={zookeeper.Staff}>
+                        {zookeeper.Name} (ID: {zookeeper.Staff})
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 
                 <div>
@@ -649,6 +709,10 @@ const EnclosureDetails = () => {
                     <tr>
                       <td className="py-2 pr-4 font-semibold font-['Mukta_Mahee']">Location:</td>
                       <td className="py-2 font-['Lora']">{selectedEnclosure.Location}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 pr-4 font-semibold font-['Mukta_Mahee']">Enclosure Lead:</td>
+                      <td className="py-2 font-['Lora']">{selectedEnclosure.ZookeeperName}</td>
                     </tr>
                   </tbody>
                 </table>
