@@ -32,15 +32,6 @@ const EnclosureDetails = () => {
     Location: "",
   });
 
-    // hardcode to test
-  const ZOOKEEPERS = [
-    { Staff: 101, Name: "Alex Johnson" },
-    { Staff: 102, Name: "Sarah Williams" },
-    { Staff: 103, Name: "Mark Thompson" },
-    { Staff: 104, Name: "Lisa Chen" },
-    { Staff: 105, Name: "David Martinez" }
-  ];
-
   // Modified first useEffect
   useEffect(() => {
     const fetchAssignedEnclosures = async () => {
@@ -187,9 +178,11 @@ const EnclosureDetails = () => {
 
   // handle changes in form inputs
   const handleChange = (e) => {
+    //const {name, value} = e.target;
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
+      //[name]: name === "StaffID" ? parseInt(value) : value,
     });
   };
 
@@ -244,11 +237,25 @@ const EnclosureDetails = () => {
         }
       );
 
+      // Find the updated zookeeper's name based on the new StaffID
+      const updatedZookeeper = zookeepers.find(
+        (z) => z.Staff === parseInt(formData.StaffID)
+      );
+
       // Update the local state with the new data
+      setSelectedEnclosure((prev) => ({
+        ...prev, // current state before we update
+        ...formData,
+        // manually put the new zookeeper lead in the updated local state
+        ZookeeperName: updatedZookeeper ? updatedZookeeper.Name : prev.ZookeeperName,
+      }))
+      /*
+      previous code
       setSelectedEnclosure({ 
         ...selectedEnclosure, 
         ...formData 
       });
+      */
       
       setIsEditing(false);
       alert("Enclosure updated successfully");
@@ -273,12 +280,16 @@ const EnclosureDetails = () => {
       const response = await axios.post(`/api/enclosures`, formData, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
+
+      // Find the Zookeeper's name for display
+      const newZookeeper = zookeepers.find(z => z.Staff === parseInt(formData.StaffID));
       
-      // Construct a new enclosure object using the returned EnclosureID
+      // Construct a new enclosure object using the returned EnclosureID and Zookeeper
       const newEnclosure = {
         ...formData,
         EnclosureID: response.data.EnclosureID,
-        Animals: [] // Initialize with empty animals array
+        Animals: [], // Initialize with empty animals array
+        ZookeeperName: newZookeeper ? newZookeeper.Name : "Unknown"
       };
       
       setSelectedEnclosure(newEnclosure); // Set the new enclosure as the current one
@@ -698,6 +709,10 @@ const EnclosureDetails = () => {
                     <tr>
                       <td className="py-2 pr-4 font-semibold font-['Mukta_Mahee']">Location:</td>
                       <td className="py-2 font-['Lora']">{selectedEnclosure.Location}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 pr-4 font-semibold font-['Mukta_Mahee']">Enclosure Lead:</td>
+                      <td className="py-2 font-['Lora']">{selectedEnclosure.ZookeeperName}</td>
                     </tr>
                   </tbody>
                 </table>
