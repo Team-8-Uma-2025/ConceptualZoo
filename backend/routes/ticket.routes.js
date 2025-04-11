@@ -24,10 +24,26 @@ module.exports = (pool) => {
     try {
       const { tickets, addons, visitDate } = req.body;
       const visitorId = req.user.id;
+  
+      // Parse the visitDate as a UTC date.
+      const selectedDate = new Date(visitDate + "T00:00:00Z");
+      const today = new Date();
+      // Convert today's date to a UTC date string for comparison
+      const todayString = today.toISOString().split("T")[0];
+      const todayDate = new Date(todayString + "T00:00:00Z");
+  
+      // Validate that the selected visit date is not in the past.
+      if (selectedDate < todayDate) {
+        return res.status(400).json({
+          error: "You cannot purchase tickets for a past date. Please select today's date or a future date."
+        });
+      }
+  
       const connection = await pool.getConnection();
       await connection.beginTransaction();
       try {
         const purchasedTickets = [];
+  
         // Process regular tickets
         for (const type in tickets) {
           if (tickets[type] > 0) {
@@ -47,12 +63,15 @@ module.exports = (pool) => {
             }
             const ticketType = type.charAt(0).toUpperCase() + type.slice(1);
             for (let i = 0; i < tickets[type]; i++) {
-              const startDate = new Date(visitDate);
-              const endDate = new Date(visitDate);
-              endDate.setDate(endDate.getDate() + 1);
+              const startDate = new Date(visitDate + "T00:00:00Z"); // this represents 2025-04-25 00:00:00 UTC
+              const startDateString = startDate.toISOString().split("T")[0];
+  
+              const endDate = new Date(startDate);
+              const endDateString = endDate.toISOString().split("T")[0];
+  
               const [result] = await connection.query(
                 "INSERT INTO tickets (VisitorID, TicketType, Price, EnclosureAccess, StartDate, EndDate, Used) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                [visitorId, ticketType, price, "None", startDate, endDate, 0]
+                [visitorId, ticketType, price, "None", startDateString, endDateString, "Valid"]
               );
               purchasedTickets.push({
                 id: result.insertId,
@@ -63,8 +82,8 @@ module.exports = (pool) => {
             }
           }
         }
-
-        // Process addons (if any user explicitly selects them)
+  
+        // Process add-ons similarly by ensuring proper UTC parsing:
         for (const addon in addons) {
           if (addons[addon]) {
             let price, accessType;
@@ -88,16 +107,16 @@ module.exports = (pool) => {
               default:
                 continue;
             }
-            const startDate = new Date(visitDate);
-            const endDate = new Date(visitDate);
-            endDate.setDate(endDate.getDate() + 1);
-
-            // Insert into addons table instead of tickets table
+            const startDateAddon = new Date(visitDate + "T00:00:00Z");
+            const startDateAddonString = startDateAddon.toISOString().split("T")[0];
+            const endDateAddon = new Date(startDateAddon);
+            const endDateAddonString = endDateAddon.toISOString().split("T")[0];
+    
             const [result] = await connection.query(
               "INSERT INTO addons (VisitorID, Type, Price, Description, StartDate, EndDate, Used) VALUES (?, ?, ?, ?, ?, ?, ?)",
-              [visitorId, addon, price, accessType, startDate, endDate, 0]
+              [visitorId, addon, price, accessType, startDateAddonString, endDateAddonString, "Valid"]
             );
-
+    
             purchasedTickets.push({
               id: result.insertId,
               type: "Addon: " + accessType,
@@ -107,7 +126,7 @@ module.exports = (pool) => {
             });
           }
         }
-
+  
         await connection.commit();
         res.status(201).json({
           message: "Tickets purchased successfully",

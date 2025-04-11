@@ -32,6 +32,21 @@ const Tickets = () => {
     parking: 15.0,
   };
 
+  // Early check: if the current user is a Manager or Staff, show an access-denied message.
+  if (currentUser && (currentUser.role === "Manager" || currentUser.role === "Staff")) {
+    return (
+      <div className="bg-gray-100 min-h-screen flex items-center justify-center">
+        <div className="bg-white p-8 rounded shadow-md text-center">
+          <h1 className="text-3xl font-bold text-gray-800">Access Denied</h1>
+          <p className="mt-4 text-gray-600">
+            Managers and Staff are not permitted to purchase tickets.
+            Please log in with a visitor account.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const handleTicketChange = (type, value) => {
     if (value < 0) value = 0;
     setTickets({
@@ -67,6 +82,15 @@ const Tickets = () => {
   };
 
   const handleCheckout = async () => {
+    // Check if the selected visit date is in the past
+    const selectedDate = new Date(visitDate + "T00:00:00Z");
+    const today = new Date(new Date().toISOString().split("T")[0] + "T00:00:00Z");
+
+    if (selectedDate < today) {
+      setErrorMessage("You cannot purchase tickets for a past date. Please select today's date or a future date.");
+      return;
+    }
+
     if (!currentUser) {
       navigate("/login");
       return;
@@ -83,7 +107,7 @@ const Tickets = () => {
 
     try {
       // Format the date properly - ISO format for consistency
-      const formattedVisitDate = new Date(visitDate).toISOString();
+      const formattedVisitDate = new Date(visitDate).toISOString().split("T")[0];
 
       // Purchase tickets
       const response = await axios.post(
@@ -105,10 +129,7 @@ const Tickets = () => {
         },
       });
     } catch (err) {
-      console.error(
-        "Error purchasing tickets:",
-        err.response?.data || err.message
-      );
+      console.error("Error purchasing tickets:", err.response?.data || err.message);
       setErrorMessage(
         err.response?.data?.error ||
           "Failed to purchase tickets. Please try again."
@@ -347,7 +368,7 @@ const Tickets = () => {
             </div>
           </div>
 
-          {/* Add error message display */}
+          {/* Error Message */}
           {errorMessage && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
               {errorMessage}

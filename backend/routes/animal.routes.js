@@ -141,7 +141,7 @@ module.exports = (pool) => {
       }
   
       // Build the final SQL, e.g. "UPDATE animals SET Name=?, Species=? WHERE AnimalID=?"
-      const sql = `UPDATE animals SET ${fields.join(', ')} WHERE AnimalID = ?`;
+      const sql = `UPDATE zoodb.animals SET ${fields.join(', ')} WHERE AnimalID = ?`;
       values.push(animalId); // the last parameter in the WHERE clause
   
       // Execute the query
@@ -152,7 +152,7 @@ module.exports = (pool) => {
       }
   
       // Optionally, fetch the updated row to return it
-      const [updatedRows] = await pool.query('SELECT * FROM animals WHERE AnimalID = ?', [animalId]);
+      const [updatedRows] = await pool.query('SELECT * FROM zoodb.animals WHERE AnimalID = ?', [animalId]);
       res.json({ message: 'Animal updated successfully', animal: updatedRows[0] });
     } catch (err) {
       console.error(err);
@@ -172,7 +172,7 @@ module.exports = (pool) => {
 
     // Perform the DELETE query
     const [result] = await pool.query(
-      'DELETE FROM animals WHERE AnimalID = ?',
+      'DELETE FROM zoodb.animals WHERE AnimalID = ?',
       [animalId]
     );
 
