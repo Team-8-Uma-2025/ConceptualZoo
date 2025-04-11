@@ -15,6 +15,7 @@ const AttractionDetails = () => {
     const [assignedAttractions, setAssignedAttractions] = useState([]); // for regular staff
     const [selectedAttraction, setSelectedAttraction] = useState(null); //fetch atraction details
     const [assignedStaff, setAssignedStaff] = useState([]); // store and set staff working an enclosure 
+    const [zookeepers, setZookeepers] = useState([]); // zookeepers to select for attraction lead
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null); 
 
@@ -48,6 +49,28 @@ const AttractionDetails = () => {
         if (currentUser && currentUser.staffType === "Zookeeper") {
             fetchAttractions();
         }
+    }, [currentUser]);
+
+    // fetch staff that are zookeepers for attraction lead dropdown menu
+    // these are the staff allowed to be assigned to the attractions
+    useEffect(() => {
+        const fetchZookeepers = async () => {
+            try {
+                const response = await axios.get("/api/staff/zookeepers", {
+                    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+                });
+
+                setZookeepers(response.data);
+            } catch (err) {
+                console.error("Error fetching zookeepers:", err);
+            }
+        };
+
+        // only get if the manager is the user, others cant add or edit so they dont need this data
+        if (currentUser && currentUser.staffRole === "Manager") {
+            fetchZookeepers();
+        }
+
     }, [currentUser]);
 
     //load attraction by its ID
@@ -102,10 +125,11 @@ const AttractionDetails = () => {
 
     // handle changes in form inputs
     const handleChange = (a) => {
-        setFormData({
-            ...formData,
-            [a.target.name]: a.target.value
-        });
+        const { name, value } = a.target;
+        setFormData((prev) => ({
+            ...prev,    
+            [name]: name === "StaffID" ? parseInt(value) : value
+        }));
     };
 
     // Toggle edit mode (for managers)
@@ -163,17 +187,18 @@ const AttractionDetails = () => {
                 }
             );
 
-            // update the local state with new data
-            setSelectedAttraction({
-                ...selectedAttraction,
-                ...formData
+            // Fetch updated attraction (gets StaffName & any updates from DB)
+            const updated = await axios.get(`/api/attractions/${selectedAttraction.AttractionID}`, {
+                headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
             });
+            setSelectedAttraction(updated.data);
+
 
             setIsEditing(false);
             alert("Attraction updated successfully");
 
             // refresh attraction list for managers
-            if (currentUser && currentUser.staffRole === "Manager") {
+            if (currentUser?.staffRole === "Manager") {
                 const response = await axios.get("/api/attractions", {
                     headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
                 });
@@ -371,17 +396,23 @@ const AttractionDetails = () => {
                             {/* entry tables */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
-                                        Staff ID
-                                    </label>
-                                    <input 
-                                        type="text"
-                                        name="StaffID"
-                                        value={formData.StaffID}
-                                        onChange={handleChange}
-                                        className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
-                                        required
-                                    />
+                                <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
+                                    Attraction Lead
+                                </label>
+                                <select
+                                    name="StaffID"
+                                    value={formData.StaffID}
+                                    onChange={handleChange}
+                                    className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
+                                    required
+                                >
+                                    <option value="">Select Zookeeper for Attraction</option>
+                                    {zookeepers.map((zookeeper) => (
+                                    <option key={zookeeper.Staff} value={zookeeper.Staff}>
+                                        {zookeeper.Name} (ID: {zookeeper.Staff})
+                                    </option>
+                                    ))}
+                                </select>
                                 </div>
 
                                 <div>
@@ -498,17 +529,23 @@ const AttractionDetails = () => {
                         <form onSubmit={handleUpdate}>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
-                                        Staff ID
-                                    </label>
-                                    <input 
-                                    type="text"
+                                <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
+                                    Attraction Lead
+                                </label>
+                                <select
                                     name="StaffID"
                                     value={formData.StaffID}
                                     onChange={handleChange}
                                     className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
                                     required
-                                    />
+                                >
+                                    <option value="">Select a Zookeeper</option>
+                                    {zookeepers.map((zookeeper) => (
+                                    <option key={zookeeper.Staff} value={zookeeper.Staff}>
+                                        {zookeeper.Name} (ID: {zookeeper.Staff})
+                                    </option>
+                                    ))}
+                                </select>
                                 </div>
 
                                 <div>
@@ -636,6 +673,10 @@ const AttractionDetails = () => {
                                     <tr className="border-b">
                                         <td className="py-2 pr-4 font-semibold font-['Mukta_Mahee']">Location:</td>
                                         <td className="py-2 font-['Lora']">{selectedAttraction.Location}</td>
+                                    </tr>
+                                    <tr className="border-b">
+                                        <td className="py-2 pr-4 font-semibold font-['Mukta_Mahee']">Attraction Lead:</td>
+                                        <td className="py-2 font-['Lora']">{selectedAttraction.StaffName}</td>
                                     </tr>
                                     <tr className="border-b">
                                         <td className="py-2 pr-4 font-semibold font-['Mukta_Mahee']">Start Time:</td>
