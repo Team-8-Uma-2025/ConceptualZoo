@@ -25,10 +25,12 @@ module.exports = (pool) => {
                 return res.status(400).json({ error: 'Invalid Attraction ID. ID must be a number' });
             }
             
-            // fetch attractions
+            // fetch attractions with name of staff assignes to the attraction
             const [rows] = await pool.query(`
-                SELECT Title, AttractionID, StaffID, Location, StartTimeStamp, EndTimeStamp, Description, Picture
-                FROM attraction
+                SELECT a.Title, a.AttractionID, a.StaffID, a.Location, a.StartTimeStamp, a.EndTimeStamp, a.Description, a.Picture,
+                    s.Name AS StaffName
+                FROM attraction a
+                LEFT JOIN staff s ON a.StaffID = s.Staff
                 WHERE AttractionId = ?`,
                 [attractionId]
             );
@@ -136,10 +138,10 @@ module.exports = (pool) => {
                 return res.status(404).json({ error: 'Attraction not found' });
             }
 
-            const {Location, StartTimeStamp, EndTimeStamp, Title, Description, Picture} = req.body;
+            const {StaffID, Location, StartTimeStamp, EndTimeStamp, Title, Description, Picture} = req.body;
 
             // check at least 1 feild is getting updated
-            if (!Location && !StartTimeStamp && !EndTimeStamp && !Title && !Description && !Picture) {
+            if (!StaffID && !Location && !StartTimeStamp && !EndTimeStamp && !Title && !Description && !Picture) {
                 return res.status(400).json({ error: 'At least one field (location, startTimeStamp, endTimeStamp, title, description, picture) must be provided for update' });
             }
 
@@ -147,6 +149,10 @@ module.exports = (pool) => {
             const entryField = [];
             const values = [];
 
+            if (StaffID) {
+                entryField.push('StaffID = ?');
+                values.push(StaffID);
+            }
             if(Location){
                 entryField.push('location = ?');
                 values.push(Location);
@@ -188,7 +194,7 @@ module.exports = (pool) => {
             res.json({ message: `Attraction ${attractionId} updated` });
         } catch(err) {
             console.error(err);
-            res.status(500).json({ error: 'Failed to update attraction' });
+            res.status(500).json({ error: 'Failed to update attraction. Enter at least one feild' });
         }
     });
 
