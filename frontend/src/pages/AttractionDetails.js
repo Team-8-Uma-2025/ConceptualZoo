@@ -7,15 +7,16 @@ import StaffCard from '../components/StaffCard'; // import staffCard component f
 const AttractionDetails = () => {
   const { id: urlAttractionId } = useParams();
 
-  /* States */
-  const { currentUser } = useAuth(); // user from authContext
-  const [search_aID, setSearchAID] = useState(urlAttractionId || ''); // search variable
-  const [attractionList, setAttractionList] = useState([]); // preload attractions for manager functions
-  const [assignedAttractions, setAssignedAttractions] = useState([]); // for regular staff
-  const [selectedAttraction, setSelectedAttraction] = useState(null); // fetch attraction details
-  const [assignedStaff, setAssignedStaff] = useState([]); // store and set staff working in an attraction 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null); 
+    /*States*/
+    const {currentUser} = useAuth(); // user from authContext
+    const [search_aID, setSearchAID] = useState(urlAttractionId || ''); // search variable
+    const [attractionList, setAttractionList] = useState([]); //preload attractions for manager functions
+    const [assignedAttractions, setAssignedAttractions] = useState([]); // for regular staff
+    const [selectedAttraction, setSelectedAttraction] = useState(null); //fetch atraction details
+    const [assignedStaff, setAssignedStaff] = useState([]); // store and set staff working an enclosure 
+    const [zookeepers, setZookeepers] = useState([]); // zookeepers to select for attraction lead
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null); 
 
   // For managers when editing or adding
   const [isEditing, setIsEditing] = useState(false);
@@ -36,21 +37,43 @@ const AttractionDetails = () => {
   const [availableStaff, setAvailableStaff] = useState([]);
   const [selectedStaffToRemove, setSelectedStaffToRemove] = useState([]);
 
-  useEffect(() => {
-    const fetchAttractions = async () => {
-      try {
-        const response = await axios.get("/api/attractions", {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-        });
-        setAttractionList(response.data);
-      } catch (err) {
-        console.error("Error fetching attractions list:", err);
-      }
-    };
-    if (currentUser && currentUser.staffRole === "Manager") {
-      fetchAttractions();
-    }
-  }, [currentUser]);
+    useEffect(() => {
+        const fetchAttractions = async () => {
+            try {
+                const response = await axios.get("/api/attractions", {
+                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                });
+                setAttractionList(response.data);
+            } catch (err) {
+                console.error("Error fetching attractions list:", err);
+            }
+        };
+        if (currentUser && currentUser.staffType === "Zookeeper") {
+            fetchAttractions();
+        }
+    }, [currentUser]);
+
+    // fetch staff that are zookeepers for attraction lead dropdown menu
+    // these are the staff allowed to be assigned to the attractions
+    useEffect(() => {
+        const fetchZookeepers = async () => {
+            try {
+                const response = await axios.get("/api/staff/zookeepers", {
+                    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+                });
+
+                setZookeepers(response.data);
+            } catch (err) {
+                console.error("Error fetching zookeepers:", err);
+            }
+        };
+
+        // only get if the manager is the user, others cant add or edit so they dont need this data
+        if (currentUser && currentUser.staffRole === "Manager") {
+            fetchZookeepers();
+        }
+
+    }, [currentUser]);
 
   // Load attraction by its ID
   const loadAttraction = async (id) => {
@@ -104,13 +127,14 @@ const AttractionDetails = () => {
     loadAttraction(search_aID);
   };
 
-  // Handle changes in form inputs
-  const handleChange = (a) => {
-    setFormData({
-      ...formData,
-      [a.target.name]: a.target.value
-    });
-  };
+    // handle changes in form inputs
+    const handleChange = (a) => {
+        const { name, value } = a.target;
+        setFormData((prev) => ({
+            ...prev,    
+            [name]: name === "StaffID" ? parseInt(value) : value
+        }));
+    };
 
   // Toggle edit mode (for managers)
   const handleToggleEdit = () => {
@@ -167,27 +191,28 @@ const AttractionDetails = () => {
         }
       );
 
-      // Update the local state with new data
-      setSelectedAttraction({
-        ...selectedAttraction,
-        ...formData
-      });
+            // Fetch updated attraction (gets StaffName & any updates from DB)
+            const updated = await axios.get(`/api/attractions/${selectedAttraction.AttractionID}`, {
+                headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+            });
+            setSelectedAttraction(updated.data);
+
 
       setIsEditing(false);
       alert("Attraction updated successfully");
 
-      // Refresh attraction list for managers
-      if (currentUser && currentUser.staffRole === "Manager") {
-        const response = await axios.get("/api/attractions", {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-        });
-        setAttractionList(response.data);
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Failed to update attraction");
-    }
-  };
+            // refresh attraction list for managers
+            if (currentUser?.staffRole === "Manager") {
+                const response = await axios.get("/api/attractions", {
+                    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+                });
+                setAttractionList(response.data);
+            }
+        } catch (err){
+            console.error(err);
+            alert("Failed to update attraction")
+        }
+    };
 
   // Add attraction (manager only)
   const handleAdd = async (a) => {
@@ -197,29 +222,30 @@ const AttractionDetails = () => {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
 
-      // New attraction object using new returned AttractionID
-      const newAttraction = {
-        ...formData,
-        AttractionID: response.data.AttractionID,
-        Staff: [] // initialize with empty staff array
-      };
+            const newId = response.data.AttractionID;
 
-      setSelectedAttraction(newAttraction); // set the new attraction as the current one
-      setIsAdding(false); // exit add mode
-      alert("Attraction added successfully");
+            // fetch new attraction including the staff ID
+            const fullAttraction = await axios.get(`/api/attractions/${newId}`, {
+                headers: {Authorization: `Bearer ${localStorage.getItem("token")}`}
+            });
 
-      // Refresh attraction list for managers
-      if (currentUser && currentUser.staffRole === "Manager") {
-        const response = await axios.get("/api/attractions", {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-        });
-        setAttractionList(response.data);
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Failed to add attraction");
-    }
-  };
+            setSelectedAttraction(fullAttraction.data); // set the new attraction as the current one
+            setAssignedStaff([]); // clear staff cards from previous attraction, if any 
+            setIsAdding(false); // exit add mode
+            alert("Attraction added successfully");
+
+            // refresh attraction list for managers
+            if (currentUser?.staffRole === "Manager") {
+                const response = await axios.get("/api/attractions", {
+                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                });
+                setAttractionList(response.data);
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Failed to add attraction");
+        }
+    };
 
   // Delete attraction (manager only)
   const handleDelete = async () => {
@@ -340,58 +366,59 @@ const AttractionDetails = () => {
       <div className="container mx-auto px-4 py-12">
         <h1 className="text-3xl font-bold mb-6 font-['Roboto_Flex']">Attractions Management</h1>
 
-        {/* Different UI based on user role */}
-        {currentUser?.staffType === 'Zookeeper' && currentUser?.staffRole !== 'Manager' ? (
-          // Zookeeper interface
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2 font-['Mukta_Mahee']">
-              Select Your Assigned Attraction:
-            </label>
-            <select
-              className="border border-gray-300 p-2 rounded w-full md:w-64 font-['Mukta_Mahee']"
-              value={selectedAttraction?.AttractionID || ""}
-              onChange={handleAttractionSelect}
-            >
-              <option value="">Select an attraction</option>
-              {assignedAttractions.map(attraction => (
-                <option key={attraction.Title} value={attraction.AttractionID}>
-                  {attraction.Title} (ID: {attraction.AttractionID})
-                </option>
-              ))}
-            </select>
+                {/* Different UI based on user role */}
+                {currentUser?.staffType === 'Zookeeper' && currentUser?.staffRole !== 'Manager' ? (
+                    // Zookeeper interface
+                    <div className="mb-6">
+                        <label className="block text-sm font-medium text-gray-700 mb-2 font-['Mukta_Mahee']">
+                            Select Your Assigned Attraction:
+                        </label>
+                        <select className="border border-gray-300 p-2 rounded w-full md:w-64 font-['Mukta_Mahee']"
+                            value={selectedAttraction?.AttractionID || ""}
+                            onChange={handleAttractionSelect}
+                        >
+                            <option  value=""> Select an attraction</option>
+                            {attractionList.map(attraction => (
+                                <option key={attraction.AttractionID} value={attraction.AttractionID}>
+                                    {attraction.Title} (ID: {attraction.AttractionID})
+                                </option>
+                            ))}
+                        </select>
 
-            {assignedAttractions.length === 0 && !loading && (
-              <p className="mt-2 text-amber-600 font-['Lora']">
-                You don't have any assigned attractions
-              </p>
-            )}
-          </div>
-        ) : (
-          // Zookeeper manager interface - Search by ID
-          <div className="mb-6">
-            <div className="flex flex-wrap items-center gap-4">
-              <form onSubmit={searchAttraction} className="flex items-center">
-                <label className="block text-sm font-medium text-gray-700 mb-2 font-['Mukta_Mahee']">
-                  Search:
-                </label>
-                {/* Dropdown attraction search */}
-                <select
-                  value={selectedAttraction?.AttractionID || ""}
-                  onChange={(e) => {
-                    const id = e.target.value;
-                    if (id) loadAttraction(id);
-                    else setSelectedAttraction(null);
-                  }}
-                  className="border border-gray-300 p-2 rounded w-full md:w-64 font-['Mukta_Mahee']"
-                >
-                  <option value="">Select an attraction</option>
-                  {attractionList.map((attraction) => (
-                    <option key={attraction.AttractionID} value={attraction.AttractionID}>
-                      {attraction.Title} (ID: {attraction.AttractionID})
-                    </option>
-                  ))}
-                </select>
-              </form>
+                        {attractionList.length === 0 && !loading && (
+                            <p className="mt-2 text-amber-600 font-['Lora']">
+                                You don't have any assigned attractions
+                            </p>
+                        )}
+                    </div>
+                ) : (
+                    // Zookeeper manager interface - Search by ID
+                    <div className="mb-6">
+                        <div className="flex flex-wrap items-center gap-4">
+                            <form onSubmit={searchAttraction} className="flex items-center">
+                                <label className="block text-sm font-medium text-gray-700 mb-2 font-['Mukta_Mahee']">
+                                    Search:
+                                </label>
+
+                                {/* dropdown attraction search */}
+                                <select 
+                                    value={selectedAttraction?.AttractionID || ""}
+                                    onChange={(e) => {
+                                        const id = e.target.value;
+                                        if (id) loadAttraction(id);
+                                        else setSelectedAttraction(null);
+                                    }}
+                                    className="border border-gray-300 p-2 rounded w-full md:w-64 font-['Mukta_Mahee']"
+                                >
+                                    <option value="">Select an attraction</option>
+                                    {attractionList.map((attraction) => (
+                                        <option key={attraction.AttractionID} value={attraction.AttractionID}>
+                                            {attraction.Title} (ID: {attraction.AttractionID})
+                                        </option>
+                                    ))}
+                                </select>
+                            </form>
+
 
               {/* Manager-only buttons */}
               {currentUser?.staffType === 'Zookeeper' && currentUser?.staffRole === "Manager" && (
@@ -439,26 +466,32 @@ const AttractionDetails = () => {
           </div>
         )}
 
-        {/* Add attraction form */}
-        {isAdding && currentUser?.staffRole === "Manager" && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h2 className="text-2xl font-semibold mb-4 font-['Roboto_Flex']">Add New Attraction</h2>
-            <form onSubmit={handleAdd}>
-              {/* Entry tables */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
-                    Staff ID
-                  </label>
-                  <input
-                    type="text"
-                    name="StaffID"
-                    value={formData.StaffID}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
-                    required
-                  />
-                </div>
+                {/* Add attraction form */}
+                {isAdding && currentUser?.staffRole === "Manager" && (
+                    <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+                        <h2 className="text-2xl font-semibold mb-4 font-['Roboto_Flex']"> Add New Attraction</h2>
+                        <form onSubmit={handleAdd}>
+                            {/* entry tables */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
+                                    Attraction Lead
+                                </label>
+                                <select
+                                    name="StaffID"
+                                    value={formData.StaffID}
+                                    onChange={handleChange}
+                                    className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
+                                    required
+                                >
+                                    <option value="">Select Zookeeper for Attraction</option>
+                                    {zookeepers.map((zookeeper) => (
+                                    <option key={zookeeper.Staff} value={zookeeper.Staff}>
+                                        {zookeeper.Name} (ID: {zookeeper.Staff})
+                                    </option>
+                                    ))}
+                                </select>
+                                </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
@@ -566,26 +599,32 @@ const AttractionDetails = () => {
           </div>
         )}
 
-        {/* Edit attraction form */}
-        {isEditing && currentUser?.staffRole === "Manager" && selectedAttraction && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h2 className="text-2xl font-semibold mb-4 font-['Roboto_Flex']">Edit Attraction</h2>
-            {/* Edit form entry tables */}
-            <form onSubmit={handleUpdate}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
-                    Staff ID
-                  </label>
-                  <input
-                    type="text"
-                    name="StaffID"
-                    value={formData.StaffID}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
-                    required
-                  />
-                </div>
+                {/* Edit attraction form */}
+                {isEditing && currentUser?.staffRole === "Manager" && selectedAttraction && (
+                    <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+                        <h2 className="text-2xl font-semibold mb-4 font-['Roboto_Flex']">Edit Attraction</h2>
+                        {/* Edit form entry tables */}
+                        <form onSubmit={handleUpdate}>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
+                                    Attraction Lead
+                                </label>
+                                <select
+                                    name="StaffID"
+                                    value={formData.StaffID}
+                                    onChange={handleChange}
+                                    className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
+                                    required
+                                >
+                                    <option value="">Select a Zookeeper</option>
+                                    {zookeepers.map((zookeeper) => (
+                                    <option key={zookeeper.Staff} value={zookeeper.Staff}>
+                                        {zookeeper.Name} (ID: {zookeeper.Staff})
+                                    </option>
+                                    ))}
+                                </select>
+                                </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
@@ -714,6 +753,10 @@ const AttractionDetails = () => {
                       <td className="py-2 pr-4 font-semibold font-['Mukta_Mahee']">Location:</td>
                       <td className="py-2 font-['Lora']">{selectedAttraction.Location}</td>
                     </tr>
+                                    <tr className="border-b">
+                                        <td className="py-2 pr-4 font-semibold font-['Mukta_Mahee']">Attraction Lead:</td>
+                                        <td className="py-2 font-['Lora']">{selectedAttraction.StaffName}</td>
+                                    </tr>
                     <tr className="border-b">
                       <td className="py-2 pr-4 font-semibold font-['Mukta_Mahee']">Start Time:</td>
                       <td className="py-2 font-['Lora']">
