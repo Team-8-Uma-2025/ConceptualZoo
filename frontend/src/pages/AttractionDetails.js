@@ -218,19 +218,20 @@ const AttractionDetails = () => {
                 headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
             });
 
-            // new attraction object using new returned AttractionID
-            const newAttraction = {
-                ...formData,
-                AttractionID: response.data.AttractionID,
-                Staff: [] // initialize with empty staff array
-            };
+            const newId = response.data.AttractionID;
 
-            setSelectedAttraction(newAttraction); // set the new attraction as the current one
+            // fetch new attraction including the staff ID
+            const fullAttraction = await axios.get(`/api/attractions/${newId}`, {
+                headers: {Authorization: `Bearer ${localStorage.getItem("token")}`}
+            });
+
+            setSelectedAttraction(fullAttraction.data); // set the new attraction as the current one
+            setAssignedStaff([]); // clear staff cards from previous attraction, if any 
             setIsAdding(false); // exit add mode
             alert("Attraction added successfully");
 
             // refresh attraction list for managers
-            if (currentUser && currentUser.staffRole === "Manager") {
+            if (currentUser?.staffRole === "Manager") {
                 const response = await axios.get("/api/attractions", {
                     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
                 });
