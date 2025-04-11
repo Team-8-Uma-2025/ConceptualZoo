@@ -24,6 +24,7 @@ module.exports = (pool) => {
     try {
       const { tickets, addons, visitDate } = req.body;
       const visitorId = req.user.id;
+      const purchaseID = Date.now();
   
       // Parse the visitDate as a UTC date.
       const selectedDate = new Date(visitDate + "T00:00:00Z");
@@ -70,8 +71,8 @@ module.exports = (pool) => {
               const endDateString = endDate.toISOString().split("T")[0];
   
               const [result] = await connection.query(
-                "INSERT INTO tickets (VisitorID, TicketType, Price, EnclosureAccess, StartDate, EndDate, Used) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                [visitorId, ticketType, price, "None", startDateString, endDateString, "Valid"]
+                "INSERT INTO tickets (PurchaseID, VisitorID, TicketType, Price, EnclosureAccess, StartDate, EndDate, Used) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                [purchaseID, visitorId, ticketType, price, "None", startDateString, endDateString, "Valid"]
               );
               purchasedTickets.push({
                 id: result.insertId,
@@ -113,8 +114,8 @@ module.exports = (pool) => {
             const endDateAddonString = endDateAddon.toISOString().split("T")[0];
     
             const [result] = await connection.query(
-              "INSERT INTO addons (VisitorID, Type, Price, Description, StartDate, EndDate, Used) VALUES (?, ?, ?, ?, ?, ?, ?)",
-              [visitorId, addon, price, accessType, startDateAddonString, endDateAddonString, "Valid"]
+              "INSERT INTO addons (PurchaseID, VisitorID, Type, Price, Description, StartDate, EndDate, Used) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+              [purchaseID, visitorId, addon, price, accessType, startDateAddonString, endDateAddonString, "Valid"]
             );
     
             purchasedTickets.push({
@@ -187,30 +188,23 @@ module.exports = (pool) => {
       }
 
       // Group addons by date for easy lookup
-      const addonsByDate = {};
+      const addonsByPurchase = {};
       addonRecords.forEach((addon) => {
-        if (!addon.StartDate) return; // Skip entries with missing dates
-
-        const dateKey = new Date(addon.StartDate).toISOString().split("T")[0];
-        if (!addonsByDate[dateKey]) {
-          addonsByDate[dateKey] = [];
+        // Ensure the addon record has a PurchaseID property.
+        if (!addon.PurchaseID) return;
+        if (!addonsByPurchase[addon.PurchaseID]) {
+          addonsByPurchase[addon.PurchaseID] = [];
         }
-        addonsByDate[dateKey].push(addon.Description);
+        addonsByPurchase[addon.PurchaseID].push(addon.Description);
       });
-
-      // Add addon information to each ticket
+      
+      // Attach the correct addon information to each ticket based on PurchaseID.
       const ticketsWithAddons = regularTickets.map((ticket) => {
-        if (!ticket.StartDate) return ticket; // Handle tickets without dates
-
-        const ticketDate = new Date(ticket.StartDate)
-          .toISOString()
-          .split("T")[0];
-        const addonsForTicket = addonsByDate[ticketDate] || [];
-
+        const purchaseID = ticket.PurchaseID; // This should be available from your INSERT results.
+        const ticketAddons = addonsByPurchase[purchaseID] || [];
         return {
           ...ticket,
-          addons:
-            addonsForTicket.length > 0 ? addonsForTicket.join(", ") : "None",
+          addons: ticketAddons.length > 0 ? ticketAddons.join(", ") : "None",
         };
       });
 
