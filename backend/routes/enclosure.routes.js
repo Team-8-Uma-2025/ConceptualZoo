@@ -41,9 +41,10 @@ module.exports = (pool) => {
       // retreive enclosure details along animals
       const [rows] = await pool.query(
         `SELECT e.EnclosureID, e.Name AS EnclosureName, e.Type AS EnclosureType, 
-            e.Capacity AS AnimalCapacity, e.Location, a.AnimalID, a.Name AS AnimalName,
+            e.Capacity AS AnimalCapacity, e.Location, e.StaffID, s.Name AS ZookeeperName, a.AnimalID, a.Name AS AnimalName,
             a.Species, a.Gender, a.DateOfBirth, a.HealthStatus, a.DangerLevel, a.Image
-        FROM enclosures AS e  
+        FROM enclosures AS e
+        LEFT JOIN staff s ON e.StaffID = s.Staff  
         LEFT JOIN animals AS a ON e.EnclosureID = a.EnclosureID
         WHERE e.EnclosureID = ?`,
 
@@ -62,6 +63,8 @@ module.exports = (pool) => {
         Type: rows[0].EnclosureType,
         Capacity: rows[0].AnimalCapacity,
         Location: rows[0].Location,
+        StaffID: rows[0].StaffID,
+        ZookeeperName: rows[0].ZookeeperName,
         Animals: rows.map(row => ({
           AnimalID: row.AnimalID,
           Name: row.AnimalName,
@@ -183,16 +186,21 @@ module.exports = (pool) => {
         return res.status(403).json({error: 'Denied. staff only'})
       }
 
-      const {Name, Type, Capacity, Location} = req.body; // receive entries
+      const {StaffID, Name, Type, Capacity, Location} = req.body; // receive entries
 
       // Ensure at least one entry was sent by user
-      if (!Name && !Type && !Capacity && !Location) {
+      if (!StaffID && !Name && !Type && !Capacity && !Location) {
         return res.status(400).json({ error: 'At least one field (Name, Type, Capacity, Location) must be provided for update' });
       }
 
       // dynamically query fields entered
       const entryField = [];
       const values = [];
+
+      if (StaffID) {
+        entryField.push('StaffID = ?');
+        values.push(StaffID);
+      }
 
       if(Name){
         entryField.push('Name = ?');
