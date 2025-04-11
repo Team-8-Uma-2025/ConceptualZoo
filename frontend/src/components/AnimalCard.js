@@ -1,24 +1,69 @@
 // src/components/AnimalCard.js
 import React, { useState } from 'react';
-import { ClipboardList } from 'lucide-react';
+import { ClipboardList, MoreHorizontal } from 'lucide-react';
 import AnimalObservationModal from './AnimalObservationModal';
+import EditAnimalModal from './EditAnimalModal';
 
-const AnimalCard = ({ animal }) => {
+const AnimalCard = ({ animal, refreshAnimals }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
 
+  const openEditModal = () => {
+    setIsMenuOpen(false);
+    setIsEditModalOpen(true);
+  };
+
+  const closeEditModal = () => setIsEditModalOpen(false);
+
+  const handleDelete = async () => {
+    setIsMenuOpen(false);
+    if (window.confirm('Are you sure you want to delete this animal?')) {
+      try {
+        const response = await fetch(`/api/animals/${animal.AnimalID}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
+        const data = await response.json();
+        if (response.ok) {
+          alert('Animal deleted successfully');
+          refreshAnimals(); // Refresh the list of animals after deletion
+        } else {
+          alert(data.error || 'Error deleting animal');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Error deleting animal');
+      }
+    }
+  };
+
   return (
-    <div className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition duration-300">
-      {/* Animal Image
-      <div className="h-48 bg-gray-200">
-        <img 
-          src={animal.image || `https://placehold.co/400x300/222222/EEEEEE?text=${animal.Name}`} 
-          alt={animal.Name} 
-          className="w-full h-full object-cover"
-        />
-      </div> */}
+    <div className="relative bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition duration-300">
+      {/* Dropdown trigger */}
+      <button 
+        onClick={() => setIsMenuOpen(!isMenuOpen)}
+        className="absolute top-2 right-2 text-gray-600 hover:text-gray-800 p-1"
+      >
+        <MoreHorizontal size={20} />
+      </button>
+      
+      {/* Dropdown Menu */}
+      {isMenuOpen && (
+        <div className="absolute top-8 right-2 bg-white border rounded shadow-md z-10">
+          <button onClick={openEditModal} className="block w-full text-left px-4 py-2 hover:bg-gray-100">
+            Edit
+          </button>
+          <button onClick={handleDelete} className="block w-full text-left px-4 py-2 hover:bg-gray-100">
+            Delete
+          </button>
+        </div>
+      )}
       
       {/* Animal Details */}
       <div className="p-4">
@@ -62,6 +107,14 @@ const AnimalCard = ({ animal }) => {
         animal={animal}
         isOpen={isModalOpen}
         onClose={closeModal}
+      />
+
+      {/* Modal for editing the animal */}
+      <EditAnimalModal 
+        animal={animal}
+        isOpen={isEditModalOpen}
+        onClose={closeEditModal}
+        refreshAnimals={refreshAnimals}
       />
     </div>
   );

@@ -219,12 +219,14 @@ const TicketHistory = () => {
                         <div>
                           <span
                             className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
-                              ticket.Used
+                              ticket.Used === "Used"
                                 ? "bg-gray-100 text-gray-800"
+                                : ticket.Used === "Expired"
+                                ? "bg-red-100 text-red-800"
                                 : "bg-green-100 text-green-800"
                             }`}
                           >
-                            {ticket.Used ? "Used" : "Valid"}
+                            {ticket.Used}
                           </span>
                         </div>
                       </div>
