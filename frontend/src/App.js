@@ -93,13 +93,19 @@ function AppContent() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/dashboard/messages" element={<Messages />} />
             <Route path="/animals" element={<Dashboard />} />
+
             <Route path="/dashboard/enclosures/:id" element={<EnclosureDetails />} /> 
             <Route path="/dashboard/enclosures" element={<EnclosureDetails />} /> 
+
             <Route path="/dashboard/test1" element={<AnimalDetails />} /> 
+
             <Route path="/dashboard/attractions" element={<AttractionDetails />} />
             <Route path="/dashboard/attractions/:id" element={<AttractionDetails />} />
             <Route path="/dashboard/gift-shop" element={<GiftShopManagement />} />
+
             <Route path="/dashboard/staff" element={<StaffManagement />} />
+            <Route path="/dashboard/staff/:id" element={<StaffManagement />} />
+            <Route path="/dashboard/staff/:id/:action" element={<StaffManagement />} />
 
             {/* Additional staff routes will go here */}
           </Route>
