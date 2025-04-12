@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { Ticket, ChevronDown, ChevronUp, Calendar } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { QRCodeCanvas } from "qrcode.react"; // Import QRCode from the qrcode.react package
 
 const TicketHistory = () => {
   const { currentUser } = useAuth();
@@ -12,14 +13,11 @@ const TicketHistory = () => {
   const [error, setError] = useState(null);
   const [expandedDate, setExpandedDate] = useState(null);
 
+  // New state to store the ticket for which the QR modal should be shown
+  const [selectedTicketForQR, setSelectedTicketForQR] = useState(null);
+
   // Compute today's date as a string in "YYYY-MM-DD" format for later use
   const todayString = new Date().toISOString().split("T")[0];
-
-  // Handler for the "Use" button
-  const handleUseTicket = (ticket) => {
-    // TODO: Implement your logic to mark the ticket as used.
-    console.log("Using ticket:", ticket);
-  };
 
   // Wrapped fetchTickets in useCallback to use it in the dependency array
   const fetchTickets = useCallback(async () => {
@@ -119,9 +117,10 @@ const TicketHistory = () => {
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-        <h3 className="text-xl font-semibold mb-4 text-gray-800 font-['Mukta_Mahee'] flex items-center">
-          <Ticket size={20} className="mr-2" />
-          Your Tickets
+        <h3
+          className="text-xl font-semibold mb-4 text-gray-800 font-['Mukta_Mahee'] flex items-center"
+        >
+          <Ticket size={20} className="mr-2" /> Your Tickets
         </h3>
         <div className="flex justify-center items-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-700"></div>
@@ -134,9 +133,10 @@ const TicketHistory = () => {
   if (error) {
     return (
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-        <h3 className="text-xl font-semibold mb-4 text-gray-800 font-['Mukta_Mahee'] flex items-center">
-          <Ticket size={20} className="mr-2" />
-          Your Tickets
+        <h3
+          className="text-xl font-semibold mb-4 text-gray-800 font-['Mukta_Mahee'] flex items-center"
+        >
+          <Ticket size={20} className="mr-2" /> Your Tickets
         </h3>
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
           {error}
@@ -153,10 +153,12 @@ const TicketHistory = () => {
     );
   }
 
-  // Render the ticket history grouped by date
+  // Main render: Ticket history grouped by date
   return (
     <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-      <h3 className="text-xl font-semibold mb-4 text-gray-800 font-['Mukta_Mahee'] flex items-center">
+      <h3
+        className="text-xl font-semibold mb-4 text-gray-800 font-['Mukta_Mahee'] flex items-center"
+      >
         <Ticket size={20} className="mr-2" />
         Your Tickets
       </h3>
@@ -208,7 +210,7 @@ const TicketHistory = () => {
               {expandedDate === dateGroup.dateKey && (
                 <div className="p-4 border-t border-gray-200 divide-y divide-gray-100">
                   {dateGroup.tickets.map((ticket, index) => {
-                    // Get the ticket's StartDate as "YYYY-MM-DD"
+                    // Convert ticket's StartDate to "YYYY-MM-DD"
                     const ticketDateString = new Date(ticket.StartDate)
                       .toISOString()
                       .split("T")[0];
@@ -222,11 +224,12 @@ const TicketHistory = () => {
                             <div className="text-sm text-gray-600 font-['Lora']">
                               Price: ${formatPrice(ticket.Price)}
                             </div>
-                            {ticket.addons && ticket.addons !== "None" && (
-                              <div className="text-sm text-gray-600 font-['Lora']">
-                                Includes: {ticket.addons}
-                              </div>
-                            )}
+                            {ticket.addons &&
+                              ticket.addons !== "None" && (
+                                <div className="text-sm text-gray-600 font-['Lora']">
+                                  Includes: {ticket.addons}
+                                </div>
+                              )}
                           </div>
                           <div className="flex items-center">
                             <span
@@ -240,11 +243,11 @@ const TicketHistory = () => {
                             >
                               {ticket.Used}
                             </span>
-                            {/* Render the "Use" button if the ticket is valid and the date matches today */}
+                            {/* Render the "Use" button if the ticket is valid and the ticket date equals today */}
                             {ticket.Used === "Valid" &&
                               ticketDateString === todayString && (
                                 <button
-                                  onClick={() => handleUseTicket(ticket)}
+                                  onClick={() => setSelectedTicketForQR(ticket)}
                                   className="ml-2 bg-green-700 hover:bg-green-600 text-white font-bold py-2 px-4 rounded text-xs"
                                 >
                                   Use
@@ -259,6 +262,34 @@ const TicketHistory = () => {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Modal for QR code */}
+      {selectedTicketForQR && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white rounded-lg p-6 relative max-w-sm mx-auto">
+            <button
+              onClick={() => setSelectedTicketForQR(null)}
+              className="absolute top-2 right-2 text-gray-700 text-2xl font-bold"
+            >
+              &times;
+            </button>
+            <h3 className="text-lg font-bold mb-4">
+              Get a Wild Wood Ranger to scan this QR code to start your adventure!
+            </h3>
+            {/* Unique QR code using the ticket's ID */}
+            <div className="flex justify-center">
+              <QRCodeCanvas
+                value={"Have fun Nature Nomad!"}
+                size={256}
+                bgColor="#ffffff"
+                fgColor="#000000"
+                level="H"
+                marginSize={true}
+              />
+            </div>
+          </div>
         </div>
       )}
     </div>
