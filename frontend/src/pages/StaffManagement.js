@@ -2,22 +2,24 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
-import { 
-  Users, User, Search, Edit, Trash2, Plus, 
-  ChevronDown, ChevronUp, X, Save, ArrowLeft 
+import { useNavigate, useParams } from 'react-router-dom';
+import {
+  Users, User, Search, Edit, Trash2, Plus,
+  ChevronDown, ChevronUp, X, Save, ArrowLeft,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 
 const StaffManagement = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
-  
+  const { id: urlStaffId, action } = useParams(); // Get staff ID and action from URL
+
   // State for staff list and selected staff
   const [staffMembers, setStaffMembers] = useState([]);
   const [selectedStaff, setSelectedStaff] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // State for editing
   const [isEditing, setIsEditing] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
@@ -38,15 +40,19 @@ const StaffManagement = () => {
   const [filterRole, setFilterRole] = useState('All');
   const [filterType, setFilterType] = useState('All');
 
+  // State for pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [staffPerPage] = useState(8); // Same as in Dashboard
+
   // Fetch staff members
   const fetchStaffMembers = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       const response = await axios.get('/api/staff', {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
-      
+
       setStaffMembers(response.data);
       setError(null);
     } catch (err) {
@@ -61,11 +67,11 @@ const StaffManagement = () => {
   const fetchStaffDetails = async (staffId) => {
     try {
       setLoading(true);
-      
+
       const response = await axios.get(`/api/staff/${staffId}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
-      
+
       setSelectedStaff(response.data);
       setFormData({
         Name: response.data.Name || '',
@@ -78,7 +84,7 @@ const StaffManagement = () => {
         Sex: response.data.Sex || '',
         Birthdate: response.data.Birthdate ? new Date(response.data.Birthdate).toISOString().split('T')[0] : ''
       });
-      
+
       setError(null);
     } catch (err) {
       console.error('Failed to fetch staff details:', err);
@@ -94,9 +100,18 @@ const StaffManagement = () => {
       navigate('/unauthorized');
       return;
     }
-    
+
     fetchStaffMembers();
-  }, [currentUser, fetchStaffMembers, navigate]);
+
+    // Check for staff ID in URL
+    if (urlStaffId) {
+      fetchStaffDetails(urlStaffId);
+      // If action is 'edit', set editing mode
+      if (action === 'edit') {
+        setIsEditing(true);
+      }
+    }
+  }, [currentUser, fetchStaffMembers, navigate, urlStaffId, action]);
 
   const handleSelectStaff = (staffId) => {
     if (selectedStaff && selectedStaff.Staff === staffId) {
@@ -135,7 +150,7 @@ const StaffManagement = () => {
   const handleCancel = () => {
     setIsEditing(false);
     setIsAdding(false);
-    
+
     if (selectedStaff) {
       // Restore form data from selected staff
       setFormData({
@@ -162,10 +177,10 @@ const StaffManagement = () => {
 
   const handleSubmitEdit = async (e) => {
     e.preventDefault();
-    
+
     try {
       setLoading(true);
-      
+
       // Only include fields that can be updated
       const updateData = {
         name: formData.Name,
@@ -173,15 +188,15 @@ const StaffManagement = () => {
         address: formData.Address,
         supervisorID: formData.SupervisorID
       };
-      
+
       await axios.put(`/api/staff/${selectedStaff.Staff}`, updateData, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
-      
+
       // Refresh staff list and selected staff
       fetchStaffMembers();
       fetchStaffDetails(selectedStaff.Staff);
-      
+
       setIsEditing(false);
       setError(null);
     } catch (err) {
@@ -194,10 +209,10 @@ const StaffManagement = () => {
 
   const handleSubmitAdd = async (e) => {
     e.preventDefault();
-    
+
     try {
       setLoading(true);
-      
+
       // Prepare data for new staff
       const newStaffData = {
         name: formData.Name,
@@ -211,14 +226,14 @@ const StaffManagement = () => {
         birthdate: formData.Birthdate,
         ssn: '123-45-6789' // Placeholder - in a real app you'd handle this securely
       };
-      
+
       await axios.post('/api/auth/register-staff', newStaffData, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
-      
+
       // Refresh staff list
       fetchStaffMembers();
-      
+
       setIsAdding(false);
       setError(null);
     } catch (err) {
@@ -233,22 +248,22 @@ const StaffManagement = () => {
     if (!window.confirm('Are you sure you want to delete this staff member? This action cannot be undone.')) {
       return;
     }
-    
+
     try {
       setLoading(true);
-      
+
       // This would need to be implemented in your backend
       await axios.delete(`/api/staff/${staffId}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
-      
+
       // Refresh staff list
       fetchStaffMembers();
-      
+
       if (selectedStaff && selectedStaff.Staff === staffId) {
         setSelectedStaff(null);
       }
-      
+
       setError(null);
     } catch (err) {
       console.error('Failed to delete staff:', err);
@@ -261,13 +276,26 @@ const StaffManagement = () => {
   // Apply filters to staff list
   const filteredStaff = staffMembers.filter(staff => {
     const matchesSearch = staff.Name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          staff.Username.toLowerCase().includes(searchQuery.toLowerCase());
-    
+      staff.Username.toLowerCase().includes(searchQuery.toLowerCase());
+
     const matchesRole = filterRole === 'All' || staff.Role === filterRole;
     const matchesType = filterType === 'All' || staff.StaffType === filterType;
-    
+
     return matchesSearch && matchesRole && matchesType;
   });
+
+  // Pagination logic
+  const indexOfLastStaff = currentPage * staffPerPage;
+  const indexOfFirstStaff = indexOfLastStaff - staffPerPage;
+  const totalPages = Math.ceil(filteredStaff.length / staffPerPage);
+
+  // Functions for pagination
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+  const goToNextPage = () => setCurrentPage(prev => Math.min(prev + 1, totalPages));
+  const goToPrevPage = () => setCurrentPage(prev => Math.max(prev - 1, 1));
+
+  // Get current staff for pagination
+  const currentStaff = filteredStaff.slice(indexOfFirstStaff, indexOfLastStaff);
 
   // Extract unique roles and types for filters
   const roles = ['All', ...new Set(staffMembers.map(staff => staff.Role))];
@@ -311,7 +339,7 @@ const StaffManagement = () => {
             <div className="bg-white rounded-lg shadow-md p-6 mb-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold font-['Roboto_Flex']">Staff Directory</h2>
-                <button 
+                <button
                   onClick={handleAddStaff}
                   className="bg-purple-600 hover:bg-purple-500 text-white px-3 py-1 rounded flex items-center"
                 >
@@ -334,8 +362,8 @@ const StaffManagement = () => {
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  <select 
-                    value={filterRole} 
+                  <select
+                    value={filterRole}
                     onChange={(e) => setFilterRole(e.target.value)}
                     className="border border-gray-300 rounded px-2 py-1 text-sm"
                   >
@@ -344,8 +372,8 @@ const StaffManagement = () => {
                     ))}
                   </select>
 
-                  <select 
-                    value={filterType} 
+                  <select
+                    value={filterType}
                     onChange={(e) => setFilterType(e.target.value)}
                     className="border border-gray-300 rounded px-2 py-1 text-sm"
                   >
@@ -368,9 +396,9 @@ const StaffManagement = () => {
                       No staff members found.
                     </div>
                   ) : (
-                    filteredStaff.map(staff => (
-                      <div 
-                        key={staff.Staff} 
+                    currentStaff.map(staff => (
+                      <div
+                        key={staff.Staff}
                         className={`py-3 px-3 cursor-pointer hover:bg-gray-50 ${selectedStaff && selectedStaff.Staff === staff.Staff ? 'bg-purple-50 border-l-4 border-purple-500' : ''}`}
                         onClick={() => handleSelectStaff(staff.Staff)}
                       >
@@ -389,9 +417,42 @@ const StaffManagement = () => {
                     ))
                   )}
                 </div>
+
+              )}
+
+              {/* Pagination Controls */}
+              {filteredStaff.length > staffPerPage && (
+                <div className="flex justify-center items-center mt-4 space-x-2">
+                  <button
+                    onClick={goToPrevPage}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1 border rounded disabled:opacity-50"
+                  >
+                    Prev
+                  </button>
+
+                  {[...Array(totalPages)].map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => paginate(index + 1)}
+                      className={`px-3 py-1 border rounded ${currentPage === index + 1 ? 'bg-purple-600 text-white' : ''}`}
+                    >
+                      {index + 1}
+                    </button>
+                  ))}
+
+                  <button
+                    onClick={goToNextPage}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1 border rounded disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
               )}
             </div>
           </div>
+
 
           {/* Staff Details/Edit Panel */}
           <div className="md:w-1/2 lg:w-3/5">
@@ -399,7 +460,7 @@ const StaffManagement = () => {
               <div className="bg-white rounded-lg shadow-md p-6">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-xl font-semibold font-['Roboto_Flex']">Add New Staff Member</h2>
-                  <button 
+                  <button
                     onClick={handleCancel}
                     className="text-gray-400 hover:text-gray-600"
                   >
@@ -552,7 +613,7 @@ const StaffManagement = () => {
               <div className="bg-white rounded-lg shadow-md p-6">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-xl font-semibold font-['Roboto_Flex']">Edit Staff Member</h2>
-                  <button 
+                  <button
                     onClick={handleCancel}
                     className="text-gray-400 hover:text-gray-600"
                   >
@@ -737,7 +798,7 @@ const StaffManagement = () => {
                 {/* Staff Assignments Section */}
                 <div className="mt-6 border-t pt-6">
                   <h3 className="text-lg font-semibold mb-4 font-['Mukta_Mahee']">Assignments</h3>
-                  
+
                   {/* Implemented assignments section with loading states */}
                   <StaffAssignments staffId={selectedStaff.Staff} />
                 </div>
@@ -786,9 +847,9 @@ const StaffAssignments = ({ staffId }) => {
         const enclosuresResponse = await axios.get(`/api/enclosures/staff/${staffId}`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         });
-        
+
         setEnclosures(enclosuresResponse.data || []);
-        
+
         // Fetch attractions this staff member is assigned to
         // Construct a compatible endpoint URL
         const attractionsResponse = await axios.get(`/api/attractions/${staffId}/staff-assignments`, {
@@ -798,7 +859,7 @@ const StaffAssignments = ({ staffId }) => {
           console.log('Attractions assignments endpoint may not be implemented yet');
           return { data: [] };
         });
-        
+
         setAttractions(attractionsResponse.data || []);
         setError(null);
       } catch (err) {
@@ -808,7 +869,7 @@ const StaffAssignments = ({ staffId }) => {
         setLoading(false);
       }
     };
-    
+
     if (staffId) {
       fetchAssignments();
     }
@@ -817,11 +878,11 @@ const StaffAssignments = ({ staffId }) => {
   const openAssignModal = async (type) => {
     setAssignmentType(type);
     setLoading(true);
-    
+
     try {
       // Fetch available options based on type
       let options = [];
-      
+
       if (type === 'enclosure') {
         const response = await axios.get('/api/enclosures', {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
@@ -833,20 +894,20 @@ const StaffAssignments = ({ staffId }) => {
         });
         options = response.data;
       }
-      
+
       // Filter out already assigned options
-      const alreadyAssignedIds = type === 'enclosure' 
+      const alreadyAssignedIds = type === 'enclosure'
         ? enclosures.map(e => e.EnclosureID)
         : attractions.map(a => a.AttractionID);
-      
+
       const filteredOptions = options.filter(option => {
         const optionId = type === 'enclosure' ? option.EnclosureID : option.AttractionID;
         return !alreadyAssignedIds.includes(optionId);
       });
-      
+
       setAvailableOptions(filteredOptions);
-      setSelectedOptionId(filteredOptions.length > 0 ? 
-        (type === 'enclosure' ? filteredOptions[0].EnclosureID : filteredOptions[0].AttractionID) : 
+      setSelectedOptionId(filteredOptions.length > 0 ?
+        (type === 'enclosure' ? filteredOptions[0].EnclosureID : filteredOptions[0].AttractionID) :
         '');
     } catch (err) {
       console.error(`Failed to fetch available ${type}s:`, err);
@@ -859,17 +920,17 @@ const StaffAssignments = ({ staffId }) => {
 
   const handleAssign = async () => {
     if (!selectedOptionId) return;
-    
+
     try {
       setLoading(true);
-      
+
       if (assignmentType === 'enclosure') {
         // Add staff to enclosure assignment
-        await axios.post(`/api/enclosures/${selectedOptionId}/assign-staff`, 
+        await axios.post(`/api/enclosures/${selectedOptionId}/assign-staff`,
           { Staff: staffId },
           { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
         );
-        
+
         // Refresh enclosures
         const response = await axios.get(`/api/enclosures/staff/${staffId}`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
@@ -878,18 +939,18 @@ const StaffAssignments = ({ staffId }) => {
       } else if (assignmentType === 'attraction') {
         // Add staff to attraction assignment
         // This endpoint needs to be implemented in your backend
-        await axios.post(`/api/attractions/${selectedOptionId}/assign-staff`, 
+        await axios.post(`/api/attractions/${selectedOptionId}/assign-staff`,
           { Staff: staffId },
           { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
         );
-        
+
         // Refresh attractions
         const response = await axios.get(`/api/attractions/${staffId}/staff-assignments`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         }).catch(() => ({ data: [] }));
         setAttractions(response.data || []);
       }
-      
+
       setShowAssignModal(false);
       setError(null);
     } catch (err) {
@@ -904,17 +965,17 @@ const StaffAssignments = ({ staffId }) => {
     if (!window.confirm(`Are you sure you want to remove this ${type} assignment?`)) {
       return;
     }
-    
+
     try {
       setLoading(true);
-      
+
       if (type === 'enclosure') {
         // Remove staff from enclosure assignment
         // This endpoint needs to be implemented in your backend
         await axios.delete(`/api/enclosures/${id}/staff/${staffId}`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         });
-        
+
         // Refresh enclosures
         const response = await axios.get(`/api/enclosures/staff/${staffId}`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
@@ -926,14 +987,14 @@ const StaffAssignments = ({ staffId }) => {
         await axios.delete(`/api/attractions/${id}/staff/${staffId}`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         });
-        
+
         // Refresh attractions
         const response = await axios.get(`/api/attractions/${staffId}/staff-assignments`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         }).catch(() => ({ data: [] }));
         setAttractions(response.data || []);
       }
-      
+
       setError(null);
     } catch (err) {
       console.error(`Failed to remove staff from ${type}:`, err);
@@ -984,7 +1045,7 @@ const StaffAssignments = ({ staffId }) => {
         <h4 className="text-md font-semibold mb-2 font-['Mukta_Mahee'] text-gray-700">
           Enclosures
         </h4>
-        
+
         {enclosures.length === 0 ? (
           <div className="bg-gray-50 p-4 rounded text-gray-600 font-['Lora'] mb-4">
             No enclosures assigned to this staff member.
@@ -1020,7 +1081,7 @@ const StaffAssignments = ({ staffId }) => {
         <h4 className="text-md font-semibold mb-2 font-['Mukta_Mahee'] text-gray-700">
           Attractions
         </h4>
-        
+
         {attractions.length === 0 ? (
           <div className="bg-gray-50 p-4 rounded text-gray-600 font-['Lora']">
             No attractions assigned to this staff member.
@@ -1060,7 +1121,7 @@ const StaffAssignments = ({ staffId }) => {
             <h3 className="text-lg font-semibold mb-4 font-['Mukta_Mahee']">
               Assign to {assignmentType === 'enclosure' ? 'Enclosure' : 'Attraction'}
             </h3>
-            
+
             {loading ? (
               <div className="flex justify-center py-4">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-700"></div>
@@ -1084,7 +1145,7 @@ const StaffAssignments = ({ staffId }) => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 >
                   {availableOptions.map((option) => (
-                    <option 
+                    <option
                       key={assignmentType === 'enclosure' ? option.EnclosureID : option.AttractionID}
                       value={assignmentType === 'enclosure' ? option.EnclosureID : option.AttractionID}
                     >
@@ -1094,7 +1155,7 @@ const StaffAssignments = ({ staffId }) => {
                 </select>
               </div>
             )}
-            
+
             <div className="flex justify-end space-x-2">
               <button
                 onClick={() => setShowAssignModal(false)}

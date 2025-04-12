@@ -26,6 +26,21 @@ module.exports = (pool) => {
     }
   });
 
+  // get all staff that are 'Zookeeper'
+  router.get('/zookeepers', async (req, res) => {
+    try {
+      const [zookeepers] = await pool.query(
+        "SELECT Staff, Name FROM staff WHERE StaffType = 'Zookeeper'"
+      );
+      
+      
+      res.json(zookeepers);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to fetch zookeepers: ' + err.message });
+    }
+  })
+  
   // Get staff member by ID
   router.get('/:id', authenticateToken, async (req, res) => {
     try {
