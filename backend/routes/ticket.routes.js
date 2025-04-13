@@ -3,6 +3,76 @@ const router = express.Router();
 const { authenticateToken } = require("../middleware/auth.middleware");
 
 module.exports = (pool) => {
+
+  router.get("/use/:id", async (req, res) => {
+    const id = req.params.id;
+    
+    // Respond with a minimal HTML page that uses JavaScript (fetch) to call the POST endpoint.
+    res.send(`
+      <html>
+        <head>
+          <title>Activating Ticket</title>
+        </head>
+        <body>
+          <p id="message">Activating your ticket, please wait...</p>
+          <script>
+            // Use fetch to send a POST request to update the ticket status.
+            fetch("/api/tickets/use/${id}", { method: "POST" })
+              .then(response => response.json())
+              .then(data => {
+                // Display the success (or error) message on the page
+                document.getElementById("message").innerText = data.message || "Ticket marked as used.";
+              })
+              .catch(err => {
+                document.getElementById("message").innerText = "Error marking ticket as used.";
+              });
+          </script>
+        </body>
+      </html>
+    `);
+  });
+
+
+  // Mark a ticket (and its associated add-ons) as used
+router.post("/use/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // First update the ticket if it is still Valid.
+    const [ticketUpdateResult] = await pool.query(
+      "UPDATE tickets SET Used = ? WHERE TicketID = ? AND Used = ?",
+      ["Used", id, "Valid"]
+    );
+
+    if (ticketUpdateResult.affectedRows === 0) {
+      return res.status(400).json({ error: "Ticket not found or already used." });
+    }
+    
+    // Retrieve the PurchaseID for the ticket we just updated.
+    const [rows] = await pool.query(
+      "SELECT PurchaseID FROM tickets WHERE TicketID = ?",
+      [id]
+    );
+    if (!rows || rows.length === 0) {
+      return res.status(400).json({ error: "PurchaseID not found for ticket." });
+    }
+    
+    const purchaseID = rows[0].PurchaseID;
+    
+    // Update all addons associated with this PurchaseID that are still Valid.
+    const [addonUpdateResult] = await pool.query(
+      "UPDATE addons SET Used = ? WHERE PurchaseID = ? AND Used = ?",
+      ["Used", purchaseID, "Valid"]
+    );
+
+    res.json({ message: "Ticket and associated add-ons marked as used." });
+  } catch (err) {
+    console.error("Error marking ticket (and add-ons) as used:", err);
+    res.status(500).json({ error: "Failed to mark ticket as used." });
+  }
+});
+
+
   // Get all ticket types
   router.get("/types", async (req, res) => {
     try {
