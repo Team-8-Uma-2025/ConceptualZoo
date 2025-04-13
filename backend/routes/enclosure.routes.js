@@ -9,23 +9,23 @@ module.exports = (pool) => {
   try {
     const [rows] = await pool.query('SELECT * FROM enclosures');
     
-    // Convert ImageData BLOB to Base64 string
-    const enclosures = rows.map(enclosure => {
-      if (enclosure.ImageData) {
-        // Convert Buffer -> Base64
-        const base64Image = enclosure.ImageData.toString('base64');
-        // Optional: store it in a separate field
-        enclosure.ImageData = base64Image;
-      }
-      return enclosure;
-    });
+      // Convert ImageData BLOB to Base64 string
+      const enclosures = rows.map(enclosure => {
+        if (enclosure.ImageData) {
+          // Convert Buffer -> Base64
+          const base64Image = enclosure.ImageData.toString('base64');
+          // Optional: store it in a separate field
+          enclosure.ImageData = base64Image;
+        }
+        return enclosure;
+      });
 
-    res.json(enclosures);
-  } catch (err) {
-    console.error('Error fetching enclosures:', err);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
+      res.json(enclosures);
+    } catch (err) {
+      console.error('Error fetching enclosures:', err);
+      res.status(500).json({ error: 'Server error' });
+    }
+  });
   
   // Get enclosure by ID
   router.get('/:id', async (req, res) => {
@@ -41,7 +41,8 @@ module.exports = (pool) => {
       // retreive enclosure details along animals
       const [rows] = await pool.query(
         `SELECT e.EnclosureID, e.Name AS EnclosureName, e.Type AS EnclosureType, 
-            e.Capacity AS AnimalCapacity, e.Location, e.StaffID, s.Name AS ZookeeperName, a.AnimalID, a.Name AS AnimalName,
+            e.Capacity AS AnimalCapacity, e.Location, e.StaffID, e.ImageURL, e.Description, 
+            s.Name AS ZookeeperName, a.AnimalID, a.Name AS AnimalName,
             a.Species, a.Gender, a.DateOfBirth, a.HealthStatus, a.DangerLevel, a.Image
         FROM enclosures AS e
         LEFT JOIN staff s ON e.StaffID = s.Staff  
@@ -64,6 +65,8 @@ module.exports = (pool) => {
         Capacity: rows[0].AnimalCapacity,
         Location: rows[0].Location,
         StaffID: rows[0].StaffID,
+        ImageURL: rows[0].ImageURL,
+        Description: rows[0].Description,
         ZookeeperName: rows[0].ZookeeperName,
         Animals: rows.map(row => ({
           AnimalID: row.AnimalID,
@@ -84,6 +87,28 @@ module.exports = (pool) => {
       console.error(err);
       res.status(500).json({ error: 'Failed to fetch enclosure' });
     }
+  });
+
+  // get all staff assigned to an enclosure in alphabetical order (first name since 1st and last name are in same attribute)
+  router.get('/:id/assigned-staff', authenticateToken, async (req, res) => {
+    try {
+      const enclosureID = req.params.id;
+
+      const [staff] = await pool.query(`
+        SELECT s.Staff as StaffID, s.Name as NAME, s.StaffType, s.Role, sea.AssignedDate
+        FROM staff_enclosure_assignments sea
+        JOIN staff s ON sea.StaffID = s.Staff
+        WHERE sea.EnclosureID = ?
+        ORDER BY s.Name ASC
+        `, [enclosureID]);
+      
+      res.json(staff);
+
+    } catch (err) {
+      console.error('Error fetching assigned staff:', err);
+      res.status(500).json({ error: 'Failed to fetch assigned staff for enclosure' });
+    }
+
   });
 
   // Get enclosures for a specific staff member (considering both direct management and assignments)
@@ -144,18 +169,18 @@ module.exports = (pool) => {
       }
       
       // retreive data from user in request body
-      const {StaffID, Name, Type, Capacity, Location} = req.body;
+      const {StaffID, Name, Type, Capacity, Location, ImageURL, Description} = req.body;
 
       // Ensure required feilds are entered
-      if(!StaffID || !Name || !Type || !Capacity || !Location){
-        return res.status(400).json({error: `StaffID, Name, Type, Capacity, and Location are required`});
+      if(!StaffID || !Name || !Type || !Capacity || !Location || !ImageURL || !Description){
+        return res.status(400).json({error: `StaffID, Name, Type, Capacity, and Location, ImageURL, Description are required`});
       }
 
       // Insert data into database
       const [result] = await pool.query(
-        `INSERT INTO enclosures (StaffID, Name, Type, Capacity, Location)
-        VALUES (?, ?, ?, ?, ?)`,
-        [StaffID, Name, Type, Capacity, Location]
+        `INSERT INTO enclosures (StaffID, Name, Type, Capacity, Location, ImageURL, Description)
+        VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [StaffID, Name, Type, Capacity, Location, ImageURL, Description]
       );
 
       // successful creation 
@@ -186,10 +211,10 @@ module.exports = (pool) => {
         return res.status(403).json({error: 'Denied. staff only'})
       }
 
-      const {StaffID, Name, Type, Capacity, Location} = req.body; // receive entries
+      const {StaffID, Name, Type, Capacity, Location, ImageURL, Description} = req.body; // receive entries
 
       // Ensure at least one entry was sent by user
-      if (!StaffID && !Name && !Type && !Capacity && !Location) {
+      if (!StaffID && !Name && !Type && !Capacity && !Location && !ImageURL && !Description) {
         return res.status(400).json({ error: 'At least one field (Name, Type, Capacity, Location) must be provided for update' });
       }
 
@@ -201,7 +226,6 @@ module.exports = (pool) => {
         entryField.push('StaffID = ?');
         values.push(StaffID);
       }
-
       if(Name){
         entryField.push('Name = ?');
         values.push(Name);
@@ -217,6 +241,14 @@ module.exports = (pool) => {
       if (Location) {
         entryField.push('Location = ?');
         values.push(Location);
+      }
+      if (ImageURL) {
+        entryField.push('ImageURL = ?');
+        values.push(ImageURL);
+      }
+      if (Description) {
+        entryField.push('Description = ?');
+        values.push(Description);
       }
       values.push(enclosureId); // for WHERE clause for which enclosure to update
       
