@@ -877,7 +877,7 @@ const EnclosureDetails = () => {
 
             
             
-            {/* Animal cards section 
+            {/* Animal cards section. come back later if abive code doesnt work. 
             <h3 className="text-xl font-semibold mb-4 font-['Roboto_Flex']">
               Animals in this Enclosure
             </h3>
