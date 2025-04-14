@@ -25,10 +25,12 @@ module.exports = (pool) => {
                 return res.status(400).json({ error: 'Invalid Attraction ID. ID must be a number' });
             }
             
-            // fetch attractions
+            // fetch attractions with name of staff assignes to the attraction
             const [rows] = await pool.query(`
-                SELECT Title, AttractionID, StaffID, Location, StartTimeStamp, EndTimeStamp, Description, Picture
-                FROM attraction
+                SELECT a.Title, a.AttractionID, a.StaffID, a.Location, a.StartTimeStamp, a.EndTimeStamp, a.Description, a.Picture,
+                    s.Name AS StaffName
+                FROM attraction a
+                LEFT JOIN staff s ON a.StaffID = s.Staff
                 WHERE AttractionId = ?`,
                 [attractionId]
             );
@@ -136,10 +138,10 @@ module.exports = (pool) => {
                 return res.status(404).json({ error: 'Attraction not found' });
             }
 
-            const {Location, StartTimeStamp, EndTimeStamp, Title, Description, Picture} = req.body;
+            const {StaffID, Location, StartTimeStamp, EndTimeStamp, Title, Description, Picture} = req.body;
 
             // check at least 1 feild is getting updated
-            if (!Location && !StartTimeStamp && !EndTimeStamp && !Title && !Description && !Picture) {
+            if (!StaffID && !Location && !StartTimeStamp && !EndTimeStamp && !Title && !Description && !Picture) {
                 return res.status(400).json({ error: 'At least one field (location, startTimeStamp, endTimeStamp, title, description, picture) must be provided for update' });
             }
 
@@ -147,6 +149,10 @@ module.exports = (pool) => {
             const entryField = [];
             const values = [];
 
+            if (StaffID) {
+                entryField.push('StaffID = ?');
+                values.push(StaffID);
+            }
             if(Location){
                 entryField.push('location = ?');
                 values.push(Location);
@@ -188,7 +194,7 @@ module.exports = (pool) => {
             res.json({ message: `Attraction ${attractionId} updated` });
         } catch(err) {
             console.error(err);
-            res.status(500).json({ error: 'Failed to update attraction' });
+            res.status(500).json({ error: 'Failed to update attraction. Enter at least one feild' });
         }
     });
 
@@ -226,3 +232,127 @@ module.exports = (pool) => {
 
     return router;
 };
+
+// Assign staff to attraction
+router.post('/:id/assign-staff', authenticateToken, async (req, res) => {
+    try {
+        const attractionId = req.params.id;
+        const { Staff } = req.body;
+        
+        // Verify attraction ID is number
+        if(isNaN(attractionId)){
+            return res.status(400).json({ error: 'Invalid Attraction ID. ID must be a number' });
+        }
+        
+        // Check that the user is staff with appropriate permissions
+        if(req.user.staffRole !== 'Manager'){
+            return res.status(403).json({ error: 'Denied. Manager access only.' });
+        }
+        
+        // Check if staff exists
+        const [staffCheck] = await pool.query(
+            'SELECT Staff FROM staff WHERE Staff = ?',
+            [Staff]
+        );
+        
+        if (staffCheck.length === 0) {
+            return res.status(404).json({ error: 'Staff member not found' });
+        }
+        
+        // Check if attraction exists
+        const [attractionCheck] = await pool.query(
+            'SELECT AttractionID FROM attraction WHERE AttractionID = ?',
+            [attractionId]
+        );
+        
+        if (attractionCheck.length === 0) {
+            return res.status(404).json({ error: 'Attraction not found' });
+        }
+        
+        // Check if assignment already exists
+        const [assignmentCheck] = await pool.query(
+            'SELECT * FROM staff_attraction_assignments WHERE AttractionID = ? AND StaffID = ?',
+            [attractionId, Staff]
+        );
+        
+        if (assignmentCheck.length > 0) {
+            return res.status(400).json({ error: 'Staff is already assigned to this attraction' });
+        }
+        
+        // Create assignment
+        await pool.query(
+            'INSERT INTO staff_attraction_assignments (AttractionID, StaffID, AssignedDate) VALUES (?, ?, NOW())',
+            [attractionId, Staff]
+        );
+        
+        res.status(201).json({ message: 'Staff assigned to attraction successfully' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to assign staff to attraction: ' + err.message });
+    }
+});
+
+// Remove staff from attraction
+router.delete('/:id/staff/:staffId', authenticateToken, async (req, res) => {
+    try {
+        const attractionId = req.params.id;
+        const staffId = req.params.staffId;
+        
+        // Verify IDs are numbers
+        if(isNaN(attractionId) || isNaN(staffId)){
+            return res.status(400).json({ error: 'Invalid ID format. IDs must be numbers' });
+        }
+        
+        // Check that the user is staff with appropriate permissions
+        if(req.user.staffRole !== 'Manager'){
+            return res.status(403).json({ error: 'Denied. Manager access only.' });
+        }
+        
+        // Check if assignment exists
+        const [assignmentCheck] = await pool.query(
+            'SELECT * FROM staff_attraction_assignments WHERE AttractionID = ? AND StaffID = ?',
+            [attractionId, staffId]
+        );
+        
+        if (assignmentCheck.length === 0) {
+            return res.status(404).json({ error: 'Assignment not found' });
+        }
+        
+        // Remove assignment
+        await pool.query(
+            'DELETE FROM staff_attraction_assignments WHERE AttractionID = ? AND StaffID = ?',
+            [attractionId, staffId]
+        );
+        
+        res.json({ message: 'Staff removed from attraction successfully' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to remove staff from attraction: ' + err.message });
+    }
+});
+
+// Get staff assigned to attractions (for a specific staff member)
+router.get('/:staffId/staff-assignments', authenticateToken, async (req, res) => {
+    try {
+        const staffId = req.params.staffId;
+        
+        // Verify staff ID is a number
+        if(isNaN(staffId)){
+            return res.status(400).json({ error: 'Invalid Staff ID. ID must be a number' });
+        }
+        
+        // Get attractions this staff is assigned to
+        const [rows] = await pool.query(`
+            SELECT a.AttractionID, a.Title, a.Location, a.StartTimeStamp, a.EndTimeStamp, 
+                   a.Description, a.Picture, saa.AssignedDate
+            FROM attraction a
+            JOIN staff_attraction_assignments saa ON a.AttractionID = saa.AttractionID
+            WHERE saa.StaffID = ?
+        `, [staffId]);
+        
+        res.json(rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to fetch attractions assigned to staff: ' + err.message });
+    }
+});

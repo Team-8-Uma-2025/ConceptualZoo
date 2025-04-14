@@ -31,6 +31,7 @@ import AnimalDetails from "./pages/AnimalDetails";
 import GiftShop from "./pages/GiftShop";
 import AttractionDetails from './pages/AttractionDetails'
 import GiftShopManagement from "./pages/GiftShopManagement";
+import StaffManagement from "./pages/StaffManagement";
 
 // Components
 import Navbar from "./components/Navbar";
@@ -92,12 +93,19 @@ function AppContent() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/dashboard/messages" element={<Messages />} />
             <Route path="/animals" element={<Dashboard />} />
+
             <Route path="/dashboard/enclosures/:id" element={<EnclosureDetails />} /> 
             <Route path="/dashboard/enclosures" element={<EnclosureDetails />} /> 
+
             <Route path="/dashboard/test1" element={<AnimalDetails />} /> 
+
             <Route path="/dashboard/attractions" element={<AttractionDetails />} />
             <Route path="/dashboard/attractions/:id" element={<AttractionDetails />} />
             <Route path="/dashboard/gift-shop" element={<GiftShopManagement />} />
+
+            <Route path="/dashboard/staff" element={<StaffManagement />} />
+            <Route path="/dashboard/staff/:id" element={<StaffManagement />} />
+            <Route path="/dashboard/staff/:id/:action" element={<StaffManagement />} />
 
             {/* Additional staff routes will go here */}
           </Route>
