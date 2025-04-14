@@ -8,6 +8,9 @@ import {
   RefreshCw,
   BarChart2,
   ShoppingBag,
+  Download,
+  PieChart,
+  BarChart,
 } from "lucide-react";
 
 const GiftShopRevenueReport = () => {
@@ -24,6 +27,7 @@ const GiftShopRevenueReport = () => {
     totals: {
       revenue: 0,
       quantity: 0,
+      profit: 0,
     },
   });
   const [filteredData, setFilteredData] = useState({
@@ -48,6 +52,11 @@ const GiftShopRevenueReport = () => {
   });
   const [showReport, setShowReport] = useState(false);
   const [activeView, setActiveView] = useState("summary"); // "summary" or "details"
+  const [timeGrouping, setTimeGrouping] = useState("daily"); // "daily", "weekly", "monthly"
+  const [profitMargin, setProfitMargin] = useState(30); // Default profit margin percentage
+  const [showProfitColumn, setShowProfitColumn] = useState(false);
+  const [exportFormat, setExportFormat] = useState("csv");
+  const [showExportOptions, setShowExportOptions] = useState(false);
 
   useEffect(() => {
     if (showReport) {
@@ -66,6 +75,7 @@ const GiftShopRevenueReport = () => {
       if (categoryFilter !== "All") params.append("category", categoryFilter);
       if (productNameFilter) params.append("productName", productNameFilter);
       if (minimumRevenue) params.append("minRevenue", minimumRevenue);
+      params.append("timeGrouping", timeGrouping);
 
       // Add sorting parameters
       params.append("sortBy", sortConfig.key);
@@ -196,39 +206,240 @@ const GiftShopRevenueReport = () => {
     );
   };
 
+  const calculateEstimatedProfit = (revenue) => {
+    return ((Number(revenue) * profitMargin) / 100).toFixed(2);
+  };
+
+  const handleExport = () => {
+    if (filteredData.details.length === 0) {
+      alert("No data to export");
+      return;
+    }
+
+    let csvContent = "data:text/csv;charset=utf-8,";
+
+    // Headers
+    const headers = [
+      "Date",
+      "Gift Shop",
+      "Product",
+      "Category",
+      "Quantity",
+      "Unit Price",
+      "Revenue",
+    ];
+    if (showProfitColumn) headers.push("Est. Profit");
+
+    csvContent += headers.join(",") + "\n";
+
+    // Data rows
+    filteredData.details.forEach((item) => {
+      const unitPrice = (
+        Number(item.TotalRevenue) / Number(item.Quantity)
+      ).toFixed(2);
+      const row = [
+        new Date(item.Date).toLocaleDateString(),
+        item.GiftShopName,
+        `"${item.ProductName.replace(/"/g, '""')}"`, // Escape quotes in CSV
+        item.Category || "Uncategorized",
+        item.Quantity,
+        unitPrice,
+        Number(item.TotalRevenue).toFixed(2),
+      ];
+
+      if (showProfitColumn) {
+        row.push(calculateEstimatedProfit(item.TotalRevenue));
+      }
+
+      csvContent += row.join(",") + "\n";
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute(
+      "download",
+      `gift_shop_revenue_${new Date().toISOString().slice(0, 10)}.csv`
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const groupDataByTime = (data) => {
+    if (!data || data.length === 0) return [];
+
+    const grouped = {};
+
+    data.forEach((item) => {
+      let key;
+      const date = new Date(item.Date);
+
+      if (timeGrouping === "weekly") {
+        // Get the week start date (Sunday)
+        const weekStart = new Date(date);
+        weekStart.setDate(date.getDate() - date.getDay());
+        key = weekStart.toISOString().slice(0, 10);
+      } else if (timeGrouping === "monthly") {
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+          2,
+          "0"
+        )}`;
+      } else {
+        // Daily
+        key = item.Date;
+      }
+
+      if (!grouped[key]) {
+        grouped[key] = {
+          date: key,
+          quantity: 0,
+          revenue: 0,
+          items: [],
+        };
+      }
+
+      grouped[key].quantity += Number(item.Quantity);
+      grouped[key].revenue += Number(item.TotalRevenue);
+      grouped[key].items.push(item);
+    });
+
+    return Object.values(grouped).sort(
+      (a, b) => new Date(b.date) - new Date(a.date)
+    );
+  };
+
   return (
     <div>
-      {/* Filter Controls */}
+      {/* Filter Controls with improved UI */}
       <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-        <h3 className="text-xl font-semibold mb-4 font-['Mukta_Mahee'] flex items-center">
-          <Filter size={20} className="mr-2 text-gray-500" />
-          Gift Shop Revenue Report Filters
-        </h3>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-xl font-semibold font-['Mukta_Mahee'] flex items-center">
+            <Filter size={20} className="mr-2 text-green-700" />
+            Gift Shop Revenue Report
+          </h3>
+          <div className="flex gap-2">
+            <button
+              onClick={resetFilters}
+              className="px-3 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 flex items-center text-sm"
+            >
+              <RefreshCw size={14} className="mr-1" />
+              Reset
+            </button>
+            <div className="relative">
+              <button
+                onClick={() => setShowExportOptions(!showExportOptions)}
+                className="px-3 py-2 bg-blue-50 text-blue-700 rounded hover:bg-blue-100 flex items-center text-sm"
+              >
+                <Download size={14} className="mr-1" />
+                Export
+              </button>
+              {showExportOptions && (
+                <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200">
+                  <div className="p-3">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Export Options
+                    </label>
+                    <div className="flex items-center mb-2">
+                      <input
+                        type="checkbox"
+                        id="profit-column"
+                        checked={showProfitColumn}
+                        onChange={() => setShowProfitColumn(!showProfitColumn)}
+                        className="mr-2"
+                      />
+                      <label htmlFor="profit-column" className="text-sm">
+                        Include profit estimate
+                      </label>
+                    </div>
+                    {showProfitColumn && (
+                      <div className="mb-2">
+                        <label className="block text-xs text-gray-500 mb-1">
+                          Profit Margin %
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={profitMargin}
+                          onChange={(e) =>
+                            setProfitMargin(Number(e.target.value))
+                          }
+                          className="w-full p-1 text-sm border rounded"
+                        />
+                      </div>
+                    )}
+                    <button
+                      onClick={handleExport}
+                      className="w-full mt-2 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                    >
+                      Download CSV
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-          {/* Date Range */}
-          <div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          {/* Date Range with improved calendar icons */}
+          <div className="col-span-full md:col-span-1">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Date Range
             </label>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <input
-                type="date"
-                name="startDate"
-                value={dateRange.startDate}
-                onChange={handleDateChange}
-                className="border border-gray-300 rounded px-3 py-2 flex-1"
-                placeholder="Start Date"
-              />
-              <span className="self-center">to</span>
-              <input
-                type="date"
-                name="endDate"
-                value={dateRange.endDate}
-                onChange={handleDateChange}
-                className="border border-gray-300 rounded px-3 py-2 flex-1"
-                placeholder="End Date"
-              />
+            <div className="flex flex-row gap-2">
+              <div className="relative flex-1">
+                <Calendar
+                  size={16}
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  type="date"
+                  name="startDate"
+                  value={dateRange.startDate}
+                  onChange={handleDateChange}
+                  className="pl-10 border border-gray-300 rounded px-3 py-2 w-full"
+                  placeholder="Start Date"
+                />
+              </div>
+              <span className="self-center text-gray-500">to</span>
+              <div className="relative flex-1">
+                <Calendar
+                  size={16}
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  type="date"
+                  name="endDate"
+                  value={dateRange.endDate}
+                  onChange={handleDateChange}
+                  className="pl-10 border border-gray-300 rounded px-3 py-2 w-full"
+                  placeholder="End Date"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Time Grouping selector */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Time Grouping
+            </label>
+            <div className="flex gap-1 p-1 bg-gray-100 rounded-md">
+              {["daily", "weekly", "monthly"].map((option) => (
+                <button
+                  key={option}
+                  onClick={() => setTimeGrouping(option)}
+                  className={`flex-1 px-2 py-1 text-sm rounded ${
+                    timeGrouping === option
+                      ? "bg-white shadow-sm font-medium"
+                      : "text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  {option.charAt(0).toUpperCase() + option.slice(1)}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -251,7 +462,7 @@ const GiftShopRevenueReport = () => {
             </select>
           </div>
 
-          {/* Category Filter */}
+          {/* Rest of the filters with consistent styling */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Product Category
@@ -270,7 +481,6 @@ const GiftShopRevenueReport = () => {
             </select>
           </div>
 
-          {/* Product Name Filter */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Product Name
@@ -290,7 +500,6 @@ const GiftShopRevenueReport = () => {
             </datalist>
           </div>
 
-          {/* Minimum Revenue Filter */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Minimum Revenue ($)
@@ -305,88 +514,41 @@ const GiftShopRevenueReport = () => {
               step="0.01"
             />
           </div>
-
-          {/* Sort By */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Sort By
-            </label>
-            <div className="flex">
-              <select
-                value={sortConfig.key}
-                onChange={(e) => handleSort(e.target.value)}
-                className="border border-gray-300 rounded-l px-3 py-2 flex-1"
-              >
-                <option value="Date">Date</option>
-                <option value="GiftShopName">Gift Shop</option>
-                <option value="ProductName">Product Name</option>
-                <option value="Category">Category</option>
-                <option value="Quantity">Quantity</option>
-                <option value="TotalRevenue">Revenue</option>
-              </select>
-              <button
-                onClick={() => handleSort(sortConfig.key)}
-                className="bg-gray-100 border border-l-0 border-gray-300 rounded-r px-3 flex items-center"
-                title={
-                  sortConfig.direction === "asc"
-                    ? "Sort Descending"
-                    : "Sort Ascending"
-                }
-              >
-                <ArrowUpDown
-                  size={16}
-                  className={
-                    sortConfig.direction === "asc" ? "transform rotate-180" : ""
-                  }
-                />
-              </button>
-            </div>
-          </div>
         </div>
 
-        <div className="flex flex-wrap gap-3 justify-end">
-          <button
-            onClick={resetFilters}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 flex items-center"
-          >
-            <RefreshCw size={16} className="mr-2" />
-            Reset Filters
-          </button>
-
-          <button
-            onClick={generateReport}
-            className="px-4 py-2 bg-green-700 text-white rounded hover:bg-green-600 flex items-center"
-          >
-            <Filter size={16} className="mr-2" />
-            Generate Report
-          </button>
-        </div>
+        <button
+          onClick={generateReport}
+          className="w-full px-4 py-2 bg-green-700 text-white rounded-md hover:bg-green-600 flex items-center justify-center"
+        >
+          <Filter size={16} className="mr-2" />
+          Generate Report
+        </button>
       </div>
 
       {showReport ? (
         <>
-          {/* Report View Toggle */}
-          <div className="flex mb-4 bg-white rounded-lg shadow overflow-hidden">
+          {/* Report View Toggle with improved UI */}
+          <div className="flex mb-4 bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
             <button
-              className={`flex-1 py-3 flex items-center justify-center ${
+              className={`flex-1 py-3 flex items-center justify-center transition-colors ${
                 activeView === "summary"
-                  ? "bg-green-50 text-green-700 font-semibold"
+                  ? "bg-green-50 text-green-700 font-semibold border-b-2 border-green-700"
                   : "hover:bg-gray-50"
               }`}
               onClick={() => setActiveView("summary")}
             >
-              <BarChart2 size={18} className="mr-2" />
+              <PieChart size={18} className="mr-2" />
               Summary View
             </button>
             <button
-              className={`flex-1 py-3 flex items-center justify-center ${
+              className={`flex-1 py-3 flex items-center justify-center transition-colors ${
                 activeView === "details"
-                  ? "bg-green-50 text-green-700 font-semibold"
+                  ? "bg-green-50 text-green-700 font-semibold border-b-2 border-green-700"
                   : "hover:bg-gray-50"
               }`}
               onClick={() => setActiveView("details")}
             >
-              <ShoppingBag size={18} className="mr-2" />
+              <BarChart size={18} className="mr-2" />
               Detailed View
             </button>
           </div>
@@ -402,36 +564,36 @@ const GiftShopRevenueReport = () => {
             </div>
           ) : activeView === "summary" ? (
             <>
-              {/* Revenue Summary Section */}
+              {/* Revenue Summary Section with enhanced visuals */}
               <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-semibold text-gray-700 font-['Mukta_Mahee']">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+                  <h3 className="text-xl font-semibold text-gray-700 font-['Mukta_Mahee'] mb-2 md:mb-0">
                     Revenue Summary
                   </h3>
 
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl font-bold text-green-700 font-['Roboto_Flex']">
-                      <DollarSign size={24} className="inline" />
+                  <div className="flex flex-col items-end">
+                    <span className="text-3xl font-bold text-green-700 font-['Roboto_Flex']">
+                      <DollarSign size={28} className="inline mb-1" />
                       {calculateTotalRevenue()}
                     </span>
                     <span className="text-sm text-gray-500">
-                      ({revenueData.totals?.quantity || 0} items sold)
+                      {revenueData.totals?.quantity || 0} items sold
                     </span>
                   </div>
                 </div>
 
-                {/* Category Summary Cards */}
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Enhanced Category Summary Cards */}
+                <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
                   {filteredData.summary?.length > 0 ? (
                     filteredData.summary.map((item) => (
                       <div
                         key={item.Category}
-                        className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-green-500"
+                        className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
                       >
-                        <h4 className="text-lg font-medium text-gray-800 font-['Mukta_Mahee']">
+                        <h4 className="text-lg font-medium text-gray-800 font-['Mukta_Mahee'] mb-3">
                           {item.Category || "Uncategorized"}
                         </h4>
-                        <div className="flex justify-between mt-2">
+                        <div className="flex justify-between mt-2 text-sm">
                           <span className="text-gray-600 font-['Lora']">
                             Quantity:
                           </span>
@@ -439,13 +601,34 @@ const GiftShopRevenueReport = () => {
                             {item.TotalQuantity}
                           </span>
                         </div>
-                        <div className="flex justify-between mt-1">
+                        <div className="flex justify-between mt-1 text-sm">
                           <span className="text-gray-600 font-['Lora']">
                             Revenue:
                           </span>
                           <span className="font-semibold">
                             ${Number(item.TotalRevenue).toFixed(2)}
                           </span>
+                        </div>
+                        <div className="mt-3 pt-3 border-t border-gray-100">
+                          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div
+                              className="bg-green-500 h-full"
+                              style={{
+                                width: `${
+                                  (item.TotalRevenue /
+                                    calculateTotalRevenue()) *
+                                  100
+                                }%`,
+                              }}
+                            ></div>
+                          </div>
+                          <div className="text-xs text-right mt-1 text-gray-500">
+                            {(
+                              (item.TotalRevenue / calculateTotalRevenue()) *
+                              100
+                            ).toFixed(1)}
+                            % of total
+                          </div>
                         </div>
                       </div>
                     ))
@@ -456,9 +639,9 @@ const GiftShopRevenueReport = () => {
                   )}
                 </div>
 
-                {/* Top Selling Products Section */}
+                {/* Top Selling Products Section - keep existing code with minor styling updates */}
                 <div className="mt-8">
-                  <h3 className="text-lg font-semibold text-gray-700 font-['Mukta_Mahee'] mb-4">
+                  <h3 className="text-lg font-semibold text-gray-700 font-['Mukta_Mahee'] mb-4 border-b pb-2">
                     Top Selling Products
                   </h3>
 
@@ -510,13 +693,15 @@ const GiftShopRevenueReport = () => {
               </div>
             </>
           ) : (
-            /* Detailed Report Section */
+            /* Detailed Report Section with Unit Price Column */
             <div className="bg-white p-6 rounded-lg shadow-md">
               <>
-                <h3 className="text-xl font-semibold mb-4 font-['Mukta_Mahee']">
-                  Detailed Revenue Report
-                  <span className="ml-2 text-sm font-normal text-gray-500">
-                    ({filteredData.details?.length || 0} records)
+                <h3 className="text-xl font-semibold mb-4 font-['Mukta_Mahee'] flex justify-between">
+                  <span>
+                    Detailed Revenue Report
+                    <span className="ml-2 text-sm font-normal text-gray-500">
+                      ({filteredData.details?.length || 0} records)
+                    </span>
                   </span>
                 </h3>
 
@@ -569,6 +754,9 @@ const GiftShopRevenueReport = () => {
                             {sortConfig.key === "Quantity" &&
                               (sortConfig.direction === "asc" ? "↑" : "↓")}
                           </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Unit Price
+                          </th>
                           <th
                             className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                             onClick={() => handleSort("TotalRevenue")}
@@ -577,31 +765,49 @@ const GiftShopRevenueReport = () => {
                             {sortConfig.key === "TotalRevenue" &&
                               (sortConfig.direction === "asc" ? "↑" : "↓")}
                           </th>
+                          {showProfitColumn && (
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Est. Profit ({profitMargin}%)
+                            </th>
+                          )}
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
-                        {filteredData.details.map((item, index) => (
-                          <tr key={index}>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                              {new Date(item.Date).toLocaleDateString()}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {item.GiftShopName}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {item.ProductName}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {item.Category || "Uncategorized"}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {item.Quantity}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              ${Number(item.TotalRevenue).toFixed(2)}
-                            </td>
-                          </tr>
-                        ))}
+                        {filteredData.details.map((item, index) => {
+                          const unitPrice = (
+                            Number(item.TotalRevenue) / Number(item.Quantity)
+                          ).toFixed(2);
+                          return (
+                            <tr key={index} className="hover:bg-gray-50">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                {new Date(item.Date).toLocaleDateString()}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {item.GiftShopName}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {item.ProductName}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {item.Category || "Uncategorized"}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {item.Quantity}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                ${unitPrice}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                                ${Number(item.TotalRevenue).toFixed(2)}
+                              </td>
+                              {showProfitColumn && (
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-medium">
+                                  ${calculateEstimatedProfit(item.TotalRevenue)}
+                                </td>
+                              )}
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -613,13 +819,14 @@ const GiftShopRevenueReport = () => {
       ) : (
         <div className="bg-gray-50 p-12 rounded-lg border-2 border-dashed border-gray-300 text-center">
           <p className="text-gray-600 mb-4">
-            Click the button below to generate your revenue report
+            Set your filters above and click the button to generate your revenue
+            report
           </p>
           <button
             onClick={generateReport}
-            className="px-4 py-2 bg-green-700 text-white rounded hover:bg-green-600 flex items-center mx-auto"
+            className="px-6 py-3 bg-green-700 text-white rounded-lg hover:bg-green-600 flex items-center mx-auto transition-colors"
           >
-            <Filter size={16} className="mr-2" />
+            <Filter size={18} className="mr-2" />
             Generate Report
           </button>
         </div>
