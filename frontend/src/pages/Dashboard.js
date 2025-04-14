@@ -7,7 +7,7 @@ import {
   Activity, Briefcase, Clipboard,
   AlertTriangle, Heart, Home, Package,
   Users, Bell, ChevronDown, ChevronUp,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Calendar
 } from 'lucide-react';
 import RevenueReport from "../components/RevenueReport";
 
@@ -110,6 +110,7 @@ const Dashboard = () => {
   const [sickAnimals, setSickAnimals] = useState([]);
   const [enclosures, setEnclosures] = useState([]);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [attractions, setAttractions] = useState([]);
   
   // Pagination states for staff directory
   const [currentPage, setCurrentPage] = useState(1);
@@ -125,12 +126,10 @@ const Dashboard = () => {
     const accessRules = {
       notifications: true, // All staff have access
       staffManagement: staffRole === 'Manager',
-      sickAnimals: staffType === 'Vet' || staffRole === 'Manager',
-      enclosures: staffType === 'Zookeeper' || staffRole === 'Manager',
+      sickAnimals: staffType === 'Vet' || (staffType === 'Zookeeper' && staffRole === 'Manager'), // zookeeper manager possibly
+      enclosures: staffType === 'Zookeeper' || staffType === 'Vet',
       attractions: staffType === 'Zookeeper',
-      inventory: staffType === 'Gift Shop Clerk',
-      sales: staffType === 'Gift Shop Clerk',
-      giftShop: staffType === 'Gift Shop Clerk',
+      giftShop: staffType === 'Gift Shop Clerk' || staffType === 'Admin',
       revenue: staffRole === 'Manager' && staffType === 'Admin'
     };
     
@@ -179,6 +178,68 @@ const Dashboard = () => {
           });
           setEnclosures(enclosureResponse.data || []);
         }
+        
+        // Fetch attractions data (for Zookeepers and Managers)
+        if (hasModuleAccess('attractions')) {
+          try {
+            // For zookeepers, fetch only their assigned attractions
+            if (currentUser.staffType === "Zookeeper" && currentUser.staffRole !== "Manager") {
+              // First get all attractions to check assignments
+              const allAttractionsResponse = await axios.get("/api/attractions", {
+                headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+              });
+              
+              if (allAttractionsResponse.data) {
+                // Create an array to store assigned attractions
+                const assignedAttractions = [];
+                
+                // Check each attraction to see if the current staff is assigned to it
+                for (const attraction of allAttractionsResponse.data) {
+                  try {
+                    // Get assigned staff for this attraction
+                    const staffResponse = await axios.get(`/api/attractions/${attraction.AttractionID}/assigned-staff`, {
+                      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+                    });
+                    
+                    // Check if current user is in the assigned staff
+                    const isAssigned = staffResponse.data.some(staff => 
+                      staff.StaffID === currentUser.id
+                    );
+                    
+                    // If current staff is assigned, add to the assigned attractions list
+                    if (isAssigned) {
+                      assignedAttractions.push(attraction);
+                    }
+                    
+                    // Alternatively, if the attraction StaffID matches the current user's ID
+                    if (attraction.StaffID === currentUser.id) {
+                      // Make sure we don't add duplicates
+                      if (!assignedAttractions.some(a => a.AttractionID === attraction.AttractionID)) {
+                        assignedAttractions.push(attraction);
+                      }
+                    }
+                  } catch (err) {
+                    console.error(`Error checking assignments for attraction ${attraction.AttractionID}:`, err);
+                  }
+                }
+                
+                // Set the attractions state with only the assigned attractions
+                setAttractions(assignedAttractions);
+              }
+            } else {
+              // For managers, fetch all attractions
+              const attractionsResponse = await axios.get("/api/attractions", {
+                headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+              });
+              
+              setAttractions(attractionsResponse.data || []);
+            }
+          } catch (err) {
+            console.error("Failed to fetch attractions data:", err);
+            setAttractions([]);
+          }
+        }
+        
       } catch (err) {
         console.error("Failed to fetch dashboard data:", err);
         setError("Unable to load dashboard data. Please try again later.");
@@ -232,27 +293,11 @@ const Dashboard = () => {
       },
       {
         id: 'attractions',
-        title: 'Attraction Information',
-        icon: <Home size={20} className="mr-2" />,
-        description: 'View and edit attraction information',
+        title: currentUser?.staffType === "Zookeeper" ? "Assigned Attractions" : "Attraction Management",
+        icon: <Calendar size={20} className="mr-2" />,
+        description: 'View and manage zoo attractions',
         link: '/dashboard/attractions',
         color: 'bg-rose-600'
-      },
-      {
-        id: 'inventory',
-        title: "Inventory Management",
-        icon: <Package size={20} className="mr-2" />,
-        description: "Manage product inventory and stock levels",
-        link: "/dashboard/inventory",
-        color: "bg-cyan-600",
-      },
-      {
-        id: 'sales',
-        title: "Sales",
-        icon: <Briefcase size={20} className="mr-2" />,
-        description: "Track sales and transactions",
-        link: "/dashboard/sales",
-        color: "bg-slate-600",
       },
       {
         id: 'giftShop',
@@ -297,6 +342,12 @@ const Dashboard = () => {
     : availableModules.length === 2 
       ? "grid-cols-1 md:grid-cols-2" 
       : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3";
+
+  // Helper function to format date
+  const formatDateTime = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleString();
+  };
 
   return (
     <div className="bg-gray-100 min-h-screen pt-20">
@@ -405,6 +456,51 @@ const Dashboard = () => {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{enclosure.Capacity}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <Link to={`/dashboard/enclosures/${enclosure.EnclosureID}`} className="text-green-600 hover:text-green-900">
+                              View
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </ExpandableSection>
+            )}
+            
+            {/* Attractions Section (Zookeepers and Managers) */}
+            {hasModuleAccess('attractions') && attractions.length > 0 && (
+              <ExpandableSection
+                title={currentUser.staffType === "Zookeeper" ? "Your Assigned Attractions" : "Attractions Overview"}
+                icon={<Calendar size={24} className="mr-2 text-rose-600" />}
+                isExpanded={expandedSection === "attractions"}
+                toggleFn={() => toggleSection("attractions")}
+              >
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Time</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Time</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {attractions.map((attraction) => (
+                        <tr key={attraction.AttractionID}>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{attraction.AttractionID}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{attraction.Title}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{attraction.Location}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {attraction.StartTimeStamp ? formatDateTime(attraction.StartTimeStamp) : 'N/A'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {attraction.EndTimeStamp ? formatDateTime(attraction.EndTimeStamp) : 'N/A'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <Link to={`/dashboard/attractions/${attraction.AttractionID}`} className="text-green-600 hover:text-green-900">
                               View
                             </Link>
                           </td>

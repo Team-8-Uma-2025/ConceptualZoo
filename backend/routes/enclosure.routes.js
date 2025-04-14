@@ -32,9 +32,9 @@ module.exports = (pool) => {
     try {
       // TODO: Implement getting a single enclosure with its animals
       const enclosureId = req.params.id;
-      
+
       // Verify enclosureID is number
-      if(isNaN(enclosureId)){
+      if (isNaN(enclosureId)) {
         return res.status(400).json({ error: 'Invalid Enclosure ID. ID must be a number' });
       }
 
@@ -50,7 +50,7 @@ module.exports = (pool) => {
         WHERE e.EnclosureID = ?`,
 
         [enclosureId] // replaces placeholder
-      ); 
+      );
 
       // If enclosure does not exist
       if (rows.length === 0) {
@@ -158,16 +158,16 @@ module.exports = (pool) => {
       return res.status(500).json({ error: 'Server error' });
     }
   });
-  
+
   // Add new enclosure (staff only)
   router.post('/', authenticateToken, async (req, res) => {
     try {
 
       // Check that the user is staff with appropriate permissions
-      if(req.user.staffRole !== 'Manager'){
-        return res.status(403).json({error: 'Denied. Appropriate staff only'})
+      if (req.user.staffRole !== 'Manager') {
+        return res.status(403).json({ error: 'Denied. Appropriate staff only' })
       }
-      
+
       // retreive data from user in request body
       const {StaffID, Name, Type, Capacity, Location, ImageURL, Description} = req.body;
 
@@ -184,8 +184,8 @@ module.exports = (pool) => {
       );
 
       // successful creation 
-      res.status(201).json({ 
-        message: 'New enclosure created', 
+      res.status(201).json({
+        message: 'New enclosure created',
         EnclosureID: result.insertId // return enclosure created
       });
 
@@ -194,21 +194,21 @@ module.exports = (pool) => {
       res.status(500).json({ error: 'Failed to add enclosure' });
     }
   });
-  
+
   // Update enclosure (Manager only)
   router.put('/:id', authenticateToken, async (req, res) => {
     try {
       // TODO: Implement updating an enclosure
       const enclosureId = req.params.id;
-      
+
       // Verify enclosureID is number
-      if(isNaN(enclosureId)){
+      if (isNaN(enclosureId)) {
         return res.status(400).json({ error: 'Invalid Enclosure ID. ID must be a number' });
       }
 
       // Check that the user is staff with appropriate permissions
-      if(req.user.staffRole !== 'Manager'){
-        return res.status(403).json({error: 'Denied. staff only'})
+      if (req.user.staffRole !== 'Manager') {
+        return res.status(403).json({ error: 'Denied. staff only' })
       }
 
       const {StaffID, Name, Type, Capacity, Location, ImageURL, Description} = req.body; // receive entries
@@ -251,7 +251,7 @@ module.exports = (pool) => {
         values.push(Description);
       }
       values.push(enclosureId); // for WHERE clause for which enclosure to update
-      
+
       // update query
       const query = `
         UPDATE enclosures
@@ -270,26 +270,26 @@ module.exports = (pool) => {
       res.status(500).json({ error: 'Failed to update enclosure' });
     }
   });
-  
+
   // Delete enclosure (staff only)
   router.delete('/:id', authenticateToken, async (req, res) => {
     try {
       // TODO: Implement deleting an enclosure
       // NOTE: May need to handle moving animals first
       const enclosureId = req.params.id;
-      
+
       // Verify enclosureID is number
-      if(isNaN(enclosureId)){
+      if (isNaN(enclosureId)) {
         return res.status(400).json({ error: 'Invalid Enclosure ID. ID must be a number' });
       }
 
       // Check that the user is staff with appropriate permissions
-      if(req.user.staffRole !== 'Manager'){
-        return res.status(403).json({error: 'Denied. staff only'})
+      if (req.user.staffRole !== 'Manager') {
+        return res.status(403).json({ error: 'Denied. staff only' })
       }
 
       // check if enclosure to delete exists
-      const [enclosureCheck] = await pool.query( 'SELECT * FROM enclosures WHERE EnclosureID = ?',
+      const [enclosureCheck] = await pool.query('SELECT * FROM enclosures WHERE EnclosureID = ?',
         [enclosureId]
       );
 
@@ -306,21 +306,106 @@ module.exports = (pool) => {
       res.status(500).json({ error: 'Failed to delete enclosure' });
     }
   });
-  
-  // Assign staff to enclosure
+
+  // Add this to routes/enclosure.routes.js
+
+  // Complete the assignment functionality
   router.post('/:id/assign-staff', authenticateToken, async (req, res) => {
     try {
-      // TODO: Implement assigning staff to an enclosure
       const enclosureId = req.params.id;
       const { Staff } = req.body;
 
-      res.json({ message: `This endpoint will assign staff ${Staff} to enclosure ${enclosureId}` });
+      // Verify enclosure ID is a number
+      if (isNaN(enclosureId)) {
+        return res.status(400).json({ error: 'Invalid Enclosure ID. ID must be a number' });
+      }
+
+      // Check that user has manager permissions
+      if (req.user.staffRole !== 'Manager') {
+        return res.status(403).json({ error: 'Denied. Manager access only.' });
+      }
+
+      // Check if staff exists
+      const [staffCheck] = await pool.query(
+        'SELECT Staff FROM staff WHERE Staff = ?',
+        [Staff]
+      );
+
+      if (staffCheck.length === 0) {
+        return res.status(404).json({ error: 'Staff member not found' });
+      }
+
+      // Check if enclosure exists
+      const [enclosureCheck] = await pool.query(
+        'SELECT EnclosureID FROM enclosures WHERE EnclosureID = ?',
+        [enclosureId]
+      );
+
+      if (enclosureCheck.length === 0) {
+        return res.status(404).json({ error: 'Enclosure not found' });
+      }
+
+      // Check if assignment already exists
+      const [assignmentCheck] = await pool.query(
+        'SELECT * FROM staff_enclosure_assignments WHERE EnclosureID = ? AND StaffID = ?',
+        [enclosureId, Staff]
+      );
+
+      if (assignmentCheck.length > 0) {
+        return res.status(400).json({ error: 'Staff is already assigned to this enclosure' });
+      }
+
+      // Create assignment
+      await pool.query(
+        'INSERT INTO staff_enclosure_assignments (EnclosureID, StaffID, AssignedDate) VALUES (?, ?, NOW())',
+        [enclosureId, Staff]
+      );
+
+      res.status(201).json({ message: 'Staff assigned to enclosure successfully' });
     } catch (err) {
       console.error(err);
-      res.status(500).json({ error: 'Failed to fetch staff assigned to enclosure' });
+      res.status(500).json({ error: 'Failed to assign staff to enclosure: ' + err.message });
     }
-    
   });
-  
+
+  // Remove staff from enclosure
+  router.delete('/:id/staff/:staffId', authenticateToken, async (req, res) => {
+    try {
+      const enclosureId = req.params.id;
+      const staffId = req.params.staffId;
+
+      // Verify IDs are numbers
+      if (isNaN(enclosureId) || isNaN(staffId)) {
+        return res.status(400).json({ error: 'Invalid ID format. IDs must be numbers' });
+      }
+
+      // Check that user has manager permissions
+      if (req.user.staffRole !== 'Manager') {
+        return res.status(403).json({ error: 'Denied. Manager access only.' });
+      }
+
+      // Check if assignment exists
+      const [assignmentCheck] = await pool.query(
+        'SELECT * FROM staff_enclosure_assignments WHERE EnclosureID = ? AND StaffID = ?',
+        [enclosureId, staffId]
+      );
+
+      if (assignmentCheck.length === 0) {
+        return res.status(404).json({ error: 'Assignment not found' });
+      }
+
+      // Remove assignment
+      await pool.query(
+        'DELETE FROM staff_enclosure_assignments WHERE EnclosureID = ? AND StaffID = ?',
+        [enclosureId, staffId]
+      );
+
+      res.json({ message: 'Staff removed from enclosure successfully' });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to remove staff from enclosure: ' + err.message });
+    }
+  });
+
   return router;
 };
