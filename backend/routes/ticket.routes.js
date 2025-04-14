@@ -3,6 +3,76 @@ const router = express.Router();
 const { authenticateToken } = require("../middleware/auth.middleware");
 
 module.exports = (pool) => {
+
+  router.get("/use/:id", async (req, res) => {
+    const id = req.params.id;
+    
+    // Respond with a minimal HTML page that uses JavaScript (fetch) to call the POST endpoint.
+    res.send(`
+      <html>
+        <head>
+          <title>Activating Ticket</title>
+        </head>
+        <body>
+          <p id="message">Activating your ticket, please wait...</p>
+          <script>
+            // Use fetch to send a POST request to update the ticket status.
+            fetch("/api/tickets/use/${id}", { method: "POST" })
+              .then(response => response.json())
+              .then(data => {
+                // Display the success (or error) message on the page
+                document.getElementById("message").innerText = data.message || "Ticket marked as used.";
+              })
+              .catch(err => {
+                document.getElementById("message").innerText = "Error marking ticket as used.";
+              });
+          </script>
+        </body>
+      </html>
+    `);
+  });
+
+
+  // Mark a ticket (and its associated add-ons) as used
+router.post("/use/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // First update the ticket if it is still Valid.
+    const [ticketUpdateResult] = await pool.query(
+      "UPDATE tickets SET Used = ? WHERE TicketID = ? AND Used = ?",
+      ["Used", id, "Valid"]
+    );
+
+    if (ticketUpdateResult.affectedRows === 0) {
+      return res.status(400).json({ error: "Ticket not found or already used." });
+    }
+    
+    // Retrieve the PurchaseID for the ticket we just updated.
+    const [rows] = await pool.query(
+      "SELECT PurchaseID FROM tickets WHERE TicketID = ?",
+      [id]
+    );
+    if (!rows || rows.length === 0) {
+      return res.status(400).json({ error: "PurchaseID not found for ticket." });
+    }
+    
+    const purchaseID = rows[0].PurchaseID;
+    
+    // Update all addons associated with this PurchaseID that are still Valid.
+    const [addonUpdateResult] = await pool.query(
+      "UPDATE addons SET Used = ? WHERE PurchaseID = ? AND Used = ?",
+      ["Used", purchaseID, "Valid"]
+    );
+
+    res.json({ message: "Ticket and associated add-ons marked as used." });
+  } catch (err) {
+    console.error("Error marking ticket (and add-ons) as used:", err);
+    res.status(500).json({ error: "Failed to mark ticket as used." });
+  }
+});
+
+
   // Get all ticket types
   router.get("/types", async (req, res) => {
     try {
@@ -24,10 +94,27 @@ module.exports = (pool) => {
     try {
       const { tickets, addons, visitDate } = req.body;
       const visitorId = req.user.id;
+      const purchaseID = Date.now();
+  
+      // Parse the visitDate as a UTC date.
+      const selectedDate = new Date(visitDate + "T00:00:00Z");
+      const today = new Date();
+      // Convert today's date to a UTC date string for comparison
+      const todayString = today.toISOString().split("T")[0];
+      const todayDate = new Date(todayString + "T00:00:00Z");
+  
+      // Validate that the selected visit date is not in the past.
+      if (selectedDate < todayDate) {
+        return res.status(400).json({
+          error: "You cannot purchase tickets for a past date. Please select today's date or a future date."
+        });
+      }
+  
       const connection = await pool.getConnection();
       await connection.beginTransaction();
       try {
         const purchasedTickets = [];
+  
         // Process regular tickets
         for (const type in tickets) {
           if (tickets[type] > 0) {
@@ -47,12 +134,15 @@ module.exports = (pool) => {
             }
             const ticketType = type.charAt(0).toUpperCase() + type.slice(1);
             for (let i = 0; i < tickets[type]; i++) {
-              const startDate = new Date(visitDate);
-              const endDate = new Date(visitDate);
-              endDate.setDate(endDate.getDate() + 1);
+              const startDate = new Date(visitDate + "T00:00:00Z"); // this represents 2025-04-25 00:00:00 UTC
+              const startDateString = startDate.toISOString().split("T")[0];
+  
+              const endDate = new Date(startDate);
+              const endDateString = endDate.toISOString().split("T")[0];
+  
               const [result] = await connection.query(
-                "INSERT INTO tickets (VisitorID, TicketType, Price, EnclosureAccess, StartDate, EndDate, Used) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                [visitorId, ticketType, price, "None", startDate, endDate, 0]
+                "INSERT INTO tickets (PurchaseID, VisitorID, TicketType, Price, EnclosureAccess, StartDate, EndDate, Used) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                [purchaseID, visitorId, ticketType, price, "None", startDateString, endDateString, "Valid"]
               );
               purchasedTickets.push({
                 id: result.insertId,
@@ -63,8 +153,8 @@ module.exports = (pool) => {
             }
           }
         }
-
-        // Process addons (if any user explicitly selects them)
+  
+        // Process add-ons similarly by ensuring proper UTC parsing:
         for (const addon in addons) {
           if (addons[addon]) {
             let price, accessType;
@@ -88,16 +178,16 @@ module.exports = (pool) => {
               default:
                 continue;
             }
-            const startDate = new Date(visitDate);
-            const endDate = new Date(visitDate);
-            endDate.setDate(endDate.getDate() + 1);
-
-            // Insert into addons table instead of tickets table
+            const startDateAddon = new Date(visitDate + "T00:00:00Z");
+            const startDateAddonString = startDateAddon.toISOString().split("T")[0];
+            const endDateAddon = new Date(startDateAddon);
+            const endDateAddonString = endDateAddon.toISOString().split("T")[0];
+    
             const [result] = await connection.query(
-              "INSERT INTO addons (VisitorID, Type, Price, Description, StartDate, EndDate, Used) VALUES (?, ?, ?, ?, ?, ?, ?)",
-              [visitorId, addon, price, accessType, startDate, endDate, 0]
+              "INSERT INTO addons (PurchaseID, VisitorID, Type, Price, Description, StartDate, EndDate, Used) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+              [purchaseID, visitorId, addon, price, accessType, startDateAddonString, endDateAddonString, "Valid"]
             );
-
+    
             purchasedTickets.push({
               id: result.insertId,
               type: "Addon: " + accessType,
@@ -107,7 +197,7 @@ module.exports = (pool) => {
             });
           }
         }
-
+  
         await connection.commit();
         res.status(201).json({
           message: "Tickets purchased successfully",
@@ -168,30 +258,23 @@ module.exports = (pool) => {
       }
 
       // Group addons by date for easy lookup
-      const addonsByDate = {};
+      const addonsByPurchase = {};
       addonRecords.forEach((addon) => {
-        if (!addon.StartDate) return; // Skip entries with missing dates
-
-        const dateKey = new Date(addon.StartDate).toISOString().split("T")[0];
-        if (!addonsByDate[dateKey]) {
-          addonsByDate[dateKey] = [];
+        // Ensure the addon record has a PurchaseID property.
+        if (!addon.PurchaseID) return;
+        if (!addonsByPurchase[addon.PurchaseID]) {
+          addonsByPurchase[addon.PurchaseID] = [];
         }
-        addonsByDate[dateKey].push(addon.Description);
+        addonsByPurchase[addon.PurchaseID].push(addon.Description);
       });
-
-      // Add addon information to each ticket
+      
+      // Attach the correct addon information to each ticket based on PurchaseID.
       const ticketsWithAddons = regularTickets.map((ticket) => {
-        if (!ticket.StartDate) return ticket; // Handle tickets without dates
-
-        const ticketDate = new Date(ticket.StartDate)
-          .toISOString()
-          .split("T")[0];
-        const addonsForTicket = addonsByDate[ticketDate] || [];
-
+        const purchaseID = ticket.PurchaseID; // This should be available from your INSERT results.
+        const ticketAddons = addonsByPurchase[purchaseID] || [];
         return {
           ...ticket,
-          addons:
-            addonsForTicket.length > 0 ? addonsForTicket.join(", ") : "None",
+          addons: ticketAddons.length > 0 ? ticketAddons.join(", ") : "None",
         };
       });
 
