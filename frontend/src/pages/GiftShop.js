@@ -225,11 +225,11 @@ const GiftShop = () => {
   }
 
   return (
-    <div className="bg-gray-100 min-h-screen pt-20">
+    <div className="bg-gray-100 min-h-screen">
       {/* Page Header */}
-      <div className="relative h-80 overflow-hidden">
+      <div className="relative h-96 overflow-hidden">
         <img
-          src="/background/tree_bg.png"
+          src="/background/tree_bg.webp"
           alt="Gift Shop Banner"
           className="w-full h-full object-cover"
         />
