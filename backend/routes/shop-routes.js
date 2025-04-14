@@ -299,37 +299,37 @@ module.exports = (pool) => {
       const params = [];
 
       if (startDate) {
-        whereConditions.push("DATE(t.Datetime) >= ?");
+        whereConditions.push("Date >= ?");
         params.push(startDate);
       }
 
       if (endDate) {
-        whereConditions.push("DATE(t.Datetime) <= ?");
+        whereConditions.push("Date <= ?");
         params.push(endDate);
       }
 
       if (giftShopId) {
-        whereConditions.push("g.GiftShopID = ?");
+        whereConditions.push("GiftShopID = ?");
         params.push(giftShopId);
       }
 
       if (category) {
-        whereConditions.push("p.Category = ?");
+        whereConditions.push("Category = ?");
         params.push(category);
       }
 
       if (productName) {
-        whereConditions.push("p.Name LIKE ?");
+        whereConditions.push("ProductName LIKE ?");
         params.push(`%${productName}%`);
       }
 
       if (minRevenue) {
-        whereConditions.push("(o.AmountBought * p.Price) >= ?");
+        whereConditions.push("TotalRevenue >= ?");
         params.push(minRevenue);
       }
 
       if (maxRevenue) {
-        whereConditions.push("(o.AmountBought * p.Price) <= ?");
+        whereConditions.push("TotalRevenue <= ?");
         params.push(maxRevenue);
       }
 
@@ -339,22 +339,20 @@ module.exports = (pool) => {
           ? "WHERE " + whereConditions.join(" AND ")
           : "";
 
-      // Get detailed transaction data
+      // Get detailed revenue data
       const detailsQuery = `
         SELECT 
-          DATE(t.Datetime) AS Date,
-          p.Name AS ProductName,
-          p.Category,
-          g.GiftShopName,
-          SUM(o.AmountBought) AS Quantity,
-          p.Price,
-          SUM(o.AmountBought * p.Price) AS TotalRevenue
-        FROM transactions t
-        JOIN orders o ON t.TransactionID = o.TransactionID
-        JOIN products p ON o.ProductID = p.ProductID
-        JOIN giftshops g ON t.GiftShopID = g.GiftShopID
+          Date,
+          GiftShopID,
+          GiftShopName,
+          ProductName,
+          Category,
+          SUM(Quantity) AS Quantity,
+          UnitPrice,
+          SUM(TotalRevenue) AS TotalRevenue
+        FROM GiftShopRevenueSummary
         ${whereClause}
-        GROUP BY DATE(t.Datetime), p.Name, g.GiftShopName
+        GROUP BY Date, GiftShopID, ProductName
       `;
 
       // Apply sorting
@@ -363,7 +361,7 @@ module.exports = (pool) => {
         "GiftShopName",
         "ProductName",
         "Quantity",
-        "Price",
+        "UnitPrice",
         "TotalRevenue",
         "Category",
       ];
@@ -378,15 +376,12 @@ module.exports = (pool) => {
       // Get summary by category
       const summaryQuery = `
         SELECT 
-          p.Category,
-          SUM(o.AmountBought) AS TotalQuantity,
-          SUM(o.AmountBought * p.Price) AS TotalRevenue
-        FROM transactions t
-        JOIN orders o ON t.TransactionID = o.TransactionID
-        JOIN products p ON o.ProductID = p.ProductID
-        JOIN giftshops g ON t.GiftShopID = g.GiftShopID
+          Category,
+          SUM(Quantity) AS TotalQuantity,
+          SUM(TotalRevenue) AS TotalRevenue
+        FROM GiftShopRevenueSummary
         ${whereClause}
-        GROUP BY p.Category
+        GROUP BY Category
       `;
 
       const [summary] = await pool.query(summaryQuery, params);
@@ -394,16 +389,13 @@ module.exports = (pool) => {
       // Get top selling products
       const topProductsQuery = `
         SELECT 
-          p.Name AS ProductName,
-          p.Category,
-          SUM(o.AmountBought) AS TotalSold,
-          SUM(o.AmountBought * p.Price) AS TotalRevenue
-        FROM orders o
-        JOIN products p ON o.ProductID = p.ProductID
-        JOIN transactions t ON o.TransactionID = t.TransactionID
-        JOIN giftshops g ON t.GiftShopID = g.GiftShopID
+          ProductName,
+          Category,
+          SUM(Quantity) AS TotalSold,
+          SUM(TotalRevenue) AS TotalRevenue
+        FROM GiftShopRevenueSummary
         ${whereClause}
-        GROUP BY p.Name
+        GROUP BY ProductName, Category
         ORDER BY TotalSold DESC
         LIMIT 10
       `;
@@ -447,8 +439,10 @@ module.exports = (pool) => {
         },
       });
     } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: "Failed to generate revenue report" });
+      console.error("Error in revenue reporting:", err);
+      res
+        .status(500)
+        .json({ error: "Failed to generate revenue report: " + err.message });
     }
   });
 

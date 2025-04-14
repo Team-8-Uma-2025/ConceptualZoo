@@ -78,12 +78,17 @@ const GiftShopRevenueReport = () => {
         }
       );
 
+      console.log("Revenue data received:", response.data);
       setRevenueData(response.data);
       applyFilters(response.data);
       setError(null);
     } catch (err) {
       console.error("Failed to fetch gift shop revenue data:", err);
-      setError("Failed to load revenue data. Please try again.");
+      setError(
+        `Failed to load revenue data: ${
+          err.response?.data?.error || err.message
+        }`
+      );
     } finally {
       setLoading(false);
     }
@@ -97,8 +102,14 @@ const GiftShopRevenueReport = () => {
   };
 
   const applyFilters = (data = revenueData) => {
+    if (!data.details || !data.summary || !data.topProducts) {
+      console.warn("Missing data structure for filtering", data);
+      return;
+    }
+
     let filtered = [...data.details];
-    let topProducts = [...(data.topProducts || [])];
+    let filteredSummary = [...data.summary];
+    let topProducts = [...data.topProducts];
 
     // Apply client-side filtering if needed
     // Filter by minimum revenue (redundant if server already did this, but kept for flexibility)
@@ -109,58 +120,11 @@ const GiftShopRevenueReport = () => {
       );
     }
 
-    // Sort the data
-    filtered.sort((a, b) => {
-      if (sortConfig.key === "Date") {
-        const dateA = new Date(a.Date);
-        const dateB = new Date(b.Date);
-        return sortConfig.direction === "asc" ? dateA - dateB : dateB - dateA;
-      } else if (sortConfig.key === "TotalRevenue") {
-        return sortConfig.direction === "asc"
-          ? parseFloat(a.TotalRevenue) - parseFloat(b.TotalRevenue)
-          : parseFloat(b.TotalRevenue) - parseFloat(a.TotalRevenue);
-      } else if (sortConfig.key === "Quantity") {
-        return sortConfig.direction === "asc"
-          ? a.Quantity - b.Quantity
-          : b.Quantity - a.Quantity;
-      } else {
-        const valueA = a[sortConfig.key]?.toString().toLowerCase() || "";
-        const valueB = b[sortConfig.key]?.toString().toLowerCase() || "";
-        return sortConfig.direction === "asc"
-          ? valueA.localeCompare(valueB)
-          : valueB.localeCompare(valueA);
-      }
-    });
-
-    // Calculate summary based on filtered data
-    const summary = calculateSummary(filtered);
-
     setFilteredData({
       details: filtered,
-      summary: summary,
+      summary: filteredSummary,
       topProducts: topProducts,
     });
-  };
-
-  const calculateSummary = (details) => {
-    // Group by category and calculate totals
-    const summaryMap = details.reduce((acc, item) => {
-      const key = item.Category || "Uncategorized";
-      if (!acc[key]) {
-        acc[key] = {
-          Category: key,
-          TotalQuantity: 0,
-          TotalRevenue: 0,
-        };
-      }
-
-      acc[key].TotalQuantity += parseInt(item.Quantity);
-      acc[key].TotalRevenue += parseFloat(item.TotalRevenue);
-
-      return acc;
-    }, {});
-
-    return Object.values(summaryMap);
   };
 
   const handleSort = (key) => {
@@ -231,16 +195,6 @@ const GiftShopRevenueReport = () => {
       "0.00"
     );
   };
-
-  // Group by date for better display
-  const groupedByDate =
-    filteredData.details?.reduce((acc, item) => {
-      if (!acc[item.Date]) {
-        acc[item.Date] = [];
-      }
-      acc[item.Date].push(item);
-      return acc;
-    }, {}) || {};
 
   return (
     <div>
@@ -437,7 +391,16 @@ const GiftShopRevenueReport = () => {
             </button>
           </div>
 
-          {activeView === "summary" ? (
+          {loading ? (
+            <div className="flex justify-center py-8 bg-white p-6 rounded-lg shadow-md">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-700"></div>
+            </div>
+          ) : error ? (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-6 py-4 rounded mb-4 shadow-md">
+              <p className="font-semibold">Error</p>
+              <p>{error}</p>
+            </div>
+          ) : activeView === "summary" ? (
             <>
               {/* Revenue Summary Section */}
               <div className="bg-white p-6 rounded-lg shadow-md mb-6">
@@ -459,32 +422,38 @@ const GiftShopRevenueReport = () => {
 
                 {/* Category Summary Cards */}
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {filteredData.summary?.map((item) => (
-                    <div
-                      key={item.Category}
-                      className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-green-500"
-                    >
-                      <h4 className="text-lg font-medium text-gray-800 font-['Mukta_Mahee']">
-                        {item.Category}
-                      </h4>
-                      <div className="flex justify-between mt-2">
-                        <span className="text-gray-600 font-['Lora']">
-                          Quantity:
-                        </span>
-                        <span className="font-semibold">
-                          {item.TotalQuantity}
-                        </span>
+                  {filteredData.summary?.length > 0 ? (
+                    filteredData.summary.map((item) => (
+                      <div
+                        key={item.Category}
+                        className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-green-500"
+                      >
+                        <h4 className="text-lg font-medium text-gray-800 font-['Mukta_Mahee']">
+                          {item.Category || "Uncategorized"}
+                        </h4>
+                        <div className="flex justify-between mt-2">
+                          <span className="text-gray-600 font-['Lora']">
+                            Quantity:
+                          </span>
+                          <span className="font-semibold">
+                            {item.TotalQuantity}
+                          </span>
+                        </div>
+                        <div className="flex justify-between mt-1">
+                          <span className="text-gray-600 font-['Lora']">
+                            Revenue:
+                          </span>
+                          <span className="font-semibold">
+                            ${Number(item.TotalRevenue).toFixed(2)}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex justify-between mt-1">
-                        <span className="text-gray-600 font-['Lora']">
-                          Revenue:
-                        </span>
-                        <span className="font-semibold">
-                          ${Number(item.TotalRevenue).toFixed(2)}
-                        </span>
-                      </div>
+                    ))
+                  ) : (
+                    <div className="col-span-3 text-center py-6 text-gray-500">
+                      No data available for the selected filters.
                     </div>
-                  ))}
+                  )}
                 </div>
 
                 {/* Top Selling Products Section */}
@@ -543,116 +512,109 @@ const GiftShopRevenueReport = () => {
           ) : (
             /* Detailed Report Section */
             <div className="bg-white p-6 rounded-lg shadow-md">
-              {loading ? (
-                <div className="flex justify-center py-8">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-700"></div>
-                </div>
-              ) : error ? (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-                  {error}
-                </div>
-              ) : (
-                <>
-                  <h3 className="text-xl font-semibold mb-4 font-['Mukta_Mahee']">
-                    Detailed Revenue Report
-                    <span className="ml-2 text-sm font-normal text-gray-500">
-                      ({filteredData.details.length} records)
-                    </span>
-                  </h3>
+              <>
+                <h3 className="text-xl font-semibold mb-4 font-['Mukta_Mahee']">
+                  Detailed Revenue Report
+                  <span className="ml-2 text-sm font-normal text-gray-500">
+                    ({filteredData.details?.length || 0} records)
+                  </span>
+                </h3>
 
-                  {filteredData.details.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                      No records found matching your filters.
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th
-                              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                              onClick={() => handleSort("Date")}
-                            >
-                              Date{" "}
-                              {sortConfig.key === "Date" &&
-                                (sortConfig.direction === "asc" ? "↑" : "↓")}
-                            </th>
-                            <th
-                              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                              onClick={() => handleSort("GiftShopName")}
-                            >
-                              Gift Shop{" "}
-                              {sortConfig.key === "GiftShopName" &&
-                                (sortConfig.direction === "asc" ? "↑" : "↓")}
-                            </th>
-                            <th
-                              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                              onClick={() => handleSort("ProductName")}
-                            >
-                              Product{" "}
-                              {sortConfig.key === "ProductName" &&
-                                (sortConfig.direction === "asc" ? "↑" : "↓")}
-                            </th>
-                            <th
-                              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                              onClick={() => handleSort("Category")}
-                            >
-                              Category{" "}
-                              {sortConfig.key === "Category" &&
-                                (sortConfig.direction === "asc" ? "↑" : "↓")}
-                            </th>
-                            <th
-                              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                              onClick={() => handleSort("Quantity")}
-                            >
-                              Quantity{" "}
-                              {sortConfig.key === "Quantity" &&
-                                (sortConfig.direction === "asc" ? "↑" : "↓")}
-                            </th>
-                            <th
-                              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                              onClick={() => handleSort("TotalRevenue")}
-                            >
-                              Revenue{" "}
-                              {sortConfig.key === "TotalRevenue" &&
-                                (sortConfig.direction === "asc" ? "↑" : "↓")}
-                            </th>
+                {!filteredData.details || filteredData.details.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    No records found matching your filters.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                            onClick={() => handleSort("Date")}
+                          >
+                            Date{" "}
+                            {sortConfig.key === "Date" &&
+                              (sortConfig.direction === "asc" ? "↑" : "↓")}
+                          </th>
+                          <th
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                            onClick={() => handleSort("GiftShopName")}
+                          >
+                            Gift Shop{" "}
+                            {sortConfig.key === "GiftShopName" &&
+                              (sortConfig.direction === "asc" ? "↑" : "↓")}
+                          </th>
+                          <th
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                            onClick={() => handleSort("ProductName")}
+                          >
+                            Product{" "}
+                            {sortConfig.key === "ProductName" &&
+                              (sortConfig.direction === "asc" ? "↑" : "↓")}
+                          </th>
+                          <th
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                            onClick={() => handleSort("Category")}
+                          >
+                            Category{" "}
+                            {sortConfig.key === "Category" &&
+                              (sortConfig.direction === "asc" ? "↑" : "↓")}
+                          </th>
+                          <th
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                            onClick={() => handleSort("Quantity")}
+                          >
+                            Quantity{" "}
+                            {sortConfig.key === "Quantity" &&
+                              (sortConfig.direction === "asc" ? "↑" : "↓")}
+                          </th>
+                          <th
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                            onClick={() => handleSort("TotalRevenue")}
+                          >
+                            Revenue{" "}
+                            {sortConfig.key === "TotalRevenue" &&
+                              (sortConfig.direction === "asc" ? "↑" : "↓")}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {filteredData.details.map((item, index) => (
+                          <tr key={index}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              {new Date(item.Date).toLocaleDateString()}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {item.GiftShopName}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {item.ProductName}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {item.Category || "Uncategorized"}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {item.Quantity}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              ${Number(item.TotalRevenue).toFixed(2)}
+                            </td>
                           </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {filteredData.details.map((item, index) => (
-                            <tr key={index}>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                {new Date(item.Date).toLocaleDateString()}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {item.GiftShopName}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {item.ProductName}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {item.Category || "Uncategorized"}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {item.Quantity}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                ${Number(item.TotalRevenue).toFixed(2)}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </>
-              )}
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>
             </div>
           )}
         </>
       ) : (
         <div className="bg-gray-50 p-12 rounded-lg border-2 border-dashed border-gray-300 text-center">
+          <p className="text-gray-600 mb-4">
+            Click the button below to generate your revenue report
+          </p>
           <button
             onClick={generateReport}
             className="px-4 py-2 bg-green-700 text-white rounded hover:bg-green-600 flex items-center mx-auto"
