@@ -34,6 +34,11 @@ const AttractionDetails = () => {
     });
 
     
+    useEffect(() => {
+        if (urlAttractionId) {
+          loadAttraction(urlAttractionId);
+        }
+      }, [urlAttractionId]);
 
     useEffect(() => {
         const fetchAttractions = async () => {
