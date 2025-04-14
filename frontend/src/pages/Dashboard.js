@@ -130,7 +130,8 @@ const Dashboard = () => {
       enclosures: staffType === 'Zookeeper' || staffType === 'Vet',
       attractions: staffType === 'Zookeeper',
       giftShop: staffType === 'Gift Shop Clerk' || staffType === 'Admin',
-      revenue: staffRole === 'Manager' && staffType === 'Admin'
+      revenue: staffRole === 'Manager' && staffType === 'Admin',
+      animalManagement: staffRole === 'Manager' && (staffType === 'Admin' || staffType === 'Zookeeper')
     };
     
     return accessRules[moduleType] || false;
@@ -306,6 +307,14 @@ const Dashboard = () => {
         description: "Manage products, inventory, and sales",
         link: "/dashboard/gift-shop",
         color: "bg-emerald-600",
+      },
+      {
+        id: 'animalManagement',
+        title: "Animal Management",
+        icon: <Users size={20} className="mr-2" />,
+        description: "View and manage all animals",
+        link: "/dashboard/animals",
+        color: "bg-yellow-600",
       }
     ];
     
@@ -579,6 +588,9 @@ const Dashboard = () => {
                 </div>
               </ExpandableSection>
             )}
+
+            {/*Animal Management Section (Managers Only) */}
+            {hasModuleAccess('animalManagement')}
           </>
         )}
       </div>

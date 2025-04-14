@@ -4,50 +4,36 @@ const router = express.Router();
 const { authenticateToken } = require('../middleware/auth.middleware');
 
 module.exports = (pool) => {
-  // Get all animals
-  router.get('/', async (req, res) => {
-    try {
-      // TODO: Implement getting all animals with pagination
-      // HINT: Use query parameters like ?limit=10&offset=0
 
-      const {limit = 10, offset = 0, healthStatus} = req.query;
-      const parsedLimit = parseInt(limit, 10) || 10;
-      const parsedOffset = parseInt(offset, 10) || 0;
-
-
-      let query = 'SELECT * FROM zoodb.animals';
-      let params = [];
-
-      if(healthStatus){
-        query += ' WHERE HealthStatus = ?';
-        params.push(healthStatus);
-      }
-
-      query += ' LIMIT ? OFFSET ?';
-      params.push(parsedLimit, parsedOffset);
-
-      const [rows] = await pool.query(query, params);
-      
-      res.json(rows);
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: 'Failed to fetch animals' });
+// Get all animals without pagination (for client-side pagination)
+router.get('/', async (req, res) => {
+  try {
+    let query = 'SELECT * FROM zoodb.animals';
+    let params = [];
+    if (req.query.healthStatus) {
+      query += ' WHERE HealthStatus = ?';
+      params.push(req.query.healthStatus);
     }
-  });
+    // Remove LIMIT/OFFSET so that all records are returned.
+    const [rows] = await pool.query(query, params);
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch animals' });
+  }
+});
   
   // Get animal by ID
   router.get('/:id', async (req, res) => {
     try {
-      // TODO: Implement getting a single animal by ID
       const animalId = req.params.id;
-
       const [rows] = await pool.query(
-        'SELECT * FROM zoodb.animals as a WHERE a.AnimalID = ?',
+        'SELECT * FROM zoodb.animals WHERE AnimalID = ?',
         [animalId]
       );
 
-      if(rows.length === 0)
-        return res.status(404).json({error: 'Animal not found'});
+      if (rows.length === 0)
+        return res.status(404).json({ error: 'Animal not found' });
       
       res.json(rows[0]);
     } catch (err) {
@@ -59,22 +45,19 @@ module.exports = (pool) => {
   // Add new animal (staff only)
   router.post('/', authenticateToken, async (req, res) => {
     try {
-      // TODO: Implement adding a new animal
-      // Check that the user is staff and has appropriate permissions
-
-      const {Name, Species, DateOfBirth, Gender, HealthStatus, LastVetCheckup, EnclosureID, DangerLevel} = req.body;
+      const { Name, Species, DateOfBirth, Gender, HealthStatus, LastVetCheckup, EnclosureID, DangerLevel, Image } = req.body;
 
       // Validate input
-      if (!Name || !Species || !DateOfBirth || !Gender || !HealthStatus|| !LastVetCheckup || !EnclosureID || !DangerLevel) {
+      if (!Name || !Species || !DateOfBirth || !Gender || !HealthStatus || !LastVetCheckup || !EnclosureID || !DangerLevel) {
         return res.status(400).json({ error: 'All required fields must be provided' });
       }
 
-      if(req.user.role !== 'staff' && req.user.staffRole !== 'Manager')
-        return res.status(403).json({error: 'You do not have permission to add animals.'});
+      if (req.user.role !== 'staff' && req.user.staffRole !== 'Manager')
+        return res.status(403).json({ error: 'You do not have permission to add animals.' });
 
       const [result] = await pool.query(
-        'INSERT INTO zoodb.animals (Name, Species, DateOfBirth, Gender, HealthStatus, LastVetCheckup, EnclosureID, DangerLevel) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [Name, Species, DateOfBirth, Gender, HealthStatus, LastVetCheckup, EnclosureID, DangerLevel]
+        'INSERT INTO zoodb.animals (Name, Species, DateOfBirth, Gender, HealthStatus, LastVetCheckup, EnclosureID, DangerLevel, Image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [Name, Species, DateOfBirth, Gender, HealthStatus, LastVetCheckup, EnclosureID, DangerLevel, Image || null]
       );
 
       res.status(201).json({ 
@@ -90,18 +73,14 @@ module.exports = (pool) => {
   // Update animal (staff only)
   router.put('/:id', authenticateToken, async (req, res) => {
     try {
-      // Ensure the user is staff
       if (req.user.role !== 'staff' && req.user.staffRole !== 'Manager') {
         return res.status(403).json({ error: 'You do not have permission to update animals' });
       }
   
       const animalId = req.params.id;
-  
-      // Build a dynamic UPDATE query
       const fields = [];
       const values = [];
   
-      // Only push fields that were actually provided in the body
       if (req.body.Name !== undefined) {
         fields.push('Name = ?');
         values.push(req.body.Name);
@@ -134,25 +113,25 @@ module.exports = (pool) => {
         fields.push('DangerLevel = ?');
         values.push(req.body.DangerLevel);
       }
+      if (req.body.Image !== undefined) {
+        fields.push('Image = ?');
+        values.push(req.body.Image);
+      }
   
-      // If no fields were provided, return an error
       if (fields.length === 0) {
         return res.status(400).json({ error: 'No fields to update' });
       }
   
-      // Build the final SQL, e.g. "UPDATE animals SET Name=?, Species=? WHERE AnimalID=?"
-      const sql = `UPDATE animals SET ${fields.join(', ')} WHERE AnimalID = ?`;
-      values.push(animalId); // the last parameter in the WHERE clause
+      const sql = `UPDATE zoodb.animals SET ${fields.join(', ')} WHERE AnimalID = ?`;
+      values.push(animalId);
   
-      // Execute the query
       const [result] = await pool.query(sql, values);
   
       if (result.affectedRows === 0) {
         return res.status(404).json({ error: 'Animal not found' });
       }
   
-      // Optionally, fetch the updated row to return it
-      const [updatedRows] = await pool.query('SELECT * FROM animals WHERE AnimalID = ?', [animalId]);
+      const [updatedRows] = await pool.query('SELECT * FROM zoodb.animals WHERE AnimalID = ?', [animalId]);
       res.json({ message: 'Animal updated successfully', animal: updatedRows[0] });
     } catch (err) {
       console.error(err);
@@ -162,43 +141,33 @@ module.exports = (pool) => {
   
   // Delete animal (staff only)
   router.delete('/:id', authenticateToken, async (req, res) => {
-  try {
-    // Ensure the user is staff
-    if (req.user.role !== 'staff' && req.user.staffRole !== 'Manager') {
-      return res.status(403).json({ error: 'You do not have permission to delete animals' });
+    try {
+      if (req.user.role !== 'staff' && req.user.staffRole !== 'Manager') {
+        return res.status(403).json({ error: 'You do not have permission to delete animals' });
+      }
+      const animalId = req.params.id;
+      const [result] = await pool.query(
+        'DELETE FROM zoodb.animals WHERE AnimalID = ?',
+        [animalId]
+      );
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ error: 'Animal not found' });
+      }
+      res.json({ message: 'Animal deleted successfully' });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to delete animal' });
     }
-
-    const animalId = req.params.id;
-
-    // Perform the DELETE query
-    const [result] = await pool.query(
-      'DELETE FROM animals WHERE AnimalID = ?',
-      [animalId]
-    );
-
-    // If no rows were deleted, the animal doesn't exist
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Animal not found' });
-    }
-
-    res.json({ message: 'Animal deleted successfully' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to delete animal' });
-  }
-});
+  });
   
   // Get animals by enclosure
   router.get('/enclosure/:id', async (req, res) => {
     try {
-      // TODO: Implement getting animals by enclosure
       const enclosureId = req.params.id;
-
       const [rows] = await pool.query(
-        'SELECT * FROM zoodb.animals as a WHERE a.EnclosureID = ?',
+        'SELECT * FROM zoodb.animals WHERE EnclosureID = ?',
         [enclosureId]
       );
-      
       res.json(rows);
     } catch (err) {
       console.error(err);
