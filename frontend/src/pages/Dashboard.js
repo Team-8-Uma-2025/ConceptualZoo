@@ -129,7 +129,7 @@ const Dashboard = () => {
       sickAnimals: staffType === 'Vet' || (staffType === 'Zookeeper' && staffRole === 'Manager'), // zookeeper manager possibly
       enclosures: staffType === 'Zookeeper' || staffType === 'Vet',
       attractions: staffType === 'Zookeeper',
-      giftShop: staffType === 'Gift Shop Clerk',
+      giftShop: staffType === 'Gift Shop Clerk' || staffType === 'Admin',
       revenue: staffRole === 'Manager' && staffType === 'Admin'
     };
     
