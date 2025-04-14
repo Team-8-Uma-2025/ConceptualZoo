@@ -32,6 +32,7 @@ import GiftShop from "./pages/GiftShop";
 import AttractionDetails from './pages/AttractionDetails'
 import GiftShopManagement from "./pages/GiftShopManagement";
 import StaffManagement from "./pages/StaffManagement";
+import AnimalManagement from "./pages/AnimalManagement";
 
 // Components
 import Navbar from "./components/Navbar";
@@ -106,6 +107,9 @@ function AppContent() {
             <Route path="/dashboard/staff" element={<StaffManagement />} />
             <Route path="/dashboard/staff/:id" element={<StaffManagement />} />
             <Route path="/dashboard/staff/:id/:action" element={<StaffManagement />} />
+
+            <Route path="/dashboard/animals" element={<AnimalManagement />} />
+
 
             {/* Additional staff routes will go here */}
           </Route>
