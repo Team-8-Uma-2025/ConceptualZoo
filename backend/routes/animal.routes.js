@@ -5,32 +5,23 @@ const { authenticateToken } = require('../middleware/auth.middleware');
 
 module.exports = (pool) => {
 
-  // Get all animals
-  router.get('/', async (req, res) => {
-    try {
-      // Support pagination and optional filtering by healthStatus
-      const { limit = 10, offset = 0, healthStatus } = req.query;
-      const parsedLimit = parseInt(limit, 10) || 10;
-      const parsedOffset = parseInt(offset, 10) || 0;
-
-      let query = 'SELECT * FROM zoodb.animals';
-      let params = [];
-
-      if (healthStatus) {
-        query += ' WHERE HealthStatus = ?';
-        params.push(healthStatus);
-      }
-
-      query += ' LIMIT ? OFFSET ?';
-      params.push(parsedLimit, parsedOffset);
-
-      const [rows] = await pool.query(query, params);
-      res.json(rows);
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: 'Failed to fetch animals' });
+// Get all animals without pagination (for client-side pagination)
+router.get('/', async (req, res) => {
+  try {
+    let query = 'SELECT * FROM zoodb.animals';
+    let params = [];
+    if (req.query.healthStatus) {
+      query += ' WHERE HealthStatus = ?';
+      params.push(req.query.healthStatus);
     }
-  });
+    // Remove LIMIT/OFFSET so that all records are returned.
+    const [rows] = await pool.query(query, params);
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch animals' });
+  }
+});
   
   // Get animal by ID
   router.get('/:id', async (req, res) => {

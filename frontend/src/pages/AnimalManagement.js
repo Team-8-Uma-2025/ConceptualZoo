@@ -43,7 +43,7 @@ const AnimalManagement = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterSpecies, setFilterSpecies] = useState('All');
   const [filterHealthStatus, setFilterHealthStatus] = useState('All');
-  const [filterEnclosure, setFilterEnclosure] = useState('All');
+  const [filterEnclosureID, setfilterEnclosureID] = useState('All');
   const [filterDangerLevel, setFilterDangerLevel] = useState('All');
 
   // State for pagination
@@ -270,7 +270,7 @@ const AnimalManagement = () => {
 
     const matchesSpecies = filterSpecies === 'All' || animal.Species === filterSpecies;
     const matchesHealthStatus = filterHealthStatus === 'All' || animal.HealthStatus === filterHealthStatus;
-    const matchesEnclosure = filterEnclosure === 'All' || animal.EnclosureID === filterEnclosure;
+    const matchesEnclosure = filterEnclosureID === 'All' || String(animal.EnclosureID) === filterEnclosureID;
     const matchesDangerLevel = filterDangerLevel === 'All' || animal.DangerLevel === filterDangerLevel;
 
 
@@ -333,9 +333,9 @@ const AnimalManagement = () => {
 
         <div className="flex flex-col md:flex-row gap-6">
           {/* Animal List Panel */}
-          <div className="md:w-1/2 lg:w-2/5">
+          <div className="md:w-3/4 lg:w-3/4">
             <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-              <div className="flex justify-between items-center mb-4">
+              <div className="w-full flex justify-between items-center mt-4 space-x-2">
                 <h2 className="text-xl font-semibold font-['Roboto_Flex']">Animal Directory</h2>
                 <button
                   onClick={handleAddAnimal}
@@ -382,8 +382,8 @@ const AnimalManagement = () => {
                     ))}
                   </select>
                   <select
-                    value={filterEnclosure}
-                    onChange={(e) => setFilterEnclosure(e.target.value)}
+                    value={filterEnclosureID}
+                    onChange={(e) => setfilterEnclosureID(e.target.value)}
                     className="border border-gray-300 rounded px-2 py-1 text-sm"
                   >
                     {enclosureList.map(enclosure => (
