@@ -33,6 +33,7 @@ import AttractionDetails from './pages/AttractionDetails'
 import GiftShopManagement from "./pages/GiftShopManagement";
 import StaffManagement from "./pages/StaffManagement";
 import AnimalManagement from "./pages/AnimalManagement";
+import EnclosureReport from "./pages/EnclosureReport";
 
 // Components
 import Navbar from "./components/Navbar";
@@ -109,6 +110,7 @@ function AppContent() {
             <Route path="/dashboard/staff/:id/:action" element={<StaffManagement />} />
 
             <Route path="/dashboard/animals" element={<AnimalManagement />} />
+            <Route path="/dashboard/enclosure-reports" element={<EnclosureReport />} />
 
 
             {/* Additional staff routes will go here */}
