@@ -61,6 +61,12 @@ const GiftShopManagement = () => {
   const [transactionsLoading, setTransactionsLoading] = useState(false);
   const [transactionsError, setTransactionsError] = useState(null);
   const [filterShopId, setFilterShopId] = useState("");
+  const [customerSearchQuery, setCustomerSearchQuery] = useState("");
+
+  // Check if user can access revenue reports (Manager or Admin only)
+  const canAccessReports =
+    currentUser &&
+    (currentUser.staffRole === "Manager" || currentUser.staffType === "Admin");
 
   // Categories options
   const categories = [
@@ -459,7 +465,7 @@ const GiftShopManagement = () => {
 
         {/* Tab Navigation */}
         <div className="bg-white rounded-lg shadow-md mb-8">
-          <div className="flex border-b">
+          <div className="flex flex-wrap border-b">
             <button
               className={`px-6 py-3 font-medium text-sm font-['Mukta_Mahee'] flex items-center ${
                 activeTab === "products"
@@ -493,17 +499,19 @@ const GiftShopManagement = () => {
               <DollarSign size={18} className="mr-2" />
               Transactions
             </button>
-            <button
-              className={`px-6 py-3 font-medium text-sm font-['Mukta_Mahee'] flex items-center ${
-                activeTab === "reports"
-                  ? "text-green-700 border-b-2 border-green-700"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-              onClick={() => setActiveTab("reports")}
-            >
-              <BarChart2 size={18} className="mr-2" />
-              Revenue Reports
-            </button>
+            {canAccessReports && (
+              <button
+                className={`px-6 py-3 font-medium text-sm font-['Mukta_Mahee'] flex items-center ${
+                  activeTab === "reports"
+                    ? "text-green-700 border-b-2 border-green-700"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+                onClick={() => setActiveTab("reports")}
+              >
+                <BarChart2 size={18} className="mr-2" />
+                Revenue Reports
+              </button>
+            )}
           </div>
         </div>
 
@@ -984,24 +992,41 @@ const GiftShopManagement = () => {
                   Sales Transactions
                 </h2>
 
-                {/* Gift Shop Filter */}
-                <div>
-                  <select
-                    value={filterShopId}
-                    onChange={(e) => {
-                      setFilterShopId(e.target.value);
-                      // Fetch transactions with new filter
-                      fetchTransactions(e.target.value);
-                    }}
-                    className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
-                  >
-                    <option value="">All Gift Shops</option>
-                    {giftShops.map((shop) => (
-                      <option key={shop.GiftShopID} value={shop.GiftShopID}>
-                        {shop.GiftShopName}
-                      </option>
-                    ))}
-                  </select>
+                {/* Filter and Search Controls */}
+                <div className="flex items-center space-x-4">
+                  {/* Customer Search */}
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Search size={16} className="text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Search customer..."
+                      value={customerSearchQuery}
+                      onChange={(e) => setCustomerSearchQuery(e.target.value)}
+                      className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 w-48"
+                    />
+                  </div>
+
+                  {/* Gift Shop Filter */}
+                  <div>
+                    <select
+                      value={filterShopId}
+                      onChange={(e) => {
+                        setFilterShopId(e.target.value);
+                        // Fetch transactions with new filter
+                        fetchTransactions(e.target.value);
+                      }}
+                      className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                    >
+                      <option value="">All Gift Shops</option>
+                      {giftShops.map((shop) => (
+                        <option key={shop.GiftShopID} value={shop.GiftShopID}>
+                          {shop.GiftShopName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
 
@@ -1022,117 +1047,127 @@ const GiftShopManagement = () => {
                 </div>
               ) : (
                 <div className="space-y-6">
-                  {transactions.map((transaction) => (
-                    <div
-                      key={transaction.transactionId}
-                      className="border border-gray-200 rounded-lg overflow-hidden"
-                    >
+                  {transactions
+                    .sort((a, b) => new Date(b.datetime) - new Date(a.datetime))
+                    .filter(
+                      (transaction) =>
+                        !customerSearchQuery ||
+                        (transaction.visitorName &&
+                          transaction.visitorName
+                            .toLowerCase()
+                            .includes(customerSearchQuery.toLowerCase()))
+                    )
+                    .map((transaction) => (
                       <div
-                        className="bg-gray-50 px-6 py-4 flex justify-between items-center cursor-pointer"
-                        onClick={() =>
-                          handleToggleSection(
-                            `transaction-${transaction.transactionId}`
-                          )
-                        }
+                        key={transaction.transactionId}
+                        className="border border-gray-200 rounded-lg overflow-hidden"
                       >
-                        <div>
-                          <div className="font-semibold text-gray-700">
-                            Transaction #{transaction.transactionId}
-                            {transaction.visitorName && (
-                              <span className="ml-2 text-sm font-normal text-gray-500">
-                                - Customer: {transaction.visitorName}
-                              </span>
+                        <div
+                          className="bg-gray-50 px-6 py-4 flex justify-between items-center cursor-pointer"
+                          onClick={() =>
+                            handleToggleSection(
+                              `transaction-${transaction.transactionId}`
+                            )
+                          }
+                        >
+                          <div>
+                            <div className="font-semibold text-gray-700">
+                              Transaction #{transaction.transactionId}
+                              {transaction.visitorName && (
+                                <span className="ml-2 text-sm font-normal text-gray-500">
+                                  - Customer: {transaction.visitorName}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {new Date(transaction.datetime).toLocaleString()}{" "}
+                              | {transaction.giftShopName}
+                            </div>
+                          </div>
+                          <div className="flex items-center">
+                            <span className="font-bold text-green-700 mr-3">
+                              ${formatPrice(transaction.totalPaid)}
+                            </span>
+                            {expandedSection ===
+                            `transaction-${transaction.transactionId}` ? (
+                              <ChevronUp size={18} />
+                            ) : (
+                              <ChevronDown size={18} />
                             )}
                           </div>
-                          <div className="text-sm text-gray-500">
-                            {new Date(transaction.datetime).toLocaleString()} |{" "}
-                            {transaction.giftShopName}
-                          </div>
                         </div>
-                        <div className="flex items-center">
-                          <span className="font-bold text-green-700 mr-3">
-                            ${formatPrice(transaction.totalPaid)}
-                          </span>
-                          {expandedSection ===
-                          `transaction-${transaction.transactionId}` ? (
-                            <ChevronUp size={18} />
-                          ) : (
-                            <ChevronDown size={18} />
-                          )}
-                        </div>
-                      </div>
 
-                      {expandedSection ===
-                        `transaction-${transaction.transactionId}` && (
-                        <div className="p-6 border-t border-gray-200">
-                          <h4 className="text-sm font-semibold text-gray-700 mb-3">
-                            Items Purchased:
-                          </h4>
-                          <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                              <thead className="bg-gray-50">
-                                <tr>
-                                  <th
-                                    scope="col"
-                                    className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                  >
-                                    Product
-                                  </th>
-                                  <th
-                                    scope="col"
-                                    className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                  >
-                                    Quantity
-                                  </th>
-                                  <th
-                                    scope="col"
-                                    className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                  >
-                                    Unit Price
-                                  </th>
-                                  <th
-                                    scope="col"
-                                    className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                  >
-                                    Subtotal
-                                  </th>
-                                </tr>
-                              </thead>
-                              <tbody className="bg-white divide-y divide-gray-200">
-                                {transaction.items.map((item, index) => (
-                                  <tr key={index}>
-                                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
-                                      {item.productName}
+                        {expandedSection ===
+                          `transaction-${transaction.transactionId}` && (
+                          <div className="p-6 border-t border-gray-200">
+                            <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                              Items Purchased:
+                            </h4>
+                            <div className="overflow-x-auto">
+                              <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                  <tr>
+                                    <th
+                                      scope="col"
+                                      className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    >
+                                      Product
+                                    </th>
+                                    <th
+                                      scope="col"
+                                      className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    >
+                                      Quantity
+                                    </th>
+                                    <th
+                                      scope="col"
+                                      className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    >
+                                      Unit Price
+                                    </th>
+                                    <th
+                                      scope="col"
+                                      className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    >
+                                      Subtotal
+                                    </th>
+                                  </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                  {transaction.items.map((item, index) => (
+                                    <tr key={index}>
+                                      <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                                        {item.productName}
+                                      </td>
+                                      <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                                        {item.quantity}
+                                      </td>
+                                      <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                                        ${formatPrice(item.unitPrice)}
+                                      </td>
+                                      <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
+                                        ${formatPrice(item.subtotal)}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                  <tr className="bg-gray-50">
+                                    <td
+                                      colSpan="3"
+                                      className="px-4 py-2 text-right font-semibold text-gray-700"
+                                    >
+                                      Total:
                                     </td>
-                                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
-                                      {item.quantity}
-                                    </td>
-                                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
-                                      ${formatPrice(item.unitPrice)}
-                                    </td>
-                                    <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
-                                      ${formatPrice(item.subtotal)}
+                                    <td className="px-4 py-2 font-bold text-green-700">
+                                      ${formatPrice(transaction.totalPaid)}
                                     </td>
                                   </tr>
-                                ))}
-                                <tr className="bg-gray-50">
-                                  <td
-                                    colSpan="3"
-                                    className="px-4 py-2 text-right font-semibold text-gray-700"
-                                  >
-                                    Total:
-                                  </td>
-                                  <td className="px-4 py-2 font-bold text-green-700">
-                                    ${formatPrice(transaction.totalPaid)}
-                                  </td>
-                                </tr>
-                              </tbody>
-                            </table>
+                                </tbody>
+                              </table>
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                        )}
+                      </div>
+                    ))}
                 </div>
               )}
             </div>
@@ -1140,12 +1175,32 @@ const GiftShopManagement = () => {
         )}
 
         {/* Reports Tab */}
-        {activeTab === "reports" && (
+        {activeTab === "reports" && canAccessReports && (
           <div className="bg-white rounded-lg shadow-md p-6 mb-8">
             <h2 className="text-2xl font-bold mb-6 font-['Roboto_Flex']">
               Gift Shop Revenue Reports
             </h2>
             <GiftShopRevenueReport />
+          </div>
+        )}
+
+        {/* Access Denied Message for Reports Tab */}
+        {activeTab === "reports" && !canAccessReports && (
+          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+            <div className="text-center py-12">
+              <AlertTriangle
+                size={48}
+                className="mx-auto text-amber-500 mb-4"
+              />
+              <h2 className="text-2xl font-bold mb-2 font-['Roboto_Flex']">
+                Access Restricted
+              </h2>
+              <p className="text-gray-600 font-['Lora'] max-w-lg mx-auto">
+                Revenue reports are only available to Gift Shop Managers and
+                Administrators. Please contact your manager if you need access
+                to this information.
+              </p>
+            </div>
           </div>
         )}
       </div>
