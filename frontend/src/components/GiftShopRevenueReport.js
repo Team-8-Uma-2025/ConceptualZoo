@@ -132,20 +132,20 @@ const GiftShopRevenueReport = () => {
 
     // Apply client-side category filter
     if (categoryFilter !== "All") {
-      filtered = filtered.filter(item => item.Category === categoryFilter);
+      filtered = filtered.filter((item) => item.Category === categoryFilter);
     }
 
     // Apply client-side product name filter
     if (productNameFilter) {
-      filtered = filtered.filter(item => 
+      filtered = filtered.filter((item) =>
         item.ProductName.toLowerCase().includes(productNameFilter.toLowerCase())
       );
     }
 
     // Apply client-side shop filter
     if (giftShopFilter) {
-      filtered = filtered.filter(item => 
-        String(item.GiftShopID) === String(giftShopFilter)
+      filtered = filtered.filter(
+        (item) => String(item.GiftShopID) === String(giftShopFilter)
       );
     }
 
@@ -215,13 +215,15 @@ const GiftShopRevenueReport = () => {
   };
 
   const calculateTotalRevenue = () => {
-    if (revenueData.totals && typeof revenueData.totals.revenue === 'number') {
+    if (revenueData.totals && typeof revenueData.totals.revenue === "number") {
       return revenueData.totals.revenue.toFixed(2);
     }
-    
-    return filteredData.summary
-      ?.reduce((total, item) => total + Number(item.TotalRevenue), 0)
-      .toFixed(2) || "0.00";
+
+    return (
+      filteredData.summary
+        ?.reduce((total, item) => total + Number(item.TotalRevenue), 0)
+        .toFixed(2) || "0.00"
+    );
   };
 
   const calculateEstimatedProfit = (revenue) => {
@@ -252,10 +254,10 @@ const GiftShopRevenueReport = () => {
 
     // Data rows
     filteredData.details.forEach((item) => {
-      const unitPrice = item.UnitPrice ? 
-        Number(item.UnitPrice).toFixed(2) : 
-        (Number(item.TotalRevenue) / Number(item.Quantity)).toFixed(2);
-        
+      const unitPrice = item.UnitPrice
+        ? Number(item.UnitPrice).toFixed(2)
+        : (Number(item.TotalRevenue) / Number(item.Quantity)).toFixed(2);
+
       const row = [
         new Date(item.Date).toLocaleDateString(),
         item.GiftShopName,
@@ -553,8 +555,12 @@ const GiftShopRevenueReport = () => {
                       {calculateTotalRevenue()}
                     </span>
                     <span className="text-sm text-gray-500">
-                      {revenueData.totals?.quantity || 
-                       filteredData.details.reduce((sum, item) => sum + Number(item.Quantity), 0)} items sold
+                      {revenueData.totals?.quantity ||
+                        filteredData.details.reduce(
+                          (sum, item) => sum + Number(item.Quantity),
+                          0
+                        )}{" "}
+                      items sold
                     </span>
                   </div>
                 </div>
@@ -600,8 +606,11 @@ const GiftShopRevenueReport = () => {
                             ></div>
                           </div>
                           <div className="text-xs text-right mt-1 text-gray-500">
-                            {((Number(item.TotalRevenue) / Number(calculateTotalRevenue())) * 
-                              100).toFixed(1)}
+                            {(
+                              (Number(item.TotalRevenue) /
+                                Number(calculateTotalRevenue())) *
+                              100
+                            ).toFixed(1)}
                             % of total
                           </div>
                         </div>
@@ -749,12 +758,15 @@ const GiftShopRevenueReport = () => {
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
                         {filteredData.details.map((item, index) => {
-                          const unitPrice = item.UnitPrice ? 
-                            Number(item.UnitPrice).toFixed(2) : 
-                            (Number(item.TotalRevenue) / Number(item.Quantity)).toFixed(2);
+                          const unitPrice = item.UnitPrice
+                            ? Number(item.UnitPrice).toFixed(2)
+                            : (
+                                Number(item.TotalRevenue) /
+                                Number(item.Quantity)
+                              ).toFixed(2);
                           return (
-                            <tr key={index} className="hover:bg-gray-50">
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            <tr key={index}>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                 {new Date(item.Date).toLocaleDateString()}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -766,17 +778,34 @@ const GiftShopRevenueReport = () => {
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 {item.Category || "Uncategorized"}
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                 {item.Quantity}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                ${typeof unitPrice === 'number' ? unitPrice.toFixed(2) : unitPrice}
+                                {unitPrice}
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                 ${Number(item.TotalRevenue).toFixed(2)}
                               </td>
                               {showProfitColumn && (
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-medium">
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                   ${calculateEstimatedProfit(item.TotalRevenue)}
                                 </td>
                               )}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>
+            </div>
+          )}
+        </>
+      ) : null}
+    </div>
+  );
+};
+
+export default GiftShopRevenueReport;
