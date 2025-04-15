@@ -27,7 +27,6 @@ const GiftShopRevenueReport = () => {
     totals: {
       revenue: 0,
       quantity: 0,
-      profit: 0,
     },
   });
   const [filteredData, setFilteredData] = useState({
@@ -55,7 +54,6 @@ const GiftShopRevenueReport = () => {
   const [timeGrouping, setTimeGrouping] = useState("daily"); // "daily", "weekly", "monthly"
   const [profitMargin, setProfitMargin] = useState(30); // Default profit margin percentage
   const [showProfitColumn, setShowProfitColumn] = useState(false);
-  const [exportFormat, setExportFormat] = useState("csv");
   const [showExportOptions, setShowExportOptions] = useState(false);
 
   useEffect(() => {
@@ -75,7 +73,6 @@ const GiftShopRevenueReport = () => {
       if (categoryFilter !== "All") params.append("category", categoryFilter);
       if (productNameFilter) params.append("productName", productNameFilter);
       if (minimumRevenue) params.append("minRevenue", minimumRevenue);
-      params.append("timeGrouping", timeGrouping);
 
       // Add sorting parameters
       params.append("sortBy", sortConfig.key);
@@ -88,7 +85,7 @@ const GiftShopRevenueReport = () => {
         }
       );
 
-      console.log("Revenue data received:", response.data);
+      // Handle the response data
       setRevenueData(response.data);
       applyFilters(response.data);
       setError(null);
@@ -113,13 +110,16 @@ const GiftShopRevenueReport = () => {
 
   const applyFilters = (data = revenueData) => {
     if (!data.details || !data.summary || !data.topProducts) {
-      console.warn("Missing data structure for filtering", data);
+      // If we're missing data, just use what we have
+      setFilteredData({
+        details: data.details || [],
+        summary: data.summary || [],
+        topProducts: data.topProducts || [],
+      });
       return;
     }
 
     let filtered = [...data.details];
-    let filteredSummary = [...data.summary];
-    let topProducts = [...data.topProducts];
 
     // Apply client-side filtering if needed
     // Filter by minimum revenue (redundant if server already did this, but kept for flexibility)
@@ -130,10 +130,29 @@ const GiftShopRevenueReport = () => {
       );
     }
 
+    // Apply client-side category filter
+    if (categoryFilter !== "All") {
+      filtered = filtered.filter(item => item.Category === categoryFilter);
+    }
+
+    // Apply client-side product name filter
+    if (productNameFilter) {
+      filtered = filtered.filter(item => 
+        item.ProductName.toLowerCase().includes(productNameFilter.toLowerCase())
+      );
+    }
+
+    // Apply client-side shop filter
+    if (giftShopFilter) {
+      filtered = filtered.filter(item => 
+        String(item.GiftShopID) === String(giftShopFilter)
+      );
+    }
+
     setFilteredData({
       details: filtered,
-      summary: filteredSummary,
-      topProducts: topProducts,
+      summary: data.summary,
+      topProducts: data.topProducts,
     });
   };
 
@@ -145,7 +164,6 @@ const GiftShopRevenueReport = () => {
     setSortConfig({ key, direction });
 
     // Re-apply filters with new sort config
-    const newSortConfig = { key, direction };
     let filtered = [...filteredData.details];
 
     filtered.sort((a, b) => {
@@ -197,13 +215,13 @@ const GiftShopRevenueReport = () => {
   };
 
   const calculateTotalRevenue = () => {
-    return (
-      revenueData.totals?.revenue?.toFixed(2) ||
-      filteredData.summary
-        ?.reduce((total, item) => total + Number(item.TotalRevenue), 0)
-        .toFixed(2) ||
-      "0.00"
-    );
+    if (revenueData.totals && typeof revenueData.totals.revenue === 'number') {
+      return revenueData.totals.revenue.toFixed(2);
+    }
+    
+    return filteredData.summary
+      ?.reduce((total, item) => total + Number(item.TotalRevenue), 0)
+      .toFixed(2) || "0.00";
   };
 
   const calculateEstimatedProfit = (revenue) => {
@@ -234,9 +252,10 @@ const GiftShopRevenueReport = () => {
 
     // Data rows
     filteredData.details.forEach((item) => {
-      const unitPrice = (
-        Number(item.TotalRevenue) / Number(item.Quantity)
-      ).toFixed(2);
+      const unitPrice = item.UnitPrice ? 
+        Number(item.UnitPrice).toFixed(2) : 
+        (Number(item.TotalRevenue) / Number(item.Quantity)).toFixed(2);
+        
       const row = [
         new Date(item.Date).toLocaleDateString(),
         item.GiftShopName,
@@ -264,49 +283,6 @@ const GiftShopRevenueReport = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
-
-  const groupDataByTime = (data) => {
-    if (!data || data.length === 0) return [];
-
-    const grouped = {};
-
-    data.forEach((item) => {
-      let key;
-      const date = new Date(item.Date);
-
-      if (timeGrouping === "weekly") {
-        // Get the week start date (Sunday)
-        const weekStart = new Date(date);
-        weekStart.setDate(date.getDate() - date.getDay());
-        key = weekStart.toISOString().slice(0, 10);
-      } else if (timeGrouping === "monthly") {
-        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
-          2,
-          "0"
-        )}`;
-      } else {
-        // Daily
-        key = item.Date;
-      }
-
-      if (!grouped[key]) {
-        grouped[key] = {
-          date: key,
-          quantity: 0,
-          revenue: 0,
-          items: [],
-        };
-      }
-
-      grouped[key].quantity += Number(item.Quantity);
-      grouped[key].revenue += Number(item.TotalRevenue);
-      grouped[key].items.push(item);
-    });
-
-    return Object.values(grouped).sort(
-      (a, b) => new Date(b.date) - new Date(a.date)
-    );
   };
 
   return (
@@ -577,7 +553,8 @@ const GiftShopRevenueReport = () => {
                       {calculateTotalRevenue()}
                     </span>
                     <span className="text-sm text-gray-500">
-                      {revenueData.totals?.quantity || 0} items sold
+                      {revenueData.totals?.quantity || 
+                       filteredData.details.reduce((sum, item) => sum + Number(item.Quantity), 0)} items sold
                     </span>
                   </div>
                 </div>
@@ -585,9 +562,9 @@ const GiftShopRevenueReport = () => {
                 {/* Enhanced Category Summary Cards */}
                 <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
                   {filteredData.summary?.length > 0 ? (
-                    filteredData.summary.map((item) => (
+                    filteredData.summary.map((item, index) => (
                       <div
-                        key={item.Category}
+                        key={index}
                         className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
                       >
                         <h4 className="text-lg font-medium text-gray-800 font-['Mukta_Mahee'] mb-3">
@@ -623,10 +600,8 @@ const GiftShopRevenueReport = () => {
                             ></div>
                           </div>
                           <div className="text-xs text-right mt-1 text-gray-500">
-                            {(
-                              (item.TotalRevenue / calculateTotalRevenue()) *
-                              100
-                            ).toFixed(1)}
+                            {((Number(item.TotalRevenue) / Number(calculateTotalRevenue())) * 
+                              100).toFixed(1)}
                             % of total
                           </div>
                         </div>
@@ -639,7 +614,7 @@ const GiftShopRevenueReport = () => {
                   )}
                 </div>
 
-                {/* Top Selling Products Section - keep existing code with minor styling updates */}
+                {/* Top Selling Products Section */}
                 <div className="mt-8">
                   <h3 className="text-lg font-semibold text-gray-700 font-['Mukta_Mahee'] mb-4 border-b pb-2">
                     Top Selling Products
@@ -665,8 +640,8 @@ const GiftShopRevenueReport = () => {
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                          {filteredData.topProducts.map((product) => (
-                            <tr key={product.ProductName}>
+                          {filteredData.topProducts.map((product, index) => (
+                            <tr key={index}>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                 {product.ProductName}
                               </td>
@@ -774,9 +749,9 @@ const GiftShopRevenueReport = () => {
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
                         {filteredData.details.map((item, index) => {
-                          const unitPrice = (
-                            Number(item.TotalRevenue) / Number(item.Quantity)
-                          ).toFixed(2);
+                          const unitPrice = item.UnitPrice ? 
+                            Number(item.UnitPrice).toFixed(2) : 
+                            (Number(item.TotalRevenue) / Number(item.Quantity)).toFixed(2);
                           return (
                             <tr key={index} className="hover:bg-gray-50">
                               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -795,7 +770,7 @@ const GiftShopRevenueReport = () => {
                                 {item.Quantity}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                ${unitPrice}
+                                ${typeof unitPrice === 'number' ? unitPrice.toFixed(2) : unitPrice}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
                                 ${Number(item.TotalRevenue).toFixed(2)}
@@ -805,34 +780,3 @@ const GiftShopRevenueReport = () => {
                                   ${calculateEstimatedProfit(item.TotalRevenue)}
                                 </td>
                               )}
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </>
-            </div>
-          )}
-        </>
-      ) : (
-        <div className="bg-gray-50 p-12 rounded-lg border-2 border-dashed border-gray-300 text-center">
-          <p className="text-gray-600 mb-4">
-            Set your filters above and click the button to generate your revenue
-            report
-          </p>
-          <button
-            onClick={generateReport}
-            className="px-6 py-3 bg-green-700 text-white rounded-lg hover:bg-green-600 flex items-center mx-auto transition-colors"
-          >
-            <Filter size={18} className="mr-2" />
-            Generate Report
-          </button>
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default GiftShopRevenueReport;
