@@ -73,11 +73,10 @@ const PaginationControls = ({
       <button
         onClick={goToPrevPage}
         disabled={currentPage === 1}
-        className={`p-2 rounded-full ${
-          currentPage === 1
+        className={`p-2 rounded-full ${currentPage === 1
             ? "text-gray-400 cursor-not-allowed"
             : "text-gray-700 hover:bg-purple-100"
-        }`}
+          }`}
         aria-label="Previous page"
       >
         <ChevronLeft size={20} />
@@ -88,11 +87,10 @@ const PaginationControls = ({
           <button
             key={i}
             onClick={() => paginate(i + 1)}
-            className={`px-3 py-1 rounded-md ${
-              currentPage === i + 1
+            className={`px-3 py-1 rounded-md ${currentPage === i + 1
                 ? "bg-purple-600 text-white font-medium"
                 : "bg-gray-100 text-gray-700 hover:bg-purple-100"
-            }`}
+              }`}
           >
             {i + 1}
           </button>
@@ -102,11 +100,10 @@ const PaginationControls = ({
       <button
         onClick={goToNextPage}
         disabled={currentPage === totalPages}
-        className={`p-2 rounded-full ${
-          currentPage === totalPages
+        className={`p-2 rounded-full ${currentPage === totalPages
             ? "text-gray-400 cursor-not-allowed"
             : "text-gray-700 hover:bg-purple-100"
-        }`}
+          }`}
         aria-label="Next page"
       >
         <ChevronRight size={20} />
@@ -406,8 +403,8 @@ const Dashboard = () => {
     availableModules.length === 1
       ? "grid-cols-1"
       : availableModules.length === 2
-      ? "grid-cols-1 md:grid-cols-2"
-      : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3";
+        ? "grid-cols-1 md:grid-cols-2"
+        : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3";
 
   // Helper function to format date
   const formatDateTime = (dateString) => {
@@ -503,11 +500,12 @@ const Dashboard = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <Link
-                              to={`/dashboard/enclosures/${animal.EnclosureID}`}
+                              to={`/dashboard/enclosures/${animal.EnclosureID}?obs=${animal.AnimalID}`}
                               className="text-green-600 hover:text-green-900"
                             >
                               View
                             </Link>
+
                           </td>
                         </tr>
                       ))}

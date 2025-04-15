@@ -4,11 +4,13 @@ import { useAuth } from "../context/AuthContext";
 import axios from "axios";
 import AnimalCard from "../components/AnimalCard";
 import StaffCard from '../components/StaffCard';
-import { useParams } from 'react-router-dom'; // Import useParams
+import { useParams, useLocation } from 'react-router-dom';
 
 
 const EnclosureDetails = () => {
   const { id: urlEnclosureId } = useParams();
+  const location = useLocation();
+  const [observationModalAnimalId, setObservationModalAnimalId] = useState(null);
 
   // States
   const { currentUser } = useAuth(); // user from authContext
@@ -25,6 +27,14 @@ const EnclosureDetails = () => {
   // For managers when editing or adding
   const [isEditing, setIsEditing] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
+
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const animalId = queryParams.get('obs');
+    if (animalId) {
+      setObservationModalAnimalId(parseInt(animalId));
+    }
+  }, [location.search]);
 
   // add and edit form fields (managers)
   const [formData, setFormData] = useState({
@@ -874,7 +884,7 @@ const EnclosureDetails = () => {
               selectedEnclosure.Animals && selectedEnclosure.Animals.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {selectedEnclosure.Animals.map(animal => (
-                    <AnimalCard key={animal.AnimalID} animal={animal} refreshAnimals={refreshAnimals} />
+                    <AnimalCard key={animal.AnimalID} animal={animal} refreshAnimals={refreshAnimals} autoOpenObservations={animal.AnimalID === observationModalAnimalId}/>
                   ))}
                 </div>
               ) : (
