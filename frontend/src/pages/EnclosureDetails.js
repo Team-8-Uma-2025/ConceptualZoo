@@ -178,6 +178,13 @@ const EnclosureDetails = () => {
     }
   };
 
+  const refreshAnimals = () => {
+    if (selectedEnclosure?.EnclosureID) {
+      loadEnclosure(selectedEnclosure.EnclosureID);
+    }
+  };
+  
+
   // get enclosure by ID (event handler)
   const searchEnclosure = async (e) => {
     e.preventDefault(); // stop page from reloading on submit
@@ -867,7 +874,7 @@ const EnclosureDetails = () => {
               selectedEnclosure.Animals && selectedEnclosure.Animals.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {selectedEnclosure.Animals.map(animal => (
-                    <AnimalCard key={animal.AnimalID} animal={animal} />
+                    <AnimalCard key={animal.AnimalID} animal={animal} refreshAnimals={refreshAnimals} />
                   ))}
                 </div>
               ) : (

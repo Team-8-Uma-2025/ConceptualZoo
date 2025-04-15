@@ -503,7 +503,7 @@ const Dashboard = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <Link
-                              to={`/dashboard/animals/${animal.AnimalID}`}
+                              to={`/dashboard/enclosures/${animal.EnclosureID}`}
                               className="text-green-600 hover:text-green-900"
                             >
                               View
@@ -528,76 +528,6 @@ const Dashboard = () => {
                 icon={<Home size={24} className="mr-2 text-green-600" />}
                 isExpanded={expandedSection === "enclosures"}
                 toggleFn={() => toggleSection("enclosures")}
-              >
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          ID
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Name
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Type
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Location
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Capacity
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {enclosures.map((enclosure) => (
-                        <tr key={enclosure.EnclosureID}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {enclosure.EnclosureID}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {enclosure.Name}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {enclosure.Type}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {enclosure.Location}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {enclosure.Capacity}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <Link
-                              to={`/dashboard/enclosures/${enclosure.EnclosureID}`}
-                              className="text-green-600 hover:text-green-900"
-                            >
-                              View
-                            </Link>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </ExpandableSection>
-            )}
-
-            {/* Attractions Section (Zookeepers and Managers) */}
-            {hasModuleAccess("attractions") && attractions.length > 0 && (
-              <ExpandableSection
-                title={
-                  currentUser.staffType === "Zookeeper"
-                    ? "Your Assigned Attractions"
-                    : "Attractions Overview"
-                }
-                icon={<Calendar size={24} className="mr-2 text-rose-600" />}
-                isExpanded={expandedSection === "attractions"}
-                toggleFn={() => toggleSection("attractions")}
               >
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
