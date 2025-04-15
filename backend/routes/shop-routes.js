@@ -352,7 +352,7 @@ module.exports = (pool) => {
           SUM(TotalRevenue) AS TotalRevenue
         FROM GiftShopRevenueSummary
         ${whereClause}
-        GROUP BY Date, GiftShopID, ProductName
+        GROUP BY Date, GiftShopID, ProductName, Category, UnitPrice
       `;
 
       // Apply sorting

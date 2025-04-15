@@ -459,7 +459,7 @@ const GiftShopManagement = () => {
 
         {/* Tab Navigation */}
         <div className="bg-white rounded-lg shadow-md mb-8">
-          <div className="flex border-b">
+          <div className="flex flex-wrap border-b">
             <button
               className={`px-6 py-3 font-medium text-sm font-['Mukta_Mahee'] flex items-center ${
                 activeTab === "products"
