@@ -467,14 +467,20 @@ const AttractionDetails = () => {
                                     <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
                                         Location
                                     </label>
-                                    <input 
-                                        type="text"
+                                    <select
                                         name="Location"
                                         value={formData.Location}
                                         onChange={handleChange}
                                         className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
                                         required
-                                    />
+                                    >
+                                        <option value="">Select Location</option>
+                                        <option value="North Wing">North Wing</option>
+                                        <option value="East Wing">East Wing</option>
+                                        <option value="South Wing">South Wing</option>
+                                        <option value="West Wing">West Wing</option>
+                                        <option value="Central Plaza">Central Plaza</option>
+                                    </select>
                                 </div>
 
                                 <div className="md:col-span-2">
@@ -600,14 +606,20 @@ const AttractionDetails = () => {
                                     <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
                                         Location
                                     </label>
-                                    <input 
-                                        type="text"
+                                    <select
                                         name="Location"
                                         value={formData.Location}
                                         onChange={handleChange}
                                         className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
                                         required
-                                    />
+                                    >
+                                        <option value="">Select Location</option>
+                                        <option value="North Wing">North Wing</option>
+                                        <option value="East Wing">East Wing</option>
+                                        <option value="South Wing">South Wing</option>
+                                        <option value="West Wing">West Wing</option>
+                                        <option value="Central Plaza">Central Plaza</option>
+                                    </select>
                                 </div>
 
                                 <div className="md:col-span-2">
