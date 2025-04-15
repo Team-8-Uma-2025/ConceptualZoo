@@ -1,5 +1,6 @@
 // routes/staff.routes.js
 const express = require('express');
+const bcrypt = require('bcryptjs');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth.middleware');
 
@@ -32,15 +33,15 @@ module.exports = (pool) => {
       const [zookeepers] = await pool.query(
         "SELECT Staff, Name FROM staff WHERE StaffType = 'Zookeeper'"
       );
-      
-      
+
+
       res.json(zookeepers);
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: 'Failed to fetch zookeepers: ' + err.message });
     }
   })
-  
+
   // Get staff member by ID
   router.get('/:id', authenticateToken, async (req, res) => {
     try {
@@ -158,6 +159,54 @@ module.exports = (pool) => {
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: 'Failed to delete staff member: ' + err.message });
+    }
+  });
+
+  // Update staff password
+  router.put('/:id/password', authenticateToken, async (req, res) => {
+    try {
+      const id = req.params.id;
+      const { currentPassword, newPassword } = req.body;
+
+      // Staff can only update their own password
+      if (req.user.role !== 'staff' || req.user.id !== parseInt(id)) {
+        return res.status(403).json({ error: 'Access denied. You can only change your own password.' });
+      }
+
+      // Validate inputs
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: 'Current password and new password are required' });
+      }
+
+      // Get staff member's current password
+      const [staff] = await pool.query(
+        'SELECT Password FROM staff WHERE Staff = ?',
+        [id]
+      );
+
+      if (staff.length === 0) {
+        return res.status(404).json({ error: 'Staff member not found' });
+      }
+
+      // Verify current password
+      const isValid = await bcrypt.compare(currentPassword, staff[0].Password);
+      if (!isValid) {
+        return res.status(401).json({ error: 'Current password is incorrect' });
+      }
+
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      // Update password
+      await pool.query(
+        'UPDATE staff SET Password = ? WHERE Staff = ?',
+        [hashedPassword, id]
+      );
+
+      res.json({ message: 'Password updated successfully' });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to update password: ' + err.message });
     }
   });
 
