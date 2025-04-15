@@ -51,7 +51,7 @@ const AttractionDetails = () => {
                 console.error("Error fetching attractions list:", err);
             }
         };
-        if (currentUser && currentUser.staffType === "Zookeeper") {
+        if (currentUser && (currentUser.staffType === "Zookeeper" || currentUser.staffType === "Admin")) {
             fetchAttractions();
         }
     }, [currentUser]);
@@ -325,7 +325,7 @@ const AttractionDetails = () => {
                         )}
                     </div>
                 ) : (
-                    // Zookeeper manager interface - Search by ID
+                    // Zookeeper manager/Admin interface - Search by ID
                     <div className="mb-6">
                         <div className="flex flex-wrap items-center gap-4">
                             <form onSubmit={searchAttraction} className="flex items-center">
@@ -351,36 +351,41 @@ const AttractionDetails = () => {
                                     ))}
                                 </select>
                             </form>
+                            
+                            {/* Add button for Admin */}
+                            {currentUser?.staffType === 'Admin' && (
+                                <button
+                                    type="button"
+                                    onClick={handleToggleAdd}
+                                    className="bg-green-700 text-white p-2 rounded font-['Mukta_Mahee']"
+                                >
+                                    Add Attraction
+                              </button>
+                            )}
 
-
-                            {/* Manager-only buttons */}
-                            {currentUser?.staffType === 'Zookeeper' && currentUser?.staffRole === "Manager" && (
-                                <div className="flex space-x-2">
-                                    <button type="button" 
-                                        onClick={handleToggleAdd}
-                                        className="bg-green-700 text-white p-2 rounded font-['Mukta_Mahee']"
-                                    >
-                                        Add Attraction
-                                    </button>
-                                    {selectedAttraction && (
-                                        <>
-                                            <button
-                                                type="button"
-                                                onClick={handleToggleEdit}
-                                                className="bg-blue-600 text-white p-2 rounded font-['Mukta_Mahee']"
-                                            >
-                                                Edit
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={handleDelete}
-                                                className="bg-red-600 text-white p-2 rounded font-['Mukta_Mahee']"
-                                            >
-                                                Delete
-                                            </button>
-                                        </>
+                            {/* Edit button for admin(and delete for admin) and zookeeper managers */}
+                            {selectedAttraction && (
+                                <>
+                                    {((currentUser?.staffType === "Zookeeper" && currentUser?.staffRole === "Manager") ||
+                                        currentUser?.staffType === "Admin") && (
+                                        <button
+                                            type="button"
+                                            onClick={handleToggleEdit}
+                                            className="bg-blue-600 text-white p-2 rounded font-['Mukta_Mahee']"
+                                        >
+                                            Edit
+                                        </button>
                                     )}
-                                </div>
+                                    {currentUser?.staffType === "Admin" && (
+                                        <button
+                                            type="button"
+                                            onClick={handleDelete}
+                                            className="bg-red-600 text-white p-2 rounded font-['Mukta_Mahee']"
+                                        >
+                                            Delete
+                                        </button>
+                                    )}
+                                </>
                             )}
                         </div>
                     </div>
