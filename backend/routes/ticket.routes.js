@@ -1,3 +1,4 @@
+// routes/ticket.routes.js
 const express = require("express");
 const router = express.Router();
 const { authenticateToken } = require("../middleware/auth.middleware");
@@ -336,7 +337,7 @@ router.post("/use/:id", async (req, res) => {
     }
   });
 
-  // Get revenue reports (managers only)
+  // Get revenue reports (managers only) - Enhanced with additional filters
   router.get("/revenue", authenticateToken, async (req, res) => {
     try {
       // Check that user is manager
@@ -346,47 +347,118 @@ router.post("/use/:id", async (req, res) => {
           .json({ error: "Unauthorized. Manager access only." });
       }
 
-      // Optional date range filters
-      const { startDate, endDate } = req.query;
+      // Expanded filter options
+      const {
+        startDate,
+        endDate,
+        purchaseType,
+        itemName,
+        minAmount,
+        maxAmount,
+        sortBy,
+        sortDirection,
+      } = req.query;
 
       let query = "SELECT * FROM TicketRevenueSummary";
+      const whereConditions = [];
       const params = [];
 
-      if (startDate && endDate) {
-        query += " WHERE Date BETWEEN ? AND ?";
-        params.push(startDate, endDate);
-      } else if (startDate) {
-        query += " WHERE Date >= ?";
+      // Date range filters
+      if (startDate) {
+        whereConditions.push("Date >= ?");
         params.push(startDate);
-      } else if (endDate) {
-        query += " WHERE Date <= ?";
+      }
+
+      if (endDate) {
+        whereConditions.push("Date <= ?");
         params.push(endDate);
       }
 
-      query += " ORDER BY Date DESC";
+      // Purchase type filter
+      if (purchaseType && purchaseType !== "All") {
+        whereConditions.push("PurchaseType = ?");
+        params.push(purchaseType);
+      }
+
+      // Item name filter (using LIKE for partial matches)
+      if (itemName) {
+        whereConditions.push("ItemName LIKE ?");
+        params.push(`%${itemName}%`);
+      }
+
+      // Revenue amount filters
+      if (minAmount && !isNaN(parseFloat(minAmount))) {
+        whereConditions.push("TotalRevenue >= ?");
+        params.push(parseFloat(minAmount));
+      }
+
+      if (maxAmount && !isNaN(parseFloat(maxAmount))) {
+        whereConditions.push("TotalRevenue <= ?");
+        params.push(parseFloat(maxAmount));
+      }
+
+      // Add WHERE clause if we have conditions
+      if (whereConditions.length > 0) {
+        query += " WHERE " + whereConditions.join(" AND ");
+      }
+
+      // Sorting
+      if (sortBy) {
+        const validColumns = [
+          "Date",
+          "PurchaseType",
+          "ItemName",
+          "Quantity",
+          "TotalRevenue",
+        ];
+        const column = validColumns.includes(sortBy) ? sortBy : "Date";
+        const direction =
+          sortDirection && sortDirection.toUpperCase() === "ASC"
+            ? "ASC"
+            : "DESC";
+
+        query += ` ORDER BY ${column} ${direction}`;
+      } else {
+        query += " ORDER BY Date DESC";
+      }
 
       const [data] = await pool.query(query, params);
 
-      // Get total revenue summary
-      const [totals] = await pool.query(
-        `
+      // Build the summary query with the same filters
+      let summaryQuery = `
         SELECT 
           PurchaseType,
           SUM(Quantity) as TotalQuantity,
           SUM(TotalRevenue) as TotalRevenue
         FROM TicketRevenueSummary
-        ${startDate || endDate ? "WHERE " : ""}
-        ${startDate ? "Date >= ? " : ""}
-        ${startDate && endDate ? "AND " : ""}
-        ${endDate ? "Date <= ? " : ""}
-        GROUP BY PurchaseType
-      `,
-        params.filter(Boolean)
+      `;
+
+      if (whereConditions.length > 0) {
+        summaryQuery += " WHERE " + whereConditions.join(" AND ");
+      }
+
+      summaryQuery += " GROUP BY PurchaseType";
+
+      const [totals] = await pool.query(summaryQuery, params);
+
+      // Return metadata about available filters
+      const [uniquePurchaseTypes] = await pool.query(
+        "SELECT DISTINCT PurchaseType FROM TicketRevenueSummary"
+      );
+
+      const [uniqueItemNames] = await pool.query(
+        "SELECT DISTINCT ItemName FROM TicketRevenueSummary"
       );
 
       res.json({
         details: data,
         summary: totals,
+        metadata: {
+          purchaseTypes: uniquePurchaseTypes.map((item) => item.PurchaseType),
+          itemNames: uniqueItemNames.map((item) => item.ItemName),
+          totalCount: data.length,
+          filteredCount: data.length,
+        },
       });
     } catch (err) {
       console.error("Error in /revenue:", err);
