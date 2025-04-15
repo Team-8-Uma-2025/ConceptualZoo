@@ -93,6 +93,18 @@ module.exports = (pool) => {
 
         // push animals and track their health, if there are animals in an enclosure
         if(row.AnimalID){
+          const checkupDate = row.LastVetCheckup ? new Date(row.LastVetCheckup) : null;
+          const vetAfterDate = vetAfter ? new Date(vetAfter) : null;
+          const vetBeforeDate = vetBefore ? new Date(vetBefore) : null;
+
+          if (
+            (vetAfterDate && (!checkupDate || checkupDate < vetAfterDate)) ||
+            (vetBeforeDate && (!checkupDate || checkupDate > vetBeforeDate))
+          ) {
+            continue;
+          }
+
+
           grouped[enclosureType][enclosureID].Animals.push({
             AnimalID: row.AnimalID,
             Name: row.AnimalName,
