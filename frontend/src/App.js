@@ -12,7 +12,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 // Pages
 import Home from "./pages/Home";
 import Animals from "./pages/Animals";
-import VisitorAnimalView from "./pages/VisitorAnimalView"
+import VisitorAnimalView from "./pages/VisitorAnimalView";
 import Attractions from "./pages/Attractions";
 import PlanVisit from "./pages/PlanVisit";
 import Tickets from "./pages/Tickets";
@@ -29,7 +29,7 @@ import EnclosureList from "./pages/EnclosureList";
 import EnclosureDetails from "./pages/EnclosureDetails";
 import AnimalDetails from "./pages/AnimalDetails";
 import GiftShop from "./pages/GiftShop";
-import AttractionDetails from './pages/AttractionDetails'
+import AttractionDetails from "./pages/AttractionDetails";
 import GiftShopManagement from "./pages/GiftShopManagement";
 import StaffManagement from "./pages/StaffManagement";
 import AnimalManagement from "./pages/AnimalManagement";
@@ -96,18 +96,36 @@ function AppContent() {
             <Route path="/dashboard/messages" element={<Messages />} />
             <Route path="/animals" element={<Dashboard />} />
 
-            <Route path="/dashboard/enclosures/:id" element={<EnclosureDetails />} /> 
-            <Route path="/dashboard/enclosures" element={<EnclosureDetails />} /> 
+            <Route
+              path="/dashboard/enclosures/:id"
+              element={<EnclosureDetails />}
+            />
+            <Route
+              path="/dashboard/enclosures"
+              element={<EnclosureDetails />}
+            />
 
-            <Route path="/dashboard/test1" element={<AnimalDetails />} /> 
+            <Route path="/dashboard/test1" element={<AnimalDetails />} />
 
-            <Route path="/dashboard/attractions" element={<AttractionDetails />} />
-            <Route path="/dashboard/attractions/:id" element={<AttractionDetails />} />
-            <Route path="/dashboard/gift-shop" element={<GiftShopManagement />} />
+            <Route
+              path="/dashboard/attractions"
+              element={<AttractionDetails />}
+            />
+            <Route
+              path="/dashboard/attractions/:id"
+              element={<AttractionDetails />}
+            />
+            <Route
+              path="/dashboard/gift-shop"
+              element={<GiftShopManagement />}
+            />
 
             <Route path="/dashboard/staff" element={<StaffManagement />} />
             <Route path="/dashboard/staff/:id" element={<StaffManagement />} />
-            <Route path="/dashboard/staff/:id/:action" element={<StaffManagement />} />
+            <Route
+              path="/dashboard/staff/:id/:action"
+              element={<StaffManagement />}
+            />
 
             <Route path="/dashboard/animals" element={<AnimalManagement />} />
 

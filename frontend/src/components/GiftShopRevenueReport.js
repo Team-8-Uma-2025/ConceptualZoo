@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import {
   Calendar,
@@ -7,11 +7,26 @@ import {
   ArrowUpDown,
   RefreshCw,
   BarChart2,
+  ChevronDown,
+  ChevronUp,
+  PieChart,
+  Store,
   ShoppingBag,
   Download,
-  PieChart,
-  BarChart,
 } from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  PieChart as RechartsPieChart,
+  Pie,
+  Cell,
+} from "recharts";
 
 const GiftShopRevenueReport = () => {
   const [loading, setLoading] = useState(true);
@@ -19,20 +34,15 @@ const GiftShopRevenueReport = () => {
     details: [],
     summary: [],
     topProducts: [],
-    metadata: {
-      giftShops: [],
-      categories: [],
-      productNames: [],
-    },
-    totals: {
-      revenue: 0,
-      quantity: 0,
-    },
+    metadata: { giftShops: [], categories: [], productNames: [] },
+    totals: { revenue: 0, quantity: 0 },
   });
   const [filteredData, setFilteredData] = useState({
     details: [],
     summary: [],
     topProducts: [],
+    metadata: { giftShops: [], categories: [], productNames: [] },
+    totals: { revenue: 0, quantity: 0 },
   });
   const [error, setError] = useState(null);
 
@@ -42,19 +52,42 @@ const GiftShopRevenueReport = () => {
     endDate: "",
   });
   const [giftShopFilter, setGiftShopFilter] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("All");
+  const [categoryFilter, setCategoryFilter] = useState("");
   const [productNameFilter, setProductNameFilter] = useState("");
-  const [minimumRevenue, setMinimumRevenue] = useState("");
+  const [minimumAmount, setMinimumAmount] = useState("");
+  const [maximumAmount, setMaximumAmount] = useState("");
   const [sortConfig, setSortConfig] = useState({
     key: "Date",
     direction: "desc",
   });
   const [showReport, setShowReport] = useState(false);
-  const [activeView, setActiveView] = useState("summary"); // "summary" or "details"
-  const [timeGrouping, setTimeGrouping] = useState("daily"); // "daily", "weekly", "monthly"
+  const [activeChart, setActiveChart] = useState("shop"); // shop, category, product
+  const [expandedSection, setExpandedSection] = useState(null);
+  const [showExportOptions, setShowExportOptions] = useState(false);
   const [profitMargin, setProfitMargin] = useState(30); // Default profit margin percentage
   const [showProfitColumn, setShowProfitColumn] = useState(false);
-  const [showExportOptions, setShowExportOptions] = useState(false);
+
+  const exportRef = useRef(null);
+  const clickOutsideRef = useRef(null);
+
+  // Chart colors
+  const COLORS = [
+    "#0088FE",
+    "#00C49F",
+    "#FFBB28",
+    "#FF8042",
+    "#8884D8",
+    "#82CA9D",
+    "#FCBF49",
+    "#F77F00",
+    "#D62828",
+    "#003049",
+    "#606C38",
+    "#283618",
+    "#DDA15E",
+    "#BC6C25",
+    "#3D405B",
+  ];
 
   useEffect(() => {
     if (showReport) {
@@ -62,21 +95,36 @@ const GiftShopRevenueReport = () => {
     }
   }, [showReport]);
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        clickOutsideRef.current &&
+        !clickOutsideRef.current.contains(event.target)
+      ) {
+        setShowExportOptions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   const fetchRevenueData = async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
-
       if (dateRange.startDate) params.append("startDate", dateRange.startDate);
       if (dateRange.endDate) params.append("endDate", dateRange.endDate);
       if (giftShopFilter) params.append("giftShopId", giftShopFilter);
-      if (categoryFilter !== "All") params.append("category", categoryFilter);
+      if (categoryFilter) params.append("category", categoryFilter);
       if (productNameFilter) params.append("productName", productNameFilter);
-      if (minimumRevenue) params.append("minRevenue", minimumRevenue);
-
-      // Add sorting parameters
-      params.append("sortBy", sortConfig.key);
-      params.append("sortDirection", sortConfig.direction);
+      if (minimumAmount) params.append("minRevenue", minimumAmount);
+      if (maximumAmount) params.append("maxRevenue", maximumAmount);
+      if (sortConfig.key) params.append("sortBy", sortConfig.key);
+      if (sortConfig.direction)
+        params.append("sortDirection", sortConfig.direction);
 
       const response = await axios.get(
         `/api/shop/revenue?${params.toString()}`,
@@ -85,17 +133,31 @@ const GiftShopRevenueReport = () => {
         }
       );
 
-      // Handle the response data
-      setRevenueData(response.data);
-      applyFilters(response.data);
+      // Log the response data to understand its structure
+      console.log("Revenue data response:", response.data);
+
+      // Ensure data has the expected structure
+      const processedData = {
+        details: response.data.details || [],
+        summary: response.data.summary || [],
+        topProducts: response.data.topProducts || [],
+        metadata: {
+          giftShops: response.data.metadata?.giftShops || [],
+          categories: response.data.metadata?.categories || [],
+          productNames: response.data.metadata?.productNames || [],
+        },
+        totals: {
+          revenue: response.data.totals?.revenue || 0,
+          quantity: response.data.totals?.quantity || 0,
+        },
+      };
+
+      setRevenueData(processedData);
+      setFilteredData(processedData);
       setError(null);
     } catch (err) {
-      console.error("Failed to fetch gift shop revenue data:", err);
-      setError(
-        `Failed to load revenue data: ${
-          err.response?.data?.error || err.message
-        }`
-      );
+      console.error("Failed to fetch revenue data:", err);
+      setError(`Failed to load revenue data: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -108,128 +170,63 @@ const GiftShopRevenueReport = () => {
     });
   };
 
-  const applyFilters = (data = revenueData) => {
-    if (!data.details || !data.summary || !data.topProducts) {
-      // If we're missing data, just use what we have
-      setFilteredData({
-        details: data.details || [],
-        summary: data.summary || [],
-        topProducts: data.topProducts || [],
-      });
-      return;
-    }
-
-    let filtered = [...data.details];
-
-    // Apply client-side filtering if needed
-    // Filter by minimum revenue (redundant if server already did this, but kept for flexibility)
-    if (minimumRevenue && !isNaN(parseFloat(minimumRevenue))) {
-      const minAmount = parseFloat(minimumRevenue);
-      filtered = filtered.filter(
-        (item) => parseFloat(item.TotalRevenue) >= minAmount
-      );
-    }
-
-    // Apply client-side category filter
-    if (categoryFilter !== "All") {
-      filtered = filtered.filter((item) => item.Category === categoryFilter);
-    }
-
-    // Apply client-side product name filter
-    if (productNameFilter) {
-      filtered = filtered.filter((item) =>
-        item.ProductName.toLowerCase().includes(productNameFilter.toLowerCase())
-      );
-    }
-
-    // Apply client-side shop filter
-    if (giftShopFilter) {
-      filtered = filtered.filter(
-        (item) => String(item.GiftShopID) === String(giftShopFilter)
-      );
-    }
-
-    setFilteredData({
-      details: filtered,
-      summary: data.summary,
-      topProducts: data.topProducts,
-    });
-  };
-
   const handleSort = (key) => {
     // If clicking the same key, toggle direction
     const direction =
       sortConfig.key === key && sortConfig.direction === "asc" ? "desc" : "asc";
 
     setSortConfig({ key, direction });
-
-    // Re-apply filters with new sort config
-    let filtered = [...filteredData.details];
-
-    filtered.sort((a, b) => {
-      if (key === "Date") {
-        const dateA = new Date(a.Date);
-        const dateB = new Date(b.Date);
-        return direction === "asc" ? dateA - dateB : dateB - dateA;
-      } else if (key === "TotalRevenue") {
-        return direction === "asc"
-          ? parseFloat(a.TotalRevenue) - parseFloat(b.TotalRevenue)
-          : parseFloat(b.TotalRevenue) - parseFloat(a.TotalRevenue);
-      } else if (key === "Quantity") {
-        return direction === "asc"
-          ? a.Quantity - b.Quantity
-          : b.Quantity - a.Quantity;
-      } else {
-        const valueA = a[key]?.toString().toLowerCase() || "";
-        const valueB = b[key]?.toString().toLowerCase() || "";
-        return direction === "asc"
-          ? valueA.localeCompare(valueB)
-          : valueB.localeCompare(valueA);
-      }
-    });
-
-    setFilteredData({
-      ...filteredData,
-      details: filtered,
-    });
   };
 
   const resetFilters = () => {
-    setDateRange({ startDate: "", endDate: "" });
+    setDateRange({
+      startDate: "",
+      endDate: "",
+    });
     setGiftShopFilter("");
-    setCategoryFilter("All");
+    setCategoryFilter("");
     setProductNameFilter("");
-    setMinimumRevenue("");
+    setMinimumAmount("");
+    setMaximumAmount("");
     setSortConfig({
       key: "Date",
       direction: "desc",
     });
-
-    if (revenueData.details) {
-      applyFilters(revenueData);
-    }
   };
 
   const generateReport = () => {
-    setShowReport(true);
-  };
-
-  const calculateTotalRevenue = () => {
-    if (revenueData.totals && typeof revenueData.totals.revenue === "number") {
-      return revenueData.totals.revenue.toFixed(2);
+    if (showReport) {
+      // If report is already showing, fetch new data with current filters
+      fetchRevenueData();
+      // Optional: Show loading state while fetching
+      setLoading(true);
+    } else {
+      // First time showing report
+      setShowReport(true);
     }
-
-    return (
-      filteredData.summary
-        ?.reduce((total, item) => total + Number(item.TotalRevenue), 0)
-        .toFixed(2) || "0.00"
-    );
   };
 
+  const toggleSection = (section) => {
+    setExpandedSection(expandedSection === section ? null : section);
+  };
+
+  // Format currency helper
+  const formatCurrency = (amount) => {
+    if (amount === undefined || amount === null) return "$0.00";
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+    }).format(amount);
+  };
+
+  // Calculate estimated profit based on revenue and profit margin
   const calculateEstimatedProfit = (revenue) => {
+    if (!revenue) return "0.00";
     return ((Number(revenue) * profitMargin) / 100).toFixed(2);
   };
 
+  // Export to CSV function
   const handleExport = () => {
     if (filteredData.details.length === 0) {
       alert("No data to export");
@@ -254,18 +251,14 @@ const GiftShopRevenueReport = () => {
 
     // Data rows
     filteredData.details.forEach((item) => {
-      const unitPrice = item.UnitPrice
-        ? Number(item.UnitPrice).toFixed(2)
-        : (Number(item.TotalRevenue) / Number(item.Quantity)).toFixed(2);
-
       const row = [
         new Date(item.Date).toLocaleDateString(),
-        item.GiftShopName,
-        `"${item.ProductName.replace(/"/g, '""')}"`, // Escape quotes in CSV
+        item.GiftShopName || "",
+        `"${(item.ProductName || "").replace(/"/g, '""')}"`, // Escape quotes in CSV
         item.Category || "Uncategorized",
-        item.Quantity,
-        unitPrice,
-        Number(item.TotalRevenue).toFixed(2),
+        item.Quantity || 0,
+        item.UnitPrice || 0,
+        item.TotalRevenue || 0,
       ];
 
       if (showProfitColumn) {
@@ -287,9 +280,80 @@ const GiftShopRevenueReport = () => {
     document.body.removeChild(link);
   };
 
+  // Prepare data for the charts - with additional safety checks
+  const prepareChartData = () => {
+    // Revenue by gift shop
+    const shopData = [];
+    const byShop = {};
+
+    if (Array.isArray(filteredData.details)) {
+      filteredData.details.forEach((item) => {
+        if (!item) return;
+        const shop = item.GiftShopName || "Unknown";
+        if (!byShop[shop]) {
+          byShop[shop] = {
+            name: shop,
+            revenue: 0,
+            quantity: 0,
+          };
+        }
+        byShop[shop].revenue += parseFloat(item.TotalRevenue || 0);
+        byShop[shop].quantity += parseInt(item.Quantity || 0, 10);
+      });
+    }
+
+    Object.values(byShop).forEach((shop) => {
+      shopData.push(shop);
+    });
+
+    // Revenue by category
+    const categoryData = [];
+    const byCategory = {};
+
+    if (Array.isArray(filteredData.details)) {
+      filteredData.details.forEach((item) => {
+        if (!item) return;
+        const category = item.Category || "Uncategorized";
+        if (!byCategory[category]) {
+          byCategory[category] = {
+            name: category,
+            revenue: 0,
+            quantity: 0,
+          };
+        }
+        byCategory[category].revenue += parseFloat(item.TotalRevenue || 0);
+        byCategory[category].quantity += parseInt(item.Quantity || 0, 10);
+      });
+    }
+
+    Object.values(byCategory).forEach((category) => {
+      categoryData.push(category);
+    });
+
+    // Top products - ensure array is available
+    const productData = Array.isArray(filteredData.topProducts)
+      ? filteredData.topProducts.map((product) => ({
+          ...product,
+          // Ensure all required properties exist
+          ProductName: product.ProductName || "Unknown",
+          TotalSold: product.TotalSold || 0,
+          TotalRevenue: product.TotalRevenue || 0,
+          Category: product.Category || "Uncategorized",
+        }))
+      : [];
+
+    return {
+      shopData,
+      categoryData,
+      productData,
+    };
+  };
+
+  const chartData = prepareChartData();
+
   return (
     <div>
-      {/* Filter Controls with improved UI */}
+      {/* Filter Controls */}
       <div className="bg-white p-6 rounded-lg shadow-md mb-6">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xl font-semibold font-['Mukta_Mahee'] flex items-center">
@@ -304,7 +368,7 @@ const GiftShopRevenueReport = () => {
               <RefreshCw size={14} className="mr-1" />
               Reset
             </button>
-            <div className="relative">
+            <div className="relative" ref={clickOutsideRef}>
               <button
                 onClick={() => setShowExportOptions(!showExportOptions)}
                 className="px-3 py-2 bg-blue-50 text-blue-700 rounded hover:bg-blue-100 flex items-center text-sm"
@@ -362,7 +426,7 @@ const GiftShopRevenueReport = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           {/* Date Range with improved calendar icons */}
-          <div className="col-span-full md:col-span-1">
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Date Range
             </label>
@@ -399,45 +463,33 @@ const GiftShopRevenueReport = () => {
             </div>
           </div>
 
-          {/* Time Grouping selector */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Time Grouping
-            </label>
-            <div className="flex gap-1 p-1 bg-gray-100 rounded-md">
-              {["daily", "weekly", "monthly"].map((option) => (
-                <button
-                  key={option}
-                  onClick={() => setTimeGrouping(option)}
-                  className={`flex-1 px-2 py-1 text-sm rounded ${
-                    timeGrouping === option
-                      ? "bg-white shadow-sm font-medium"
-                      : "text-gray-600 hover:bg-gray-200"
-                  }`}
-                >
-                  {option.charAt(0).toUpperCase() + option.slice(1)}
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Gift Shop Filter */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Gift Shop
             </label>
-            <select
-              value={giftShopFilter}
-              onChange={(e) => setGiftShopFilter(e.target.value)}
-              className="border border-gray-300 rounded px-3 py-2 w-full"
-            >
-              <option value="">All Gift Shops</option>
-              {revenueData.metadata?.giftShops?.map((shop) => (
-                <option key={shop.GiftShopID} value={shop.GiftShopID}>
-                  {shop.GiftShopName}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <Store
+                size={16}
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+              />
+              <select
+                value={giftShopFilter}
+                onChange={(e) => setGiftShopFilter(e.target.value)}
+                className="pl-10 border border-gray-300 rounded px-3 py-2 w-full appearance-none"
+              >
+                <option value="">All Gift Shops</option>
+                {revenueData.metadata?.giftShops?.map((shop) => (
+                  <option key={shop.GiftShopID} value={shop.GiftShopID}>
+                    {shop.GiftShopName}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                size={16}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"
+              />
+            </div>
           </div>
 
           {/* Rest of the filters with consistent styling */}
@@ -450,7 +502,7 @@ const GiftShopRevenueReport = () => {
               onChange={(e) => setCategoryFilter(e.target.value)}
               className="border border-gray-300 rounded px-3 py-2 w-full"
             >
-              <option value="All">All Categories</option>
+              <option value="">All Categories</option>
               {revenueData.metadata?.categories?.map((category) => (
                 <option key={category} value={category}>
                   {category}
@@ -480,17 +532,29 @@ const GiftShopRevenueReport = () => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Minimum Revenue ($)
+              Revenue Range ($)
             </label>
-            <input
-              type="number"
-              value={minimumRevenue}
-              onChange={(e) => setMinimumRevenue(e.target.value)}
-              className="border border-gray-300 rounded px-3 py-2 w-full"
-              placeholder="Min revenue amount"
-              min="0"
-              step="0.01"
-            />
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                value={minimumAmount}
+                onChange={(e) => setMinimumAmount(e.target.value)}
+                className="border border-gray-300 rounded px-3 py-2 w-full"
+                placeholder="Min"
+                min="0"
+                step="0.01"
+              />
+              <span>to</span>
+              <input
+                type="number"
+                value={maximumAmount}
+                onChange={(e) => setMaximumAmount(e.target.value)}
+                className="border border-gray-300 rounded px-3 py-2 w-full"
+                placeholder="Max"
+                min="0"
+                step="0.01"
+              />
+            </div>
           </div>
         </div>
 
@@ -503,198 +567,420 @@ const GiftShopRevenueReport = () => {
         </button>
       </div>
 
+      {/* Error message shown if there's an error */}
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          {error}
+        </div>
+      )}
+
       {showReport ? (
-        <>
-          {/* Report View Toggle with improved UI */}
-          <div className="flex mb-4 bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
-            <button
-              className={`flex-1 py-3 flex items-center justify-center transition-colors ${
-                activeView === "summary"
-                  ? "bg-green-50 text-green-700 font-semibold border-b-2 border-green-700"
-                  : "hover:bg-gray-50"
-              }`}
-              onClick={() => setActiveView("summary")}
-            >
-              <PieChart size={18} className="mr-2" />
-              Summary View
-            </button>
-            <button
-              className={`flex-1 py-3 flex items-center justify-center transition-colors ${
-                activeView === "details"
-                  ? "bg-green-50 text-green-700 font-semibold border-b-2 border-green-700"
-                  : "hover:bg-gray-50"
-              }`}
-              onClick={() => setActiveView("details")}
-            >
-              <BarChart size={18} className="mr-2" />
-              Detailed View
-            </button>
+        loading ? (
+          <div className="flex justify-center items-center p-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-700"></div>
+            <span className="ml-3 text-gray-600">Loading report data...</span>
           </div>
+        ) : (
+          <>
+            {/* Overall Summary Box - Enhanced with better visual hierarchy */}
+            <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+                <h3 className="text-xl font-semibold text-gray-800 font-['Mukta_Mahee'] mb-3 md:mb-0">
+                  Gift Shop Revenue Summary
+                </h3>
 
-          {loading ? (
-            <div className="flex justify-center py-8 bg-white p-6 rounded-lg shadow-md">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-700"></div>
-            </div>
-          ) : error ? (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-6 py-4 rounded mb-4 shadow-md">
-              <p className="font-semibold">Error</p>
-              <p>{error}</p>
-            </div>
-          ) : activeView === "summary" ? (
-            <>
-              {/* Revenue Summary Section with enhanced visuals */}
-              <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-                  <h3 className="text-xl font-semibold text-gray-700 font-['Mukta_Mahee'] mb-2 md:mb-0">
-                    Revenue Summary
-                  </h3>
+                <div className="bg-green-50 p-4 rounded-lg shadow-sm border border-green-100">
+                  <div className="text-3xl font-bold text-green-700 font-['Roboto_Flex'] flex items-center">
+                    <DollarSign size={24} className="inline" />
+                    {formatCurrency(filteredData.totals?.revenue || 0)}
+                  </div>
+                  <div className="text-green-600 text-sm mt-1 font-medium">
+                    Total Revenue
+                  </div>
+                </div>
+              </div>
 
-                  <div className="flex flex-col items-end">
-                    <span className="text-3xl font-bold text-green-700 font-['Roboto_Flex']">
-                      <DollarSign size={28} className="inline mb-1" />
-                      {calculateTotalRevenue()}
-                    </span>
-                    <span className="text-sm text-gray-500">
-                      {revenueData.totals?.quantity ||
-                        filteredData.details.reduce(
-                          (sum, item) => sum + Number(item.Quantity),
-                          0
-                        )}{" "}
-                      items sold
-                    </span>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                  <div className="text-lg font-medium text-gray-800 font-['Mukta_Mahee'] mb-2">
+                    Total Units Sold
+                  </div>
+                  <div className="text-2xl font-semibold text-gray-700">
+                    {filteredData.totals?.quantity || 0}
                   </div>
                 </div>
 
-                {/* Enhanced Category Summary Cards */}
-                <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {filteredData.summary?.length > 0 ? (
-                    filteredData.summary.map((item, index) => (
-                      <div
-                        key={index}
-                        className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
-                      >
-                        <h4 className="text-lg font-medium text-gray-800 font-['Mukta_Mahee'] mb-3">
-                          {item.Category || "Uncategorized"}
-                        </h4>
-                        <div className="flex justify-between mt-2 text-sm">
-                          <span className="text-gray-600 font-['Lora']">
-                            Quantity:
-                          </span>
-                          <span className="font-semibold">
-                            {item.TotalQuantity}
-                          </span>
-                        </div>
-                        <div className="flex justify-between mt-1 text-sm">
-                          <span className="text-gray-600 font-['Lora']">
-                            Revenue:
-                          </span>
-                          <span className="font-semibold">
-                            ${Number(item.TotalRevenue).toFixed(2)}
-                          </span>
-                        </div>
-                        <div className="mt-3 pt-3 border-t border-gray-100">
-                          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                            <div
-                              className="bg-green-500 h-full"
-                              style={{
-                                width: `${
-                                  (item.TotalRevenue /
-                                    calculateTotalRevenue()) *
-                                  100
-                                }%`,
-                              }}
-                            ></div>
-                          </div>
-                          <div className="text-xs text-right mt-1 text-gray-500">
-                            {(
-                              (Number(item.TotalRevenue) /
-                                Number(calculateTotalRevenue())) *
-                              100
-                            ).toFixed(1)}
-                            % of total
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="col-span-3 text-center py-6 text-gray-500">
-                      No data available for the selected filters.
-                    </div>
-                  )}
+                <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                  <div className="text-lg font-medium text-gray-800 font-['Mukta_Mahee'] mb-2">
+                    Avg Sale Value
+                  </div>
+                  <div className="text-2xl font-semibold text-gray-700">
+                    {filteredData.totals?.quantity &&
+                    filteredData.totals?.quantity > 0
+                      ? formatCurrency(
+                          filteredData.totals.revenue /
+                            filteredData.totals.quantity
+                        )
+                      : "$0.00"}
+                  </div>
                 </div>
 
-                {/* Top Selling Products Section */}
-                <div className="mt-8">
-                  <h3 className="text-lg font-semibold text-gray-700 font-['Mukta_Mahee'] mb-4 border-b pb-2">
-                    Top Selling Products
+                <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                  <div className="text-lg font-medium text-gray-800 font-['Mukta_Mahee'] mb-2">
+                    Shops Contributing
+                  </div>
+                  <div className="text-2xl font-semibold text-gray-700">
+                    {chartData.shopData.length}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Chart Section - Only show if we have data */}
+            {(chartData.shopData.length > 0 ||
+              chartData.categoryData.length > 0 ||
+              chartData.productData.length > 0) && (
+              <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-semibold text-gray-800 font-['Mukta_Mahee']">
+                    Revenue Visualization
                   </h3>
 
-                  {filteredData.topProducts?.length > 0 ? (
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Product
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Category
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Quantity Sold
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Total Revenue
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {filteredData.topProducts.map((product, index) => (
-                            <tr key={index}>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {product.ProductName}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {product.Category || "Uncategorized"}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {product.TotalSold}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                ${Number(product.TotalRevenue).toFixed(2)}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                  <div className="flex border border-gray-300 rounded-lg overflow-hidden">
+                    <button
+                      className={`px-4 py-2 text-sm ${
+                        activeChart === "shop"
+                          ? "bg-green-700 text-white"
+                          : "bg-gray-100 text-gray-700"
+                      }`}
+                      onClick={() => setActiveChart("shop")}
+                    >
+                      By Shop
+                    </button>
+                    <button
+                      className={`px-4 py-2 text-sm ${
+                        activeChart === "category"
+                          ? "bg-green-700 text-white"
+                          : "bg-gray-100 text-gray-700"
+                      }`}
+                      onClick={() => setActiveChart("category")}
+                    >
+                      By Category
+                    </button>
+                    <button
+                      className={`px-4 py-2 text-sm ${
+                        activeChart === "product"
+                          ? "bg-green-700 text-white"
+                          : "bg-gray-100 text-gray-700"
+                      }`}
+                      onClick={() => setActiveChart("product")}
+                    >
+                      Top Products
+                    </button>
+                  </div>
+                </div>
+
+                {/* The Chart */}
+                <div className="h-96">
+                  {activeChart === "shop" && chartData.shopData.length > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-full">
+                      <div className="h-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart
+                            data={chartData.shopData}
+                            margin={{
+                              top: 20,
+                              right: 30,
+                              left: 20,
+                              bottom: 70,
+                            }}
+                          >
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis
+                              dataKey="name"
+                              angle={-45}
+                              textAnchor="end"
+                              height={70}
+                              interval={0}
+                            />
+                            <YAxis />
+                            <Tooltip
+                              formatter={(value) => formatCurrency(value)}
+                              labelFormatter={(label) => `Gift Shop: ${label}`}
+                            />
+                            <Legend />
+                            <Bar
+                              dataKey="revenue"
+                              name="Revenue"
+                              fill="#0088FE"
+                            />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div className="h-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <RechartsPieChart>
+                            <Pie
+                              data={chartData.shopData}
+                              cx="50%"
+                              cy="50%"
+                              labelLine={false}
+                              label={({ name, percent }) =>
+                                `${name}: ${(percent * 100).toFixed(0)}%`
+                              }
+                              outerRadius={80}
+                              fill="#8884d8"
+                              dataKey="revenue"
+                              nameKey="name"
+                            >
+                              {chartData.shopData.map((entry, index) => (
+                                <Cell
+                                  key={`cell-${index}`}
+                                  fill={COLORS[index % COLORS.length]}
+                                />
+                              ))}
+                            </Pie>
+                            <Tooltip
+                              formatter={(value) => formatCurrency(value)}
+                            />
+                            <Legend />
+                          </RechartsPieChart>
+                        </ResponsiveContainer>
+                      </div>
                     </div>
-                  ) : (
-                    <div className="text-center py-8 text-gray-500">
-                      No top selling products data available.
+                  )}
+
+                  {activeChart === "category" &&
+                    chartData.categoryData.length > 0 && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-full">
+                        <div className="h-full">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart
+                              data={chartData.categoryData}
+                              margin={{
+                                top: 20,
+                                right: 30,
+                                left: 20,
+                                bottom: 70,
+                              }}
+                            >
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis
+                                dataKey="name"
+                                angle={-45}
+                                textAnchor="end"
+                                height={70}
+                                interval={0}
+                              />
+                              <YAxis />
+                              <Tooltip
+                                formatter={(value) => formatCurrency(value)}
+                                labelFormatter={(label) => `Category: ${label}`}
+                              />
+                              <Legend />
+                              <Bar
+                                dataKey="revenue"
+                                name="Revenue"
+                                fill="#00C49F"
+                              />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                        <div className="h-full">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <RechartsPieChart>
+                              <Pie
+                                data={chartData.categoryData}
+                                cx="50%"
+                                cy="50%"
+                                labelLine={false}
+                                label={({ name, percent }) =>
+                                  `${name}: ${(percent * 100).toFixed(0)}%`
+                                }
+                                outerRadius={80}
+                                fill="#8884d8"
+                                dataKey="revenue"
+                                nameKey="name"
+                              >
+                                {chartData.categoryData.map((entry, index) => (
+                                  <Cell
+                                    key={`cell-${index}`}
+                                    fill={COLORS[index % COLORS.length]}
+                                  />
+                                ))}
+                              </Pie>
+                              <Tooltip
+                                formatter={(value) => formatCurrency(value)}
+                              />
+                              <Legend />
+                            </RechartsPieChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                    )}
+
+                  {activeChart === "product" &&
+                    chartData.productData.length > 0 && (
+                      <div className="h-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart
+                            data={chartData.productData}
+                            margin={{
+                              top: 20,
+                              right: 30,
+                              left: 20,
+                              bottom: 70,
+                            }}
+                          >
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis
+                              dataKey="ProductName"
+                              angle={-45}
+                              textAnchor="end"
+                              height={70}
+                              interval={0}
+                            />
+                            <YAxis />
+                            <Tooltip
+                              formatter={(value) => formatCurrency(value)}
+                              labelFormatter={(label) => `Product: ${label}`}
+                            />
+                            <Legend />
+                            <Bar
+                              dataKey="TotalRevenue"
+                              name="Revenue"
+                              fill="#FFBB28"
+                            />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+
+                  {/* Show message if no data for the selected chart type */}
+                  {((activeChart === "shop" &&
+                    chartData.shopData.length === 0) ||
+                    (activeChart === "category" &&
+                      chartData.categoryData.length === 0) ||
+                    (activeChart === "product" &&
+                      chartData.productData.length === 0)) && (
+                    <div className="flex flex-col items-center justify-center h-full">
+                      <BarChart2 size={48} className="text-gray-300 mb-3" />
+                      <p className="text-gray-500">
+                        No data available for this chart type
+                      </p>
                     </div>
                   )}
                 </div>
               </div>
-            </>
-          ) : (
-            /* Detailed Report Section with Unit Price Column */
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <>
-                <h3 className="text-xl font-semibold mb-4 font-['Mukta_Mahee'] flex justify-between">
-                  <span>
-                    Detailed Revenue Report
-                    <span className="ml-2 text-sm font-normal text-gray-500">
-                      ({filteredData.details?.length || 0} records)
-                    </span>
-                  </span>
-                </h3>
+            )}
 
-                {!filteredData.details || filteredData.details.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    No records found matching your filters.
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
+            {/* Top Products Section with enhanced UI */}
+            <div className="bg-white rounded-lg shadow-md p-6 mb-6 transition-all duration-300">
+              <div
+                className="flex justify-between items-center cursor-pointer"
+                onClick={() => toggleSection("topProducts")}
+              >
+                <h3 className="text-xl font-semibold mb-0 text-gray-800 font-['Mukta_Mahee'] flex items-center">
+                  <ShoppingBag size={20} className="mr-2 text-green-700" />
+                  Top Selling Products
+                </h3>
+                <div className="bg-gray-100 rounded-full p-1">
+                  {expandedSection === "topProducts" ? (
+                    <ChevronUp size={20} className="text-gray-600" />
+                  ) : (
+                    <ChevronDown size={20} className="text-gray-600" />
+                  )}
+                </div>
+              </div>
+
+              {expandedSection === "topProducts" && (
+                <div className="mt-4 overflow-x-auto">
+                  {chartData.categoryData &&
+                  chartData.categoryData.length > 0 ? (
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Category
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Units Sold
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Revenue
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            % of Total
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {chartData.categoryData.map((category, idx) => (
+                          <tr
+                            key={idx}
+                            className={
+                              idx % 2 === 0 ? "bg-white" : "bg-gray-50"
+                            }
+                          >
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              {category.name}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {category.quantity}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
+                              {formatCurrency(category.revenue)}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {filteredData.totals &&
+                              filteredData.totals.revenue > 0
+                                ? (
+                                    (category.revenue /
+                                      filteredData.totals.revenue) *
+                                    100
+                                  ).toFixed(1) + "%"
+                                : "0%"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <div className="text-center py-4 text-gray-500">
+                      No category data available
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Detailed Transactions Section */}
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <div
+                className="flex justify-between items-center cursor-pointer"
+                onClick={() => toggleSection("detailedData")}
+              >
+                <h3 className="text-xl font-semibold mb-0 text-gray-800 font-['Mukta_Mahee'] flex items-center">
+                  <PieChart size={20} className="mr-2 text-green-700" />
+                  Detailed Revenue Data
+                </h3>
+                <div className="bg-gray-100 rounded-full p-1">
+                  {expandedSection === "detailedData" ? (
+                    <ChevronUp size={20} className="text-gray-600" />
+                  ) : (
+                    <ChevronDown size={20} className="text-gray-600" />
+                  )}
+                </div>
+              </div>
+
+              {expandedSection === "detailedData" && (
+                <div className="mt-4 overflow-x-auto">
+                  {loading ? (
+                    <div className="flex justify-center py-8">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-700"></div>
+                    </div>
+                  ) : filteredData.details &&
+                    filteredData.details.length > 0 ? (
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
@@ -738,8 +1024,13 @@ const GiftShopRevenueReport = () => {
                             {sortConfig.key === "Quantity" &&
                               (sortConfig.direction === "asc" ? "↑" : "↓")}
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Unit Price
+                          <th
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                            onClick={() => handleSort("UnitPrice")}
+                          >
+                            Unit Price{" "}
+                            {sortConfig.key === "UnitPrice" &&
+                              (sortConfig.direction === "asc" ? "↑" : "↓")}
                           </th>
                           <th
                             className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
@@ -751,59 +1042,84 @@ const GiftShopRevenueReport = () => {
                           </th>
                           {showProfitColumn && (
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Est. Profit ({profitMargin}%)
+                              Est. Profit
                             </th>
                           )}
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
-                        {filteredData.details.map((item, index) => {
-                          const unitPrice = item.UnitPrice
-                            ? Number(item.UnitPrice).toFixed(2)
-                            : (
-                                Number(item.TotalRevenue) /
-                                Number(item.Quantity)
-                              ).toFixed(2);
-                          return (
-                            <tr key={index}>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {new Date(item.Date).toLocaleDateString()}
-                              </td>
+                        {filteredData.details.map((item, idx) => (
+                          <tr
+                            key={idx}
+                            className={
+                              idx % 2 === 0 ? "bg-white" : "bg-gray-50"
+                            }
+                          >
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {item.Date
+                                ? new Date(item.Date).toLocaleDateString()
+                                : "N/A"}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {item.GiftShopName || "N/A"}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {item.ProductName || "N/A"}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {item.Category || "N/A"}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {item.Quantity || 0}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {formatCurrency(item.UnitPrice || 0)}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-green-700 font-semibold">
+                              {formatCurrency(item.TotalRevenue || 0)}
+                            </td>
+                            {showProfitColumn && (
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {item.GiftShopName}
+                                {formatCurrency(
+                                  calculateEstimatedProfit(item.TotalRevenue)
+                                )}
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {item.ProductName}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {item.Category || "Uncategorized"}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {item.Quantity}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {unitPrice}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                ${Number(item.TotalRevenue).toFixed(2)}
-                              </td>
-                              {showProfitColumn && (
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                  ${calculateEstimatedProfit(item.TotalRevenue)}
-                                </td>
-                              )}
-                            </tr>
-                          );
-                        })}
+                            )}
+                          </tr>
+                        ))}
                       </tbody>
                     </table>
-                  </div>
-                )}
-              </>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      No revenue data available for the selected filters.
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          )}
-        </>
-      ) : null}
+          </>
+        )
+      ) : (
+        <div className="bg-gray-50 p-12 rounded-lg border-2 border-dashed border-gray-300 text-center">
+          <div className="bg-green-50 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
+            <BarChart2 size={40} className="text-green-600" />
+          </div>
+          <h3 className="text-xl font-semibold mb-2 text-gray-700 font-['Mukta_Mahee']">
+            Generate your Gift Shop Revenue Report
+          </h3>
+          <p className="text-gray-500 mb-6 max-w-lg mx-auto">
+            Select your filtering options above and click "Generate Report" to
+            view detailed revenue information and analytics for all gift shops.
+          </p>
+          <button
+            onClick={generateReport}
+            className="px-4 py-2 bg-green-700 text-white rounded-lg hover:bg-green-600 flex items-center mx-auto shadow-sm"
+          >
+            <Filter size={16} className="mr-2" />
+            Generate Report
+          </button>
+        </div>
+      )}
     </div>
   );
 };
