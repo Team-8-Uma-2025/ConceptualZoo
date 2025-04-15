@@ -1022,117 +1022,119 @@ const GiftShopManagement = () => {
                 </div>
               ) : (
                 <div className="space-y-6">
-                  {transactions.map((transaction) => (
-                    <div
-                      key={transaction.transactionId}
-                      className="border border-gray-200 rounded-lg overflow-hidden"
-                    >
+                  {transactions
+                    .sort((a, b) => new Date(b.datetime) - new Date(a.datetime))
+                    .map((transaction) => (
                       <div
-                        className="bg-gray-50 px-6 py-4 flex justify-between items-center cursor-pointer"
-                        onClick={() =>
-                          handleToggleSection(
-                            `transaction-${transaction.transactionId}`
-                          )
-                        }
+                        key={transaction.transactionId}
+                        className="border border-gray-200 rounded-lg overflow-hidden"
                       >
-                        <div>
-                          <div className="font-semibold text-gray-700">
-                            Transaction #{transaction.transactionId}
-                            {transaction.visitorName && (
-                              <span className="ml-2 text-sm font-normal text-gray-500">
-                                - Customer: {transaction.visitorName}
-                              </span>
+                        <div
+                          className="bg-gray-50 px-6 py-4 flex justify-between items-center cursor-pointer"
+                          onClick={() =>
+                            handleToggleSection(
+                              `transaction-${transaction.transactionId}`
+                            )
+                          }
+                        >
+                          <div>
+                            <div className="font-semibold text-gray-700">
+                              Transaction #{transaction.transactionId}
+                              {transaction.visitorName && (
+                                <span className="ml-2 text-sm font-normal text-gray-500">
+                                  - Customer: {transaction.visitorName}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {new Date(transaction.datetime).toLocaleString()}{" "}
+                              | {transaction.giftShopName}
+                            </div>
+                          </div>
+                          <div className="flex items-center">
+                            <span className="font-bold text-green-700 mr-3">
+                              ${formatPrice(transaction.totalPaid)}
+                            </span>
+                            {expandedSection ===
+                            `transaction-${transaction.transactionId}` ? (
+                              <ChevronUp size={18} />
+                            ) : (
+                              <ChevronDown size={18} />
                             )}
                           </div>
-                          <div className="text-sm text-gray-500">
-                            {new Date(transaction.datetime).toLocaleString()} |{" "}
-                            {transaction.giftShopName}
-                          </div>
                         </div>
-                        <div className="flex items-center">
-                          <span className="font-bold text-green-700 mr-3">
-                            ${formatPrice(transaction.totalPaid)}
-                          </span>
-                          {expandedSection ===
-                          `transaction-${transaction.transactionId}` ? (
-                            <ChevronUp size={18} />
-                          ) : (
-                            <ChevronDown size={18} />
-                          )}
-                        </div>
-                      </div>
 
-                      {expandedSection ===
-                        `transaction-${transaction.transactionId}` && (
-                        <div className="p-6 border-t border-gray-200">
-                          <h4 className="text-sm font-semibold text-gray-700 mb-3">
-                            Items Purchased:
-                          </h4>
-                          <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                              <thead className="bg-gray-50">
-                                <tr>
-                                  <th
-                                    scope="col"
-                                    className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                  >
-                                    Product
-                                  </th>
-                                  <th
-                                    scope="col"
-                                    className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                  >
-                                    Quantity
-                                  </th>
-                                  <th
-                                    scope="col"
-                                    className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                  >
-                                    Unit Price
-                                  </th>
-                                  <th
-                                    scope="col"
-                                    className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                  >
-                                    Subtotal
-                                  </th>
-                                </tr>
-                              </thead>
-                              <tbody className="bg-white divide-y divide-gray-200">
-                                {transaction.items.map((item, index) => (
-                                  <tr key={index}>
-                                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
-                                      {item.productName}
+                        {expandedSection ===
+                          `transaction-${transaction.transactionId}` && (
+                          <div className="p-6 border-t border-gray-200">
+                            <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                              Items Purchased:
+                            </h4>
+                            <div className="overflow-x-auto">
+                              <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                  <tr>
+                                    <th
+                                      scope="col"
+                                      className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    >
+                                      Product
+                                    </th>
+                                    <th
+                                      scope="col"
+                                      className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    >
+                                      Quantity
+                                    </th>
+                                    <th
+                                      scope="col"
+                                      className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    >
+                                      Unit Price
+                                    </th>
+                                    <th
+                                      scope="col"
+                                      className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    >
+                                      Subtotal
+                                    </th>
+                                  </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                  {transaction.items.map((item, index) => (
+                                    <tr key={index}>
+                                      <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                                        {item.productName}
+                                      </td>
+                                      <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                                        {item.quantity}
+                                      </td>
+                                      <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                                        ${formatPrice(item.unitPrice)}
+                                      </td>
+                                      <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
+                                        ${formatPrice(item.subtotal)}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                  <tr className="bg-gray-50">
+                                    <td
+                                      colSpan="3"
+                                      className="px-4 py-2 text-right font-semibold text-gray-700"
+                                    >
+                                      Total:
                                     </td>
-                                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
-                                      {item.quantity}
-                                    </td>
-                                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
-                                      ${formatPrice(item.unitPrice)}
-                                    </td>
-                                    <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
-                                      ${formatPrice(item.subtotal)}
+                                    <td className="px-4 py-2 font-bold text-green-700">
+                                      ${formatPrice(transaction.totalPaid)}
                                     </td>
                                   </tr>
-                                ))}
-                                <tr className="bg-gray-50">
-                                  <td
-                                    colSpan="3"
-                                    className="px-4 py-2 text-right font-semibold text-gray-700"
-                                  >
-                                    Total:
-                                  </td>
-                                  <td className="px-4 py-2 font-bold text-green-700">
-                                    ${formatPrice(transaction.totalPaid)}
-                                  </td>
-                                </tr>
-                              </tbody>
-                            </table>
+                                </tbody>
+                              </table>
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                        )}
+                      </div>
+                    ))}
                 </div>
               )}
             </div>
