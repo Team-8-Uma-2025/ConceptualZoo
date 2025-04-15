@@ -1,4 +1,4 @@
-// src/pages/EnclosureReports.js
+// src/pages/EnclosureReport.js
 import React, { useEffect, useState} from 'react';
 import axios from 'axios';
 
@@ -11,7 +11,9 @@ const EnclosureReport = () => {
     const [filters, setFilters] = useState({
         type: '',
         minCapacity: '',
-        maxCapacity: ''
+        maxCapacity: '',
+        vetAfter: '',
+        vetBefore: ''
     });
 
     const handleChange = (e) => {
@@ -31,6 +33,8 @@ const EnclosureReport = () => {
             if (filters.type) params.append('type', filters.type);
             if (filters.minCapacity) params.append('minCapacity', filters.minCapacity);
             if (filters.maxCapacity) params.append('maxCapacity', filters.maxCapacity);
+            if (filters.vetAfter) params.append('vetAfter', filters.vetAfter);  
+            if (filters.vetBefore) params.append('vetBefore', filters.vetBefore);
 
             const response = await axios.get(`/api/enclosures/report?${params.toString()}`, {
                 headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
@@ -99,6 +103,27 @@ const EnclosureReport = () => {
                             className="w-full border border-gray-300 p-2 rounded font-['Lora']"
                         />
                     </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">Vet Checkup From</label>
+                        <input
+                            type="date"
+                            name="vetAfter"
+                            value={filters.vetAfter || ""}
+                            onChange={handleChange}
+                            className="w-full border border-gray-300 p-2 rounded font-['Lora']"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">Vet Checkup To</label>
+                        <input
+                            type="date"
+                            name="vetBefore"
+                            value={filters.vetBefore || ""}
+                            onChange={handleChange}
+                            className="w-full border border-gray-300 p-2 rounded font-['Lora']"
+                        />
+                    </div>
+
                 </div>
                 {/* button */}
                 <div className="mt-4">
@@ -109,6 +134,8 @@ const EnclosureReport = () => {
             </div>
 
             {/* display report */}
+            {loading && <p className="text-gray-700 font-['Lora']">Loading report...</p>}
+            {error && <p className="text-red-600 font-['Lora']">{error}</p>}
             {!loading && !error && Object.entries(reportData).map(([type, enclosures]) => (
                 <div key={type} className="mb-12">
                     <h2 className="text-2xl font-bold mb-4 font-['Roboto_Flex']">Section: {type} </h2>
@@ -131,8 +158,12 @@ const EnclosureReport = () => {
                                         <thead>
                                             <tr className="bg-gray-200">
                                                 <th className="border px-4 py-2">Name</th>
+                                                <th className="border px-4 py-2">Animal ID</th>
                                                 <th className="border px-4 py-2">Species</th>
+                                                <th className="border px-4 py-2">Gender</th>
                                                 <th className="border px-4 py-2">Health</th>
+                                                <th className="border px-4 py-2">Danger Level</th>
+                                                <th className="border px-4 py-2">Last Vet Checkup</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -140,8 +171,14 @@ const EnclosureReport = () => {
                                                 enclosure.Animals.map(animal => (
                                                     <tr key={animal.AnimalID}>
                                                         <td className="border px-4 py-1">{animal.Name}</td>
+                                                        <td className="border px-4 py-1">{animal.AnimalID}</td>
                                                         <td className="border px-4 py-1">{animal.Species}</td>
+                                                        <td className="border px-4 py-1">{animal.Gender}</td>
                                                         <td className="border px-4 py-1">{animal.HealthStatus}</td>
+                                                        <td className="border px-4 py-1">{animal.DangerLevel}</td>
+                                                        <td className="border px-4 py-1">
+                                                            {animal.LastVetCheckup ? new Date(animal.LastVetCheckup).toLocaleDateString() : "N/A"}
+                                                        </td>
                                                     </tr>
                                                 ))
                                             ) : (
