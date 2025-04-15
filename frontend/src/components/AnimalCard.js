@@ -1,5 +1,5 @@
 // src/components/AnimalCard.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ClipboardList, MoreHorizontal, Activity, HeartPulse } from 'lucide-react';
 import AnimalObservationModal from './AnimalObservationModal';
 import EditAnimalModal from './EditAnimalModal';
@@ -7,7 +7,7 @@ import HealthStatusModal from './HealthStatusModal';
 import VetCheckupModal from './VetCheckupModal';
 import { useAuth } from '../context/AuthContext';
 
-const AnimalCard = ({ animal, refreshAnimals }) => {
+const AnimalCard = ({ animal, refreshAnimals, autoOpenObservations = false }) => {
   const { currentUser } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -29,6 +29,13 @@ const AnimalCard = ({ animal, refreshAnimals }) => {
   
   // Check if user can perform checkups (only vets)
   const canPerformCheckup = isVet;
+
+  // Auto-open the observations modal if the autoOpenObservations prop is true
+  useEffect(() => {
+    if (autoOpenObservations) {
+      setIsModalOpen(true);
+    }
+  }, [autoOpenObservations]);
 
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
