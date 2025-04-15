@@ -61,6 +61,12 @@ const GiftShopManagement = () => {
   const [transactionsLoading, setTransactionsLoading] = useState(false);
   const [transactionsError, setTransactionsError] = useState(null);
   const [filterShopId, setFilterShopId] = useState("");
+  const [customerSearchQuery, setCustomerSearchQuery] = useState("");
+
+  // Check if user can access revenue reports (Manager or Admin only)
+  const canAccessReports =
+    currentUser &&
+    (currentUser.staffRole === "Manager" || currentUser.staffType === "Admin");
 
   // Categories options
   const categories = [
@@ -493,17 +499,19 @@ const GiftShopManagement = () => {
               <DollarSign size={18} className="mr-2" />
               Transactions
             </button>
-            <button
-              className={`px-6 py-3 font-medium text-sm font-['Mukta_Mahee'] flex items-center ${
-                activeTab === "reports"
-                  ? "text-green-700 border-b-2 border-green-700"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-              onClick={() => setActiveTab("reports")}
-            >
-              <BarChart2 size={18} className="mr-2" />
-              Revenue Reports
-            </button>
+            {canAccessReports && (
+              <button
+                className={`px-6 py-3 font-medium text-sm font-['Mukta_Mahee'] flex items-center ${
+                  activeTab === "reports"
+                    ? "text-green-700 border-b-2 border-green-700"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+                onClick={() => setActiveTab("reports")}
+              >
+                <BarChart2 size={18} className="mr-2" />
+                Revenue Reports
+              </button>
+            )}
           </div>
         </div>
 
@@ -984,24 +992,41 @@ const GiftShopManagement = () => {
                   Sales Transactions
                 </h2>
 
-                {/* Gift Shop Filter */}
-                <div>
-                  <select
-                    value={filterShopId}
-                    onChange={(e) => {
-                      setFilterShopId(e.target.value);
-                      // Fetch transactions with new filter
-                      fetchTransactions(e.target.value);
-                    }}
-                    className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
-                  >
-                    <option value="">All Gift Shops</option>
-                    {giftShops.map((shop) => (
-                      <option key={shop.GiftShopID} value={shop.GiftShopID}>
-                        {shop.GiftShopName}
-                      </option>
-                    ))}
-                  </select>
+                {/* Filter and Search Controls */}
+                <div className="flex items-center space-x-4">
+                  {/* Customer Search */}
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Search size={16} className="text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Search customer..."
+                      value={customerSearchQuery}
+                      onChange={(e) => setCustomerSearchQuery(e.target.value)}
+                      className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 w-48"
+                    />
+                  </div>
+
+                  {/* Gift Shop Filter */}
+                  <div>
+                    <select
+                      value={filterShopId}
+                      onChange={(e) => {
+                        setFilterShopId(e.target.value);
+                        // Fetch transactions with new filter
+                        fetchTransactions(e.target.value);
+                      }}
+                      className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                    >
+                      <option value="">All Gift Shops</option>
+                      {giftShops.map((shop) => (
+                        <option key={shop.GiftShopID} value={shop.GiftShopID}>
+                          {shop.GiftShopName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
 
@@ -1024,6 +1049,14 @@ const GiftShopManagement = () => {
                 <div className="space-y-6">
                   {transactions
                     .sort((a, b) => new Date(b.datetime) - new Date(a.datetime))
+                    .filter(
+                      (transaction) =>
+                        !customerSearchQuery ||
+                        (transaction.visitorName &&
+                          transaction.visitorName
+                            .toLowerCase()
+                            .includes(customerSearchQuery.toLowerCase()))
+                    )
                     .map((transaction) => (
                       <div
                         key={transaction.transactionId}
@@ -1142,12 +1175,32 @@ const GiftShopManagement = () => {
         )}
 
         {/* Reports Tab */}
-        {activeTab === "reports" && (
+        {activeTab === "reports" && canAccessReports && (
           <div className="bg-white rounded-lg shadow-md p-6 mb-8">
             <h2 className="text-2xl font-bold mb-6 font-['Roboto_Flex']">
               Gift Shop Revenue Reports
             </h2>
             <GiftShopRevenueReport />
+          </div>
+        )}
+
+        {/* Access Denied Message for Reports Tab */}
+        {activeTab === "reports" && !canAccessReports && (
+          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+            <div className="text-center py-12">
+              <AlertTriangle
+                size={48}
+                className="mx-auto text-amber-500 mb-4"
+              />
+              <h2 className="text-2xl font-bold mb-2 font-['Roboto_Flex']">
+                Access Restricted
+              </h2>
+              <p className="text-gray-600 font-['Lora'] max-w-lg mx-auto">
+                Revenue reports are only available to Gift Shop Managers and
+                Administrators. Please contact your manager if you need access
+                to this information.
+              </p>
+            </div>
           </div>
         )}
       </div>
