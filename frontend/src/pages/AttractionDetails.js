@@ -133,7 +133,12 @@ const AttractionDetails = () => {
         const { name, value } = a.target;
         setFormData((prev) => ({
             ...prev,    
-            [name]: name === "StaffID" ? parseInt(value) : value
+            [name]:
+                name === "StaffID"
+                    ? parseInt(value)
+                    : name === "EndTimeStamp" && value === ""
+                    ? null
+                    : value,
         }));
     };
 
@@ -456,10 +461,9 @@ const AttractionDetails = () => {
                                     <input 
                                         type="datetime-local"
                                         name="EndTimeStamp"
-                                        value={formData.EndTimeStamp}
+                                        value={formData.EndTimeStamp || ""}
                                         onChange={handleChange}
                                         className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
-                                        required
                                     />
                                 </div>
 
@@ -590,15 +594,27 @@ const AttractionDetails = () => {
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
-                                        End Time
+                                        End Time (Select "clear" if this is a permanent attraction)
                                     </label>
                                     <input 
                                         type="datetime-local"
                                         name="EndTimeStamp"
-                                        value={formData.EndTimeStamp}
-                                        onChange={handleChange}
+                                        onChange={(a) => {
+                                            // Always trim whitespace so that accidental spaces don’t sneak in
+                                            const { name, value } = a.target;
+                                            setFormData((prev) => ({
+                                              ...prev,
+                                              [name]: value.trim(), // sets to "" when cleared
+                                            }));
+                                          }}
+                                          onBlur={(a) => {
+                                            // If the user leaves the field empty (or with only spaces), ensure we reset it to ""
+                                            if (a.target.value.trim() === "") {
+                                              setFormData((prev) => ({ ...prev, EndTimeStamp: "" }));
+                                            }
+                                          }}
                                         className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
-                                        required
+                                        placeholder="Leave blank if permanent"
                                     />
                                 </div>
 
@@ -705,7 +721,9 @@ const AttractionDetails = () => {
                                     <tr className="border-b">
                                         <td className="py-2 pr-4 font-semibold font-['Mukta_Mahee']">End Time:</td>
                                         <td className="py-2 font-['Lora']">
-                                            {new Date(selectedAttraction.EndTimeStamp).toLocaleString()}
+                                        {selectedAttraction.EndTimeStamp
+                                            ? new Date(selectedAttraction.EndTimeStamp).toLocaleString()
+                                            : <span className="text-gray-500">Permanent</span>}
                                         </td>
                                     </tr>
                                     <tr className="border-b">
