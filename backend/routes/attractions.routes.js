@@ -97,14 +97,22 @@ module.exports = (pool) => {
                 return res.status(400).json({ error: 'Fields (staffID, location, startTimeStamp, title, Description, picture) are required' });
             }
 
-            const safeEndTime = EndTimeStamp === "" ? null : EndTimeStamp;
+            // Handle EndTimeStamp: if blank, use null; otherwise, format it for MySQL.
+            let formattedEndTime = null;
+            if (typeof EndTimeStamp === 'string' && EndTimeStamp.trim() !== "") {
+                const date = new Date(EndTimeStamp.trim());
+                formattedEndTime = date.toISOString().slice(0, 19).replace('T', ' ');
+            }
+            // Otherwise, formattedEndTime remains null
+
+            //const safeEndTime = EndTimeStamp === "" ? null : EndTimeStamp;
 
             // add attraction
             const [result] = await pool.query(`
                 INSERT INTO attraction (StaffID, Location, StartTimeStamp, EndTimeStamp, 
                     Title, Description, Picture)
                 VALUES(?, ?, ?, ?, ?, ?, ?)`,
-                [StaffID, Location, StartTimeStamp, safeEndTime, Title, Description, Picture]
+                [StaffID, Location, StartTimeStamp, formattedEndTime, Title, Description, Picture]
             );
 
             console.log("BODY RECEIVED FROM FRONTEND:", req.body);
