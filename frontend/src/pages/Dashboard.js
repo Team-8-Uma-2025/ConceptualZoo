@@ -138,17 +138,14 @@ const Dashboard = () => {
     // Define access rules in a more organized way
     const accessRules = {
       notifications: true, // All staff have access
-      staffManagement: staffRole === "Manager",
-      sickAnimals:
-        staffType === "Vet" ||
-        (staffType === "Zookeeper" && staffRole === "Manager"), // zookeeper manager possibly
-      enclosures: staffType === "Zookeeper" || staffType === "Vet",
-      attractions: staffType === "Zookeeper",
-      giftShop: staffType === "Gift Shop Clerk" || staffType === "Admin",
-      revenue: staffRole === "Manager" && staffType === "Admin",
-      animalManagement:
-        staffRole === "Manager" &&
-        (staffType === "Admin" || staffType === "Zookeeper"),
+      staffManagement: staffRole === 'Manager',
+      sickAnimals: staffType === 'Vet' || (staffType === 'Zookeeper' && staffRole === 'Manager'), // zookeeper manager possibly
+      enclosures: staffType === 'Zookeeper' || staffType === 'Vet'|| staffType === 'Admin',
+      attractions: staffType === 'Zookeeper' || staffType === 'Admin',
+      giftShop: staffType === 'Gift Shop Clerk' || staffType === 'Admin',
+      revenue: staffRole === 'Manager' && staffType === 'Admin',
+      animalManagement: staffRole === 'Manager' && (staffType === 'Admin' || staffType === 'Zookeeper')
+
     };
 
     return accessRules[moduleType] || false;

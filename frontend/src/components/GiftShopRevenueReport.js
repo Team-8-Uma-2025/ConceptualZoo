@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import {
   Calendar,
@@ -12,7 +12,6 @@ import {
   PieChart,
   Store,
   ShoppingBag,
-  Download,
 } from "lucide-react";
 import {
   BarChart,
@@ -63,12 +62,8 @@ const GiftShopRevenueReport = () => {
   const [showReport, setShowReport] = useState(false);
   const [activeChart, setActiveChart] = useState("shop"); // shop, category, product
   const [expandedSection, setExpandedSection] = useState(null);
-  const [showExportOptions, setShowExportOptions] = useState(false);
   const [profitMargin, setProfitMargin] = useState(30); // Default profit margin percentage
   const [showProfitColumn, setShowProfitColumn] = useState(false);
-
-  const exportRef = useRef(null);
-  const clickOutsideRef = useRef(null);
 
   // Chart colors
   const COLORS = [
@@ -94,22 +89,6 @@ const GiftShopRevenueReport = () => {
       fetchRevenueData();
     }
   }, [showReport]);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        clickOutsideRef.current &&
-        !clickOutsideRef.current.contains(event.target)
-      ) {
-        setShowExportOptions(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
 
   const fetchRevenueData = async () => {
     try {
@@ -226,60 +205,6 @@ const GiftShopRevenueReport = () => {
     return ((Number(revenue) * profitMargin) / 100).toFixed(2);
   };
 
-  // Export to CSV function
-  const handleExport = () => {
-    if (filteredData.details.length === 0) {
-      alert("No data to export");
-      return;
-    }
-
-    let csvContent = "data:text/csv;charset=utf-8,";
-
-    // Headers
-    const headers = [
-      "Date",
-      "Gift Shop",
-      "Product",
-      "Category",
-      "Quantity",
-      "Unit Price",
-      "Revenue",
-    ];
-    if (showProfitColumn) headers.push("Est. Profit");
-
-    csvContent += headers.join(",") + "\n";
-
-    // Data rows
-    filteredData.details.forEach((item) => {
-      const row = [
-        new Date(item.Date).toLocaleDateString(),
-        item.GiftShopName || "",
-        `"${(item.ProductName || "").replace(/"/g, '""')}"`, // Escape quotes in CSV
-        item.Category || "Uncategorized",
-        item.Quantity || 0,
-        item.UnitPrice || 0,
-        item.TotalRevenue || 0,
-      ];
-
-      if (showProfitColumn) {
-        row.push(calculateEstimatedProfit(item.TotalRevenue));
-      }
-
-      csvContent += row.join(",") + "\n";
-    });
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute(
-      "download",
-      `gift_shop_revenue_${new Date().toISOString().slice(0, 10)}.csv`
-    );
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   // Prepare data for the charts - with additional safety checks
   const prepareChartData = () => {
     // Revenue by gift shop
@@ -368,59 +293,6 @@ const GiftShopRevenueReport = () => {
               <RefreshCw size={14} className="mr-1" />
               Reset
             </button>
-            <div className="relative" ref={clickOutsideRef}>
-              <button
-                onClick={() => setShowExportOptions(!showExportOptions)}
-                className="px-3 py-2 bg-blue-50 text-blue-700 rounded hover:bg-blue-100 flex items-center text-sm"
-              >
-                <Download size={14} className="mr-1" />
-                Export
-              </button>
-              {showExportOptions && (
-                <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200">
-                  <div className="p-3">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Export Options
-                    </label>
-                    <div className="flex items-center mb-2">
-                      <input
-                        type="checkbox"
-                        id="profit-column"
-                        checked={showProfitColumn}
-                        onChange={() => setShowProfitColumn(!showProfitColumn)}
-                        className="mr-2"
-                      />
-                      <label htmlFor="profit-column" className="text-sm">
-                        Include profit estimate
-                      </label>
-                    </div>
-                    {showProfitColumn && (
-                      <div className="mb-2">
-                        <label className="block text-xs text-gray-500 mb-1">
-                          Profit Margin %
-                        </label>
-                        <input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={profitMargin}
-                          onChange={(e) =>
-                            setProfitMargin(Number(e.target.value))
-                          }
-                          className="w-full p-1 text-sm border rounded"
-                        />
-                      </div>
-                    )}
-                    <button
-                      onClick={handleExport}
-                      className="w-full mt-2 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
-                    >
-                      Download CSV
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
         </div>
 
