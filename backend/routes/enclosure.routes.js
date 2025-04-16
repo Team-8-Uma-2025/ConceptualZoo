@@ -143,6 +143,19 @@ module.exports = (pool) => {
           delete grouped[type];
         }
       }
+      
+      // EXTRA: Remove enclosures with no animals after all filtering (vet dates, capacity, etc.)
+      for (const type in grouped) {
+        for (const id in grouped[type]) {
+          if (grouped[type][id].Animals.length === 0) {
+            delete grouped[type][id];
+          }
+        }
+        if (Object.keys(grouped[type]).length === 0) {
+          delete grouped[type];
+        }
+      }
+
 
       res.json(grouped);
 

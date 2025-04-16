@@ -55,6 +55,8 @@ const EnclosureReport = () => {
         fetchReport();
     }, []);
 
+    
+
     return (
         <div className="bg-gray-100 min-h-screen pt-20">
             <div className="container mx-auto px-4 py-12">
@@ -145,15 +147,31 @@ const EnclosureReport = () => {
                                 <h3 className="text-xl font-semibold mb-2 font-['Mukta_Mahee']">[Enclosure: "{enclosure.Name}"]</h3>
                                 <ul>
                                     <li>Type: {enclosure.Type} | Location: {enclosure.Location} | Capacity: {enclosure.Capacity}</li>
-                                    <li>Capacity Usage: {enclosure.CapacityUsage}%</li>
+                                    
                                     <li>
                                         Health Summary: {" "}
                                         {Object.entries(enclosure.HealthBreakdown).map(([status, count]) => 
-                                            `${count} ${status}`).join(", ")
+                                            `${count} ${status}`).join(" | ")
                                         }
                                     </li>
                                 </ul>
+
+                                {/* if vet filters are active dont show capacity */}
+                                <div className="bg-gray-50 p-3 rounded shadow-sm mb-4">
+                                    {filters.vetAfter || filters.vetBefore ? (
+                                        <p className="text-sm text-gray-900">
+                                            {enclosure.Animals.length > 0
+                                            ? `Showing ${enclosure.Animals.length} animal${enclosure.Animals.length > 1 ? 's' : ''} with a vet checkup in that period.`
+                                            : "No animals had a vet checkup in the specified date range."}
+                                        </p>
+                                    ) : (
+                                        <p className="text-sm text-gray-900">
+                                        Capacity Usage: <strong>{enclosure.CapacityUsage}%</strong>
+                                        </p>
+                                    )}
+                                </div>
                                 {/* animal tables for enclosure */}
+
                                 <table className="table-auto w-full text-left border border-collapse font-['Lora'] text-sm">
                                         <thead>
                                             <tr className="bg-gray-200">
