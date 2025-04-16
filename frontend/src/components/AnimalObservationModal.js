@@ -1,8 +1,8 @@
-// src/components/AnimalObservationModal.js
+// src/components/AnimalObservationModal.js - Clean display for vet checkups
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
-import { X, CheckCircle, Clock } from 'lucide-react';
+import { X, CheckCircle, Clock, Stethoscope, Heart } from 'lucide-react';
 
 const AnimalObservationModal = ({ animal, isOpen, onClose }) => {
   const { currentUser } = useAuth();
@@ -18,30 +18,29 @@ const AnimalObservationModal = ({ animal, isOpen, onClose }) => {
   const canAcknowledgeObservations = currentUser?.role === 'staff' &&
     currentUser?.staffType === 'Vet';
 
+  const fetchObservations = useCallback(async () => {
+    if (!animal) return;
+    
+    try {
+      setLoading(true);
+      const response = await axios.get(`/api/observations/animal/${animal.AnimalID}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      setObservations(response.data);
+      setError(null);
+    } catch (err) {
+      console.error('Failed to fetch observations:', err);
+      setError('Failed to load observations. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, [animal]);
 
-    const fetchObservations = useCallback(async () => {
-      if (!animal) return;
-      
-      try {
-        setLoading(true);
-        const response = await axios.get(`/api/observations/animal/${animal.AnimalID}`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-        });
-        setObservations(response.data);
-        setError(null);
-      } catch (err) {
-        console.error('Failed to fetch observations:', err);
-        setError('Failed to load observations. Please try again.');
-      } finally {
-        setLoading(false);
-      }
-    }, [animal]);
-
-    useEffect(() => {
-      if (isOpen && animal) {
-        fetchObservations();
-      }
-    }, [isOpen, animal, fetchObservations]);
+  useEffect(() => {
+    if (isOpen && animal) {
+      fetchObservations();
+    }
+  }, [isOpen, animal, fetchObservations]);
 
   const handleAddObservation = async (e) => {
     e.preventDefault();
@@ -87,6 +86,44 @@ const AnimalObservationModal = ({ animal, isOpen, onClose }) => {
     }
   };
 
+  // Helper to check if an observation is a vet checkup record
+  const isVetCheckup = (title) => {
+    return title.startsWith('[VET CHECKUP]');
+  };
+
+  // Helper to render a vet checkup record
+  const renderVetCheckup = (content) => {
+    const lines = content.split('\n').filter(line => line.trim() !== '');
+    
+    return (
+      <div className="space-y-2">
+        {lines.map((line, index) => {
+          if (line.includes(':')) {
+            const [label, ...valueParts] = line.split(':');
+            const value = valueParts.join(':').trim();
+            
+            if (label.toLowerCase() === 'notes') {
+              return (
+                <div key={index} className="mt-3">
+                  <div className="font-semibold">{label}:</div>
+                  <div className="mt-1 pl-2 border-l-2 border-blue-300">{value}</div>
+                </div>
+              );
+            }
+            
+            return (
+              <div key={index} className="flex">
+                <div className="font-semibold w-24 flex-shrink-0">{label}:</div>
+                <div>{value}</div>
+              </div>
+            );
+          }
+          return <div key={index}>{line}</div>;
+        })}
+      </div>
+    );
+  };
+
   // If the modal is not open, don't render anything
   if (!isOpen) return null;
 
@@ -95,7 +132,8 @@ const AnimalObservationModal = ({ animal, isOpen, onClose }) => {
       <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
         {/* Modal Header */}
         <div className="bg-green-700 text-white px-6 py-4 rounded-t-lg flex items-center justify-between">
-          <h2 className="text-xl font-bold font-['Mukta_Mahee']">
+          <h2 className="text-xl font-bold font-['Mukta_Mahee'] flex items-center">
+            <Heart size={20} className="mr-2" />
             Animal Observations: {animal?.Name}
           </h2>
           <button
@@ -115,9 +153,11 @@ const AnimalObservationModal = ({ animal, isOpen, onClose }) => {
             </div>
             <div>
               <p className="text-sm text-gray-500 font-['Lora']">Health Status</p>
-              <p className={`font-medium font-['Mukta_Mahee'] ${animal?.HealthStatus === 'Healthy' ? 'text-green-600' :
-                  animal?.HealthStatus === 'Sick' ? 'text-red-600' : 'text-gray-600'
-                }`}>
+              <p className={`font-medium font-['Mukta_Mahee'] ${
+                animal?.HealthStatus === 'Healthy' ? 'text-green-600' :
+                animal?.HealthStatus === 'Sick' ? 'text-red-600' : 
+                animal?.HealthStatus === 'Recovering' ? 'text-amber-600' : 'text-gray-600'
+              }`}>
                 {animal?.HealthStatus}
               </p>
             </div>
@@ -141,55 +181,92 @@ const AnimalObservationModal = ({ animal, isOpen, onClose }) => {
               {error}
             </div>
           ) : observations.length === 0 ? (
-            <p className="text-center text-gray-500 py-8 font-['Lora']">No observations have been recorded for this animal yet.</p>
+            <p className="text-center text-gray-500 py-8 font-['Lora']">
+              No observations have been recorded for this animal yet.
+            </p>
           ) : (
             <div className="space-y-4">
-              {observations.map((observation) => (
-                <div
-                  key={observation.ObservationID}
-                  className={`border rounded-lg p-4 ${observation.Acknowledged ? 'bg-gray-50' : 'bg-white border-green-200'
+              {observations.map((observation) => {
+                const vetCheckup = isVetCheckup(observation.Title);
+                
+                return (
+                  <div
+                    key={observation.ObservationID}
+                    className={`border rounded-lg p-4 ${
+                      vetCheckup
+                        ? 'bg-blue-50 border-blue-200' 
+                        : observation.Acknowledged 
+                          ? 'bg-gray-50 border-gray-200' 
+                          : 'bg-white border-green-200'
                     }`}
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-semibold text-lg font-['Mukta_Mahee']">{observation.Title}</h3>
-                      <p className="text-sm text-gray-500 font-['Lora']">
-                        By {observation.StaffName} • {new Date(observation.Timestamp).toLocaleString()}
-                      </p>
-                    </div>
-                    <div>
-                      {observation.Acknowledged ? (
-                        <div className="flex items-center text-green-600 text-sm">
-                          <CheckCircle size={16} className="mr-1" />
-                          <span>Acknowledged</span>
-                        </div>
-                      ) : canAcknowledgeObservations ? (
-                        <button
-                          onClick={() => handleAcknowledge(observation.ObservationID)}
-                          className="bg-green-600 text-white text-sm px-3 py-1 rounded hover:bg-green-700 transition-colors flex items-center"
-                        >
-                          <CheckCircle size={14} className="mr-1" />
-                          Acknowledge
-                        </button>
-                      ) : (
-                        <div className="flex items-center text-amber-600 text-sm">
-                          <Clock size={16} className="mr-1" />
-                          <span>Pending</span>
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className={`font-semibold text-lg font-['Mukta_Mahee'] flex items-center ${
+                          vetCheckup ? 'text-blue-800' : 'text-gray-800'
+                        }`}>
+                          {vetCheckup && (
+                            <Stethoscope size={18} className="mr-2 text-blue-600" />
+                          )}
+                          {/* Clean up the title for vet checkups */}
+                          {vetCheckup 
+                            ? `Veterinary Checkup: ${observation.Title.replace('[VET CHECKUP] ', '')}` 
+                            : observation.Title}
+                        </h3>
+                        <p className="text-sm text-gray-500 font-['Lora']">
+                          By {observation.StaffName} • {new Date(observation.Timestamp).toLocaleString()}
+                        </p>
+                      </div>
+                      
+                      {/* Only show acknowledgement for regular observations, not vet checkups */}
+                      {!vetCheckup && (
+                        <div>
+                          {observation.Acknowledged ? (
+                            <div className="flex items-center text-green-600 text-sm">
+                              <CheckCircle size={16} className="mr-1" />
+                              <span>Acknowledged</span>
+                            </div>
+                          ) : canAcknowledgeObservations ? (
+                            <button
+                              onClick={() => handleAcknowledge(observation.ObservationID)}
+                              className="bg-green-600 text-white text-sm px-3 py-1 rounded hover:bg-green-700 transition-colors flex items-center"
+                            >
+                              <CheckCircle size={14} className="mr-1" />
+                              Acknowledge
+                            </button>
+                          ) : (
+                            <div className="flex items-center text-amber-600 text-sm">
+                              <Clock size={16} className="mr-1" />
+                              <span>Pending</span>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
+                    
+                    {/* Content display - different for vet checkups vs regular observations */}
+                    <div className={`mt-3 font-['Lora'] ${
+                      vetCheckup 
+                        ? 'text-blue-700 bg-blue-50 p-3 rounded border border-blue-100' 
+                        : 'text-gray-700'
+                    }`}>
+                      {vetCheckup 
+                        ? renderVetCheckup(observation.Content)
+                        : observation.Content.split('\n').map((line, i) => (
+                            <div key={i} className="mb-1">{line}</div>
+                          ))
+                      }
+                    </div>
+                    
+                    {/* Only show acknowledgement status for regular observations */}
+                    {!vetCheckup && observation.Acknowledged && (
+                      <div className="mt-2 text-xs text-gray-500 italic">
+                        Acknowledged by {observation.AcknowledgedByName} on {new Date(observation.AcknowledgedAt).toLocaleString()}
+                      </div>
+                    )}
                   </div>
-                  <div className="mt-2 font-['Lora'] text-gray-700">
-                    {observation.Content}
-                  </div>
-                  <div className="mt-2 text-xs text-gray-500 italic">
-                    {observation.Acknowledged
-                      ? `Acknowledged by ${observation.AcknowledgedByName} on ${new Date(observation.AcknowledgedAt).toLocaleString()}`
-                      : "Not yet acknowledged"
-                    }
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
