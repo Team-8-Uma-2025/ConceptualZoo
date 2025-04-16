@@ -93,16 +93,18 @@ module.exports = (pool) => {
             const { StaffID, Location, StartTimeStamp, EndTimeStamp, Title, Description, Picture } = req.body;
 
             // Ensure required feilds are entered
-            if (!StaffID || !Location || !StartTimeStamp || !EndTimeStamp || !Title || !Description || !Picture) {
-                return res.status(400).json({ error: 'All fields (staffID, location, startTimeStamp, endTimeStamp, title, picture) are required' });
+            if (!StaffID || !Location || !StartTimeStamp || !Title || !Description || !Picture) {
+                return res.status(400).json({ error: 'Fields (staffID, location, startTimeStamp, title, Description, picture) are required' });
             }
+
+            const safeEndTime = EndTimeStamp === "" ? null : EndTimeStamp;
 
             // add attraction
             const [result] = await pool.query(`
                 INSERT INTO attraction (StaffID, Location, StartTimeStamp, EndTimeStamp, 
                     Title, Description, Picture)
                 VALUES(?, ?, ?, ?, ?, ?, ?)`,
-                [StaffID, Location, StartTimeStamp, EndTimeStamp, Title, Description, Picture]
+                [StaffID, Location, StartTimeStamp, safeEndTime, Title, Description, Picture]
             );
 
             console.log("BODY RECEIVED FROM FRONTEND:", req.body);
@@ -138,43 +140,56 @@ module.exports = (pool) => {
                 return res.status(404).json({ error: 'Attraction not found' });
             }
 
-            const { StaffID, Location, StartTimeStamp, EndTimeStamp, Title, Description, Picture } = req.body;
+            console.log("Received EndTimeStamp:", req.body.EndTimeStamp, "Type:", typeof req.body.EndTimeStamp);
 
+            const { StaffID, Location, StartTimeStamp, EndTimeStamp, Title, Description, Picture } = req.body;
+            
+            /*
             // check at least 1 feild is getting updated
             if (!StaffID && !Location && !StartTimeStamp && !EndTimeStamp && !Title && !Description && !Picture) {
                 return res.status(400).json({ error: 'At least one field (location, startTimeStamp, endTimeStamp, title, description, picture) must be provided for update' });
             }
+            */
 
             // dynamically query fields entered
             const entryField = [];
             const values = [];
 
-            if (StaffID) {
+            if (req.body.hasOwnProperty('StaffID')) {
                 entryField.push('StaffID = ?');
                 values.push(StaffID);
             }
-            if (Location) {
-                entryField.push('location = ?');
+            if (req.body.hasOwnProperty('Location')) {
+                entryField.push('Location = ?');
                 values.push(Location);
             }
-            if (StartTimeStamp) {
-                entryField.push('startTimeStamp = ?');
+            if (req.body.hasOwnProperty('StartTimeStamp')) {
+                entryField.push('StartTimeStamp = ?');
                 values.push(StartTimeStamp);
             }
-            if (EndTimeStamp) {
-                entryField.push('endTimeStamp = ?');
-                values.push(EndTimeStamp);
+            if (req.body.hasOwnProperty('EndTimeStamp')) {
+                entryField.push('EndTimeStamp = ?');
+                
+                // Handle null/empty case
+                if (EndTimeStamp === "" || EndTimeStamp === null) {
+                    values.push(null);
+                } else {
+                    // Parse ISO date string and format for MySQL
+                    const date = new Date(EndTimeStamp);
+                    const mysqlFormat = date.toISOString().slice(0, 19).replace('T', ' ');
+                    values.push(mysqlFormat);
+                }
             }
-            if (Title) {
-                entryField.push('title = ?');
+            if (req.body.hasOwnProperty('Title')) {
+                entryField.push('Title = ?');
                 values.push(Title);
             }
-            if (Description) {
-                entryField.push('description = ?');
+            if (req.body.hasOwnProperty('Description')) {
+                entryField.push('Description = ?');
                 values.push(Description);
             }
-            if (Picture) {
-                entryField.push('picture = ?');
+            if (req.body.hasOwnProperty('Picture')) {
+                entryField.push('Picture = ?');
                 values.push(Picture);
             }
             values.push(attractionId); // for where clause for which attraction tpo update

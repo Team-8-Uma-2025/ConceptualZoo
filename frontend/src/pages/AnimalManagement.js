@@ -335,7 +335,7 @@ const AnimalManagement = () => {
           {/* Animal List Panel */}
           <div className="md:w-3/4 lg:w-3/4">
             <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-              <div className="w-full flex justify-between items-center mt-4 space-x-2">
+              <div className="w-full flex justify-between items-center my-4 space-x-2">
                 <h2 className="text-xl font-semibold font-['Roboto_Flex']">Animal Directory</h2>
                 <button
                   onClick={handleAddAnimal}
