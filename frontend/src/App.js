@@ -33,6 +33,8 @@ import AttractionDetails from "./pages/AttractionDetails";
 import GiftShopManagement from "./pages/GiftShopManagement";
 import StaffManagement from "./pages/StaffManagement";
 import AnimalManagement from "./pages/AnimalManagement";
+import EnclosureReport from "./pages/EnclosureReport";
+import StaffProfile from "./pages/StaffProfile";
 
 // Components
 import Navbar from "./components/Navbar";
@@ -127,6 +129,10 @@ function AppContent() {
             />
 
             <Route path="/dashboard/animals" element={<AnimalManagement />} />
+            <Route path="/dashboard/enclosure-reports" element={<EnclosureReport />} />
+
+            <Route path="/dashboard/profile" element={<StaffProfile />} />
+
 
             {/* Additional staff routes will go here */}
           </Route>
