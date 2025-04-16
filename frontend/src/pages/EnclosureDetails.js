@@ -420,7 +420,7 @@ const EnclosureDetails = () => {
             )}
           </div>
         ) : (
-          // Manager Interface - Search by ID
+          // Manager/Admim Interface - Search by ID
           <div className="mb-6">
             <div className="flex flex-wrap items-center gap-4">
             <select
@@ -440,38 +440,54 @@ const EnclosureDetails = () => {
                   ))}
  
                </select>
-               
+              
+              {/* new Manager/Admin buttons */}
 
-              {/* Manager-only buttons */}
-              {/* {currentUser?.staffType === 'Zookeeper' && currentUser?.staffRole === 'Manager' && ( */}
-              {currentUser?.staffRole === "Manager" && currentUser.staffType === "Zookeeper" && (
-                <div className="flex space-x-2">
-                  <button
-                    type="button"
-                    onClick={handleToggleAdd}
-                    className="bg-green-700 text-white p-2 rounded font-['Mukta_Mahee']"
-                  >
-                    Add Enclosure
-                  </button>
-                  {selectedEnclosure && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={handleToggleEdit}
-                        className="bg-blue-600 text-white p-2 rounded font-['Mukta_Mahee']"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleDelete}
-                        className="bg-red-600 text-white p-2 rounded font-['Mukta_Mahee']"
-                      >
-                        Delete
-                      </button>
-                    </>
+              {/* Report button for Managers and Admins */}
+              {((currentUser?.staffType === "Zookeeper" && currentUser?.staffRole === "Manager") || currentUser?.staffType === "Admin") && (
+                <button
+                  onClick={() => window.location.href = "/dashboard/enclosure-reports"}
+                  className="bg-neutral-600 text-white p-2 rounded font-['Mukta_Mahee']"
+                >
+                  Generate Enclosure Report
+                </button>
+              )}
+
+              {/* Admin Add button */}
+              {currentUser?.staffType === "Admin" && (
+                <button
+                  type="button"
+                  onClick={handleToggleAdd}
+                  className="bg-green-700 text-white p-2 rounded font-['Mukta_Mahee']"
+                >
+                  Add Enclosure
+              </button>
+              )}
+
+              {/* Manager(who is a zookeeper) and Admin Edit Button */}
+              {selectedEnclosure && (
+                <>
+                  {((currentUser?.staffRole === "Manager" && currentUser?.staffType === "Zookeeper") || currentUser?.staffType === "Admin") && (
+                    <button
+                      type="button"
+                      onClick={handleToggleEdit}
+                      className="bg-blue-600 text-white p-2 rounded font-['Mukta_Mahee']"
+                    >
+                      Edit
+                    </button>
                   )}
-                </div>
+
+                  {/* Delete button for Admin*/}
+                  {currentUser?.staffType === "Admin" && (
+                    <button
+                      type="button"
+                      onClick={handleDelete}
+                      className="bg-red-600 text-white p-2 rounded font-['Mukta_Mahee']"
+                    >
+                      Delete
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -572,14 +588,20 @@ const EnclosureDetails = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
                     Location
                   </label>
-                  <input
-                    type="text"
+                  <select
                     name="Location"
                     value={formData.Location}
                     onChange={handleChange}
                     className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
                     required
-                  />
+                  >
+                    <option value="">Select Location</option>
+                    <option value="North Wing">North Wing</option>
+                    <option value="East Wing">East Wing</option>
+                    <option value="South Wing">South Wing</option>
+                    <option value="West Wing">West Wing</option>
+                    <option value="Central Plaza">Central Plaza</option>
+                  </select>
                 </div>
                 
                 <div className="md:col-span-2">
@@ -630,6 +652,8 @@ const EnclosureDetails = () => {
             </form>
           </div>
         )}
+
+
 
         {/* Edit enclosure form */}
         {isEditing && currentUser?.staffRole === "Manager" && selectedEnclosure && (
@@ -711,14 +735,20 @@ const EnclosureDetails = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
                     Location
                   </label>
-                  <input
-                    type="text"
+                  <select
                     name="Location"
                     value={formData.Location}
                     onChange={handleChange}
                     className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
                     required
-                  />
+                  >
+                    <option value="">Select Location</option>
+                    <option value="North Wing">North Wing</option>
+                    <option value="East Wing">East Wing</option>
+                    <option value="South Wing">South Wing</option>
+                    <option value="West Wing">West Wing</option>
+                    <option value="Central Plaza">Central Plaza</option>
+                  </select>
                 </div>
 
                 <div className="md:col-span-2">
@@ -770,6 +800,8 @@ const EnclosureDetails = () => {
             </form>
           </div>
         )}
+
+
 
         {/* Enclosure details section */}
         {selectedEnclosure && !isAdding && !isEditing && (
@@ -830,6 +862,8 @@ const EnclosureDetails = () => {
                 </table>
               </div>
               
+                
+
               <div className="bg-gray-50 p-4 rounded">
                 <h3 className="text-lg font-semibold mb-2 font-['Mukta_Mahee']">Summary</h3>
                 <div className="flex flex-wrap gap-4 font-['Lora']">
@@ -855,6 +889,7 @@ const EnclosureDetails = () => {
               </div>
             </div>
             
+
             {/* buttons to select */}
             <div className="flex space-x-2 mb-4">
               <button 
@@ -868,6 +903,7 @@ const EnclosureDetails = () => {
                 View Staff
               </button>
             </div>
+            
 
             {/* conditional display for animals or staff */}
             {activeView === "staff" ? (
@@ -891,24 +927,6 @@ const EnclosureDetails = () => {
                 <p className="text-gray-500 py-4 font-['Lora']">No animals are currently assigned to this enclosure.</p>
               )
             )}
-
-            
-            
-            {/* Animal cards section. come back later if abive code doesnt work. 
-            <h3 className="text-xl font-semibold mb-4 font-['Roboto_Flex']">
-              Animals in this Enclosure
-            </h3>
-            
-            {selectedEnclosure.Animals && selectedEnclosure.Animals.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {selectedEnclosure.Animals.map(animal => (
-                  <AnimalCard key={animal.AnimalID} animal={animal} />
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 py-4 font-['Lora']">No animals are currently assigned to this enclosure.</p>
-            )}
-            */}
           </div>
         )}
 

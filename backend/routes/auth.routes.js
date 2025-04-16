@@ -32,7 +32,7 @@ module.exports = (pool) => {
       const visitDate = new Date().toISOString().split("T")[0]; // Current date
 
       const [result] = await pool.query(
-        "INSERT INTO visitors (firstName, lastName, visitDate, Username, Password, Membership) VALUES (?, ?, ?, ?, ?, ?)",
+        "INSERT INTO visitors (firstName, lastName, visitDate, Username, Password) VALUES (?, ?, ?, ?, ?)",
         [firstName, lastName, visitDate, username, hashedPassword, 0]
       );
 
@@ -182,7 +182,6 @@ module.exports = (pool) => {
             lastName: visitor.lastName,
             username: visitor.Username,
             role: "visitor",
-            membership: visitor.Membership,
           },
         });
       }
@@ -256,7 +255,7 @@ module.exports = (pool) => {
 
         if (role === "visitor") {
           const [visitors] = await pool.query(
-            "SELECT VisitorID, firstName, lastName, Username, billingAddress FROM visitors WHERE VisitorID = ?",
+            "SELECT VisitorID, firstName, lastName, Username FROM visitors WHERE VisitorID = ?",
             [id]
           );
 
@@ -270,7 +269,6 @@ module.exports = (pool) => {
             lastName: visitors[0].lastName,
             username: visitors[0].Username,
             role: "visitor",
-            billingAddress: visitors[0].billingAddress,
           });
         } else if (role === "staff") {
           const [staffMembers] = await pool.query(
