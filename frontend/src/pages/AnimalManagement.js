@@ -582,7 +582,7 @@ const AnimalManagement = () => {
                       >
                       {enclosureList.map(enclosure => (
                       <option key={enclosure} value={enclosure}>
-                        {enclosure === null ? 'Select' : enclosure}
+                        {enclosure === '' ? 'Select' : enclosure}
                       </option>
                       ))}
                       </select>
@@ -708,7 +708,7 @@ const AnimalManagement = () => {
                         value={formData.HealthStatus}
                         onChange={handleChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded"
-                        required
+                        disabled
                        >
                         <option value="">Select</option>
                         <option value="Healthy">Healthy</option>
@@ -725,6 +725,7 @@ const AnimalManagement = () => {
                         value={formData.LastVetCheckup}
                         onChange={handleChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded"
+                        disabled
                       />
                     </div>
                     <div>
