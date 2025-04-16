@@ -40,6 +40,32 @@ const GiftShop = () => {
     "Accessories",
   ];
 
+  // Format credit card number with dashes (XXXX-XXXX-XXXX-XXXX)
+  const formatCardNumber = (value) => {
+    // Remove all non-digits
+    const digitsOnly = value.replace(/\D/g, "");
+
+    // Limit to 16 digits
+    const trimmed = digitsOnly.substring(0, 16);
+
+    // Add dashes after every 4 digits
+    let formatted = "";
+    for (let i = 0; i < trimmed.length; i++) {
+      if (i > 0 && i % 4 === 0) {
+        formatted += "-";
+      }
+      formatted += trimmed[i];
+    }
+
+    return formatted;
+  };
+
+  // Handle credit card input change
+  const handleCardChange = (e) => {
+    const formatted = formatCardNumber(e.target.value);
+    setCardNumber(formatted);
+  };
+
   // Helper function to format price
   const safeFormatPrice = (price) => {
     if (typeof price === "string") {
@@ -166,8 +192,8 @@ const GiftShop = () => {
       return;
     }
 
-    if (!cardNumber.trim()) {
-      alert("Please enter your credit card number");
+    if (!cardNumber.trim() || cardNumber.replace(/\D/g, "").length < 16) {
+      alert("Please enter a valid 16-digit credit card number");
       return;
     }
 
@@ -476,9 +502,10 @@ const GiftShop = () => {
                           <input
                             type="text"
                             value={cardNumber}
-                            onChange={(e) => setCardNumber(e.target.value)}
+                            onChange={handleCardChange}
                             placeholder="XXXX-XXXX-XXXX-XXXX"
                             className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                            maxLength={19} // 16 digits plus 3 dashes
                           />
                         </div>
                       </div>
