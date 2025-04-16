@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import TransactionHistory from "../components/TransactionHistory";
 import TicketHistory from "../components/TicketHistory";
-import { Save, UserIcon, MapPin, AlertTriangle, Check, Trash2 } from "lucide-react";
+import { Save, User as UserIcon, MapPin, AlertTriangle, Check, Trash2, Key } from "lucide-react";
 
 const Profile = () => {
   const { currentUser, logout } = useAuth();
@@ -24,6 +24,17 @@ const Profile = () => {
     lastName: "",
     billingAddress: "",
   });
+
+  // States for password change
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: ""
+  });
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
 
   // States for account deletion
   const [isDeleting, setIsDeleting] = useState(false);
@@ -51,13 +62,20 @@ const Profile = () => {
     }
   }, [notification]);
 
-  // Clear success message after 3 seconds
+  // Clear success messages after 3 seconds
   useEffect(() => {
     if (editSuccess) {
       const timer = setTimeout(() => setEditSuccess(false), 3000);
       return () => clearTimeout(timer);
     }
   }, [editSuccess]);
+
+  useEffect(() => {
+    if (passwordSuccess) {
+      const timer = setTimeout(() => setPasswordSuccess(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [passwordSuccess]);
 
   if (!currentUser) {
     return (
@@ -133,6 +151,61 @@ const Profile = () => {
     setDeleteError("");
     setDeletePassword("");
     setDeleteConfirmation("");
+  };
+
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+    
+    // Check if passwords match
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setPasswordError("New passwords do not match");
+      return;
+    }
+    
+    // Validate password length
+    if (passwordData.newPassword.length < 6) {
+      setPasswordError("Password must be at least 6 characters long");
+      return;
+    }
+    
+    setPasswordLoading(true);
+    setPasswordError("");
+    
+    try {
+      // Call API to change password
+      await axios.put(
+        `/api/visitors/${currentUser.id}/password`,
+        {
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword
+        },
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        }
+      );
+      
+      // Show success message
+      setPasswordSuccess(true);
+      
+      // Reset form
+      setPasswordData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: ""
+      });
+      
+      // Close password form after delay
+      setTimeout(() => {
+        setIsChangingPassword(false);
+      }, 3000);
+    } catch (err) {
+      console.error("Failed to change password:", err);
+      setPasswordError(
+        err.response?.data?.error || "Failed to change password. Please check your current password and try again."
+      );
+    } finally {
+      setPasswordLoading(false);
+    }
   };
 
   const handleDeleteAccount = async (e) => {
@@ -329,6 +402,113 @@ const Profile = () => {
                     <h4 className="text-md font-semibold text-gray-800 mb-2 font-['Mukta_Mahee']">
                       Account Management
                     </h4>
+                    
+                    <button
+                      onClick={() => setIsChangingPassword(!isChangingPassword)}
+                      className="mt-2 text-blue-600 hover:text-blue-800 font-medium flex items-center text-sm mb-3"
+                    >
+                      <Key size={16} className="mr-1" />
+                      Change Password
+                    </button>
+                    
+                    {isChangingPassword && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
+                        <h5 className="text-blue-800 font-medium mb-2">
+                          Change Password
+                        </h5>
+                        
+                        {passwordError && (
+                          <div className="mb-3 bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded text-sm">
+                            {passwordError}
+                          </div>
+                        )}
+                        
+                        {passwordSuccess && (
+                          <div className="mb-3 bg-green-100 border border-green-400 text-green-700 px-3 py-2 rounded text-sm flex items-center">
+                            <Check size={16} className="mr-2" />
+                            Password updated successfully
+                          </div>
+                        )}
+                        
+                        <form onSubmit={handlePasswordChange}>
+                          <div className="mb-3">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Current Password
+                            </label>
+                            <input
+                              type="password"
+                              value={passwordData.currentPassword}
+                              onChange={(e) => setPasswordData({...passwordData, currentPassword: e.target.value})}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              required
+                            />
+                          </div>
+                          
+                          <div className="mb-3">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              New Password
+                            </label>
+                            <input
+                              type="password"
+                              value={passwordData.newPassword}
+                              onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              required
+                              minLength="6"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
+                          </div>
+                          
+                          <div className="mb-3">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Confirm New Password
+                            </label>
+                            <input
+                              type="password"
+                              value={passwordData.confirmPassword}
+                              onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              required
+                            />
+                          </div>
+                          
+                          <div className="flex space-x-3">
+                            <button
+                              type="submit"
+                              className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded text-sm font-['Mukta_Mahee'] flex items-center"
+                              disabled={passwordLoading}
+                            >
+                              {passwordLoading ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                  Updating...
+                                </>
+                              ) : (
+                                <>
+                                  <Save size={16} className="mr-1" />
+                                  Update Password
+                                </>
+                              )}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsChangingPassword(false);
+                                setPasswordData({
+                                  currentPassword: '',
+                                  newPassword: '',
+                                  confirmPassword: ''
+                                });
+                                setPasswordError('');
+                              }}
+                              className="border border-gray-300 bg-white text-gray-700 py-2 px-4 rounded text-sm font-['Mukta_Mahee']"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </form>
+                      </div>
+                    )}
                     
                     {!isDeleting ? (
                       <button
