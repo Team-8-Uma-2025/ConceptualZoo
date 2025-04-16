@@ -682,7 +682,7 @@ const AnimalManagement = () => {
                         value={formData.DateOfBirth}
                         onChange={handleChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded"
-                        required
+                        disabled
                       />
                     </div>
                     <div>
