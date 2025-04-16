@@ -671,7 +671,7 @@ const AnimalManagement = () => {
                         value={formData.Species}
                         onChange={handleChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded"
-                        required
+                        disabled
                       />
                     </div>
                     <div>
@@ -692,7 +692,7 @@ const AnimalManagement = () => {
                         value={formData.Gender}
                         onChange={handleChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded"
-                        required
+                        disabled
                       >
                         <option value="">Select</option>
                         <option value="Male">Male</option>
