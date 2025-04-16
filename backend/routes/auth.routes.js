@@ -256,7 +256,7 @@ module.exports = (pool) => {
 
         if (role === "visitor") {
           const [visitors] = await pool.query(
-            "SELECT VisitorID, firstName, lastName, Username, Membership FROM visitors WHERE VisitorID = ?",
+            "SELECT VisitorID, firstName, lastName, Username, billingAddress FROM visitors WHERE VisitorID = ?",
             [id]
           );
 
@@ -270,7 +270,7 @@ module.exports = (pool) => {
             lastName: visitors[0].lastName,
             username: visitors[0].Username,
             role: "visitor",
-            membership: visitors[0].Membership,
+            billingAddress: visitors[0].billingAddress,
           });
         } else if (role === "staff") {
           const [staffMembers] = await pool.query(

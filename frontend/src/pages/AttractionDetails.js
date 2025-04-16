@@ -51,7 +51,7 @@ const AttractionDetails = () => {
                 console.error("Error fetching attractions list:", err);
             }
         };
-        if (currentUser && currentUser.staffType === "Zookeeper") {
+        if (currentUser && (currentUser.staffType === "Zookeeper" || currentUser.staffType === "Admin")) {
             fetchAttractions();
         }
     }, [currentUser]);
@@ -133,7 +133,12 @@ const AttractionDetails = () => {
         const { name, value } = a.target;
         setFormData((prev) => ({
             ...prev,    
-            [name]: name === "StaffID" ? parseInt(value) : value
+            [name]:
+                name === "StaffID"
+                    ? parseInt(value)
+                    : name === "EndTimeStamp" && value === ""
+                    ? null
+                    : value,
         }));
     };
 
@@ -320,7 +325,7 @@ const AttractionDetails = () => {
                         )}
                     </div>
                 ) : (
-                    // Zookeeper manager interface - Search by ID
+                    // Zookeeper manager/Admin interface - Search by ID
                     <div className="mb-6">
                         <div className="flex flex-wrap items-center gap-4">
                             <form onSubmit={searchAttraction} className="flex items-center">
@@ -346,36 +351,41 @@ const AttractionDetails = () => {
                                     ))}
                                 </select>
                             </form>
+                            
+                            {/* Add button for Admin */}
+                            {currentUser?.staffType === 'Admin' && (
+                                <button
+                                    type="button"
+                                    onClick={handleToggleAdd}
+                                    className="bg-green-700 text-white p-2 rounded font-['Mukta_Mahee']"
+                                >
+                                    Add Attraction
+                              </button>
+                            )}
 
-
-                            {/* Manager-only buttons */}
-                            {currentUser?.staffType === 'Zookeeper' && currentUser?.staffRole === "Manager" && (
-                                <div className="flex space-x-2">
-                                    <button type="button" 
-                                        onClick={handleToggleAdd}
-                                        className="bg-green-700 text-white p-2 rounded font-['Mukta_Mahee']"
-                                    >
-                                        Add Attraction
-                                    </button>
-                                    {selectedAttraction && (
-                                        <>
-                                            <button
-                                                type="button"
-                                                onClick={handleToggleEdit}
-                                                className="bg-blue-600 text-white p-2 rounded font-['Mukta_Mahee']"
-                                            >
-                                                Edit
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={handleDelete}
-                                                className="bg-red-600 text-white p-2 rounded font-['Mukta_Mahee']"
-                                            >
-                                                Delete
-                                            </button>
-                                        </>
+                            {/* Edit button for admin(and delete for admin) and zookeeper managers */}
+                            {selectedAttraction && (
+                                <>
+                                    {((currentUser?.staffType === "Zookeeper" && currentUser?.staffRole === "Manager") ||
+                                        currentUser?.staffType === "Admin") && (
+                                        <button
+                                            type="button"
+                                            onClick={handleToggleEdit}
+                                            className="bg-blue-600 text-white p-2 rounded font-['Mukta_Mahee']"
+                                        >
+                                            Edit
+                                        </button>
                                     )}
-                                </div>
+                                    {currentUser?.staffType === "Admin" && (
+                                        <button
+                                            type="button"
+                                            onClick={handleDelete}
+                                            className="bg-red-600 text-white p-2 rounded font-['Mukta_Mahee']"
+                                        >
+                                            Delete
+                                        </button>
+                                    )}
+                                </>
                             )}
                         </div>
                     </div>
@@ -456,10 +466,9 @@ const AttractionDetails = () => {
                                     <input 
                                         type="datetime-local"
                                         name="EndTimeStamp"
-                                        value={formData.EndTimeStamp}
+                                        value={formData.EndTimeStamp || ""}
                                         onChange={handleChange}
                                         className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
-                                        required
                                     />
                                 </div>
 
@@ -467,14 +476,20 @@ const AttractionDetails = () => {
                                     <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
                                         Location
                                     </label>
-                                    <input 
-                                        type="text"
+                                    <select
                                         name="Location"
                                         value={formData.Location}
                                         onChange={handleChange}
                                         className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
                                         required
-                                    />
+                                    >
+                                        <option value="">Select Location</option>
+                                        <option value="North Wing">North Wing</option>
+                                        <option value="East Wing">East Wing</option>
+                                        <option value="South Wing">South Wing</option>
+                                        <option value="West Wing">West Wing</option>
+                                        <option value="Central Plaza">Central Plaza</option>
+                                    </select>
                                 </div>
 
                                 <div className="md:col-span-2">
@@ -584,15 +599,27 @@ const AttractionDetails = () => {
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
-                                        End Time
+                                        End Time (Select "clear" if this is a permanent attraction)
                                     </label>
                                     <input 
                                         type="datetime-local"
                                         name="EndTimeStamp"
-                                        value={formData.EndTimeStamp}
-                                        onChange={handleChange}
+                                        onChange={(a) => {
+                                            // Always trim whitespace so that accidental spaces don’t sneak in
+                                            const { name, value } = a.target;
+                                            setFormData((prev) => ({
+                                              ...prev,
+                                              [name]: value.trim(), // sets to "" when cleared
+                                            }));
+                                          }}
+                                          onBlur={(a) => {
+                                            // If the user leaves the field empty (or with only spaces), ensure we reset it to ""
+                                            if (a.target.value.trim() === "") {
+                                              setFormData((prev) => ({ ...prev, EndTimeStamp: "" }));
+                                            }
+                                          }}
                                         className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
-                                        required
+                                        placeholder="Leave blank if permanent"
                                     />
                                 </div>
 
@@ -600,14 +627,20 @@ const AttractionDetails = () => {
                                     <label className="block text-sm font-medium text-gray-700 mb-1 font-['Mukta_Mahee']">
                                         Location
                                     </label>
-                                    <input 
-                                        type="text"
+                                    <select
                                         name="Location"
                                         value={formData.Location}
                                         onChange={handleChange}
                                         className="w-full border border-gray-300 p-2 rounded font-['Mukta_Mahee']"
                                         required
-                                    />
+                                    >
+                                        <option value="">Select Location</option>
+                                        <option value="North Wing">North Wing</option>
+                                        <option value="East Wing">East Wing</option>
+                                        <option value="South Wing">South Wing</option>
+                                        <option value="West Wing">West Wing</option>
+                                        <option value="Central Plaza">Central Plaza</option>
+                                    </select>
                                 </div>
 
                                 <div className="md:col-span-2">
@@ -693,7 +726,9 @@ const AttractionDetails = () => {
                                     <tr className="border-b">
                                         <td className="py-2 pr-4 font-semibold font-['Mukta_Mahee']">End Time:</td>
                                         <td className="py-2 font-['Lora']">
-                                            {new Date(selectedAttraction.EndTimeStamp).toLocaleString()}
+                                        {selectedAttraction.EndTimeStamp
+                                            ? new Date(selectedAttraction.EndTimeStamp).toLocaleString()
+                                            : <span className="text-gray-500">Permanent</span>}
                                         </td>
                                     </tr>
                                     <tr className="border-b">

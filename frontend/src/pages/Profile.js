@@ -1,23 +1,63 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import axios from "axios";
 import TransactionHistory from "../components/TransactionHistory";
 import TicketHistory from "../components/TicketHistory";
+import { Save, UserIcon, MapPin, AlertTriangle, Check, Trash2 } from "lucide-react";
 
 const Profile = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [notification, setNotification] = useState(
     location.state?.message || ""
   );
 
+  // States for profile editing
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editError, setEditError] = useState("");
+  const [editSuccess, setEditSuccess] = useState(false);
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    billingAddress: "",
+  });
+
+  // States for account deletion
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [deleteError, setDeleteError] = useState("");
+  const [deleteInProgress, setDeleteInProgress] = useState(false);
+
+  // Load user data into form when currentUser changes
   useEffect(() => {
-    // Clear notification after 5 seconds
+    if (currentUser) {
+      setFormData({
+        firstName: currentUser.firstName || "",
+        lastName: currentUser.lastName || "",
+        billingAddress: currentUser.billingAddress || "",
+      });
+    }
+  }, [currentUser]);
+
+  // Clear notification after 5 seconds
+  useEffect(() => {
     if (notification) {
       const timer = setTimeout(() => setNotification(""), 5000);
       return () => clearTimeout(timer);
     }
   }, [notification]);
+
+  // Clear success message after 3 seconds
+  useEffect(() => {
+    if (editSuccess) {
+      const timer = setTimeout(() => setEditSuccess(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [editSuccess]);
 
   if (!currentUser) {
     return (
@@ -30,6 +70,106 @@ const Profile = () => {
       </div>
     );
   }
+
+  const handleEditToggle = () => {
+    setIsEditing(!isEditing);
+    setEditError("");
+    // Reset form data to current user data
+    if (!isEditing) {
+      setFormData({
+        firstName: currentUser.firstName || "",
+        lastName: currentUser.lastName || "",
+        billingAddress: currentUser.billingAddress || "",
+      });
+    }
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSaving(true);
+    setEditError("");
+
+    try {
+      // Call API to update user profile
+      await axios.put(
+        `/api/visitors/${currentUser.id}`,
+        {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          billingAddress: formData.billingAddress,
+        },
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        }
+      );
+
+      // Show success message
+      setEditSuccess(true);
+      setIsEditing(false);
+      
+      // Update local state
+      // Note: In a real application, you might want to refresh the auth context
+      // or update the currentUser object with the new data
+    } catch (err) {
+      console.error("Failed to update profile:", err);
+      setEditError(
+        err.response?.data?.error || "Failed to update profile. Please try again."
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteToggle = () => {
+    setIsDeleting(!isDeleting);
+    setDeleteError("");
+    setDeletePassword("");
+    setDeleteConfirmation("");
+  };
+
+  const handleDeleteAccount = async (e) => {
+    e.preventDefault();
+    
+    // Verify confirmation text
+    if (deleteConfirmation !== "Delete my account") {
+      setDeleteError("Please type 'Delete my account' to confirm");
+      return;
+    }
+
+    setDeleteInProgress(true);
+    setDeleteError("");
+
+    try {
+      // Call API to delete account
+      await axios.delete(`/api/visitors/${currentUser.id}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        data: { password: deletePassword },
+      });
+
+      // Log out the user
+      logout();
+      
+      // Redirect to home page
+      navigate("/", { 
+        state: { message: "Your account has been successfully deleted" } 
+      });
+    } catch (err) {
+      console.error("Failed to delete account:", err);
+      setDeleteError(
+        err.response?.data?.error || "Failed to delete account. Please check your password and try again."
+      );
+    } finally {
+      setDeleteInProgress(false);
+    }
+  };
 
   return (
     <div className="bg-gray-100 min-h-screen pt-20">
@@ -57,85 +197,228 @@ const Profile = () => {
               {/* User Information */}
               <div className="md:col-span-1">
                 <div className="bg-gray-50 rounded-lg p-6 shadow-sm">
-                  <h3 className="text-xl font-semibold mb-4 font-['Mukta_Mahee']">
-                    Personal Information
-                  </h3>
-
-                  <div className="space-y-4 font-['Lora']">
-                    <div>
-                      <p className="text-sm text-gray-500">First Name</p>
-                      <p className="text-gray-800">{currentUser.firstName}</p>
-                    </div>
-
-                    <div>
-                      <p className="text-sm text-gray-500">Last Name</p>
-                      <p className="text-gray-800">{currentUser.lastName}</p>
-                    </div>
-
-                    <div>
-                      <p className="text-sm text-gray-500">Username</p>
-                      <p className="text-gray-800">{currentUser.username}</p>
-                    </div>
-
-                    <div>
-                      <p className="text-sm text-gray-500">Membership Status</p>
-                      <p className="text-gray-800">
-                        {currentUser.membership
-                          ? "Active Member"
-                          : "No Membership"}
-                      </p>
-                    </div>
-
-                    <div className="pt-4">
-                      <button className="bg-green-700 hover:bg-green-600 text-white py-2 px-4 rounded transition duration-300 text-sm font-['Mukta_Mahee']">
-                        Edit Profile
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-semibold font-['Mukta_Mahee']">
+                      Personal Information
+                    </h3>
+                    {!isEditing ? (
+                      <button
+                        onClick={handleEditToggle}
+                        className="text-green-700 hover:text-green-600 underline font-['Mukta_Mahee']"
+                      >
+                        Edit
                       </button>
+                    ) : null}
+                  </div>
+
+                  {editSuccess && (
+                    <div className="mb-4 bg-green-100 border border-green-400 text-green-700 px-3 py-2 rounded flex items-center">
+                      <Check size={16} className="mr-2" />
+                      Profile updated successfully
                     </div>
+                  )}
+
+                  {editError && (
+                    <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded flex items-center">
+                      <AlertTriangle size={16} className="mr-2" />
+                      {editError}
+                    </div>
+                  )}
+
+                  {isEditing ? (
+                    <form onSubmit={handleSubmit}>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            First Name
+                          </label>
+                          <input
+                            type="text"
+                            name="firstName"
+                            value={formData.firstName}
+                            onChange={handleChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Last Name
+                          </label>
+                          <input
+                            type="text"
+                            name="lastName"
+                            value={formData.lastName}
+                            onChange={handleChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Billing Address
+                          </label>
+                          <textarea
+                            name="billingAddress"
+                            value={formData.billingAddress}
+                            onChange={handleChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                            rows="3"
+                          />
+                        </div>
+
+                        <div className="pt-2 flex space-x-3">
+                          <button
+                            type="submit"
+                            className="bg-green-700 hover:bg-green-600 text-white py-2 px-4 rounded transition duration-300 text-sm font-['Mukta_Mahee'] flex items-center"
+                            disabled={isSaving}
+                          >
+                            {isSaving ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                Saving...
+                              </>
+                            ) : (
+                              <>
+                                <Save size={16} className="mr-2" />
+                                Save Changes
+                              </>
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleEditToggle}
+                            className="border border-gray-300 bg-white text-gray-700 py-2 px-4 rounded transition duration-300 text-sm font-['Mukta_Mahee']"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </form>
+                  ) : (
+                    <div className="space-y-4 font-['Lora']">
+                      <div className="flex items-start">
+                        <UserIcon size={18} className="text-gray-500 mr-2 mt-1" />
+                        <div>
+                          <p className="text-sm text-gray-500">Name</p>
+                          <p className="text-gray-800">{currentUser.firstName} {currentUser.lastName}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start">
+                        <MapPin size={18} className="text-gray-500 mr-2 mt-1" />
+                        <div>
+                          <p className="text-sm text-gray-500">Billing Address</p>
+                          <p className="text-gray-800">
+                            {currentUser.billingAddress || "No address provided"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div>
+                        <p className="text-sm text-gray-500">Username</p>
+                        <p className="text-gray-800">{currentUser.username}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Account Deletion Section */}
+                  <div className="mt-8 pt-6 border-t border-gray-200">
+                    <h4 className="text-md font-semibold text-gray-800 mb-2 font-['Mukta_Mahee']">
+                      Account Management
+                    </h4>
+                    
+                    {!isDeleting ? (
+                      <button
+                        onClick={handleDeleteToggle}
+                        className="mt-2 text-red-600 hover:text-red-800 font-medium flex items-center text-sm"
+                      >
+                        <Trash2 size={16} className="mr-1" />
+                        Delete Account
+                      </button>
+                    ) : (
+                      <div className="mt-3">
+                        <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                          <h5 className="text-red-800 font-medium mb-2">
+                            Delete Account
+                          </h5>
+                          
+                          {deleteError && (
+                            <div className="mb-3 bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded text-sm">
+                              {deleteError}
+                            </div>
+                          )}
+                          
+                          <p className="text-sm text-red-700 mb-3">
+                            This action cannot be undone. All your data, including purchase history and tickets, will be permanently deleted.
+                          </p>
+                          
+                          <form onSubmit={handleDeleteAccount}>
+                            <div className="mb-3">
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Confirm Password
+                              </label>
+                              <input
+                                type="password"
+                                value={deletePassword}
+                                onChange={(e) => setDeletePassword(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                                required
+                              />
+                            </div>
+                            
+                            <div className="mb-3">
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Type "Delete my account" to confirm
+                              </label>
+                              <input
+                                type="text"
+                                value={deleteConfirmation}
+                                onChange={(e) => setDeleteConfirmation(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                                placeholder="Delete my account"
+                                required
+                              />
+                            </div>
+                            
+                            <div className="flex space-x-3">
+                              <button
+                                type="submit"
+                                className="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded text-sm font-['Mukta_Mahee'] flex items-center"
+                                disabled={deleteInProgress}
+                              >
+                                {deleteInProgress ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                    Deleting...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Trash2 size={16} className="mr-1" />
+                                    Confirm Deletion
+                                  </>
+                                )}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleDeleteToggle}
+                                className="border border-gray-300 bg-white text-gray-700 py-2 px-4 rounded text-sm font-['Mukta_Mahee']"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </form>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
 
-              {/* Tickets and Membership */}
+              {/* Tickets and Transaction History */}
               <div className="md:col-span-2">
-                {/* Membership Card (if the user has membership) */}
-                {currentUser.membership ? (
-                  <div className="bg-green-800 text-white rounded-lg p-6 shadow-md mb-6">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="text-xl font-semibold mb-1 font-['Mukta_Mahee']">
-                          Wild Wood Zoo Membership
-                        </h3>
-                        <p className="text-sm opacity-90 font-['Lora']">
-                          Valid until: December 31, 2025
-                        </p>
-                      </div>
-                      <div className="text-4xl">🦁</div>
-                    </div>
-
-                    <div className="mt-4 pt-4 border-t border-green-700">
-                      <p className="text-lg font-['Mukta_Mahee']">
-                        {currentUser.firstName} {currentUser.lastName}
-                      </p>
-                      <p className="text-sm opacity-90 font-['Lora']">
-                        Member ID: {1000 + currentUser.id}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-gray-50 rounded-lg p-6 shadow-sm mb-6 border border-gray-200">
-                    <h3 className="text-xl font-semibold mb-2 font-['Mukta_Mahee']">
-                      Enhance Your Experience
-                    </h3>
-                    <p className="text-gray-700 mb-4 font-['Lora']">
-                      Become a member to enjoy unlimited access, special
-                      discounts, and exclusive events!
-                    </p>
-                    <button className="bg-green-700 hover:bg-green-600 text-white py-2 px-4 rounded transition duration-300 font-['Mukta_Mahee']">
-                      Become a Member
-                    </button>
-                  </div>
-                )}
-
                 {/* Tickets in collapsible format */}
                 <TicketHistory />
 
