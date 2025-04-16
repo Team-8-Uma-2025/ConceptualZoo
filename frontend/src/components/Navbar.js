@@ -23,10 +23,18 @@ const Navbar = () => {
           });
 
           // Count unacknowledged notifications
-          const unread = response.data.filter(
-            (notification) => !notification.Acknowledged
-          ).length;
-          setUnreadNotifications(unread);
+          // For Gift Shop Clerks, don't show count as they can't acknowledge
+          if (
+            currentUser.staffType === "Gift Shop Clerk" &&
+            currentUser.staffRole !== "Manager"
+          ) {
+            setUnreadNotifications(0);
+          } else {
+            const unread = response.data.filter(
+              (notification) => !notification.Acknowledged
+            ).length;
+            setUnreadNotifications(unread);
+          }
         } catch (err) {
           console.error("Failed to fetch notifications count:", err);
         }
@@ -98,19 +106,22 @@ const Navbar = () => {
           </Link>
 
           {/* Notifications for staff */}
-          {currentUser && currentUser.role === "staff" && (
-            <Link
-              to="/dashboard/messages"
-              className="hover:text-green-300 transition duration-300 relative"
-            >
-              <Bell size={20} />
-              {unreadNotifications > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {unreadNotifications}
-                </span>
-              )}
-            </Link>
-          )}
+          {currentUser &&
+            currentUser.role === "staff" &&
+            (currentUser.staffType !== "Gift Shop Clerk" ||
+              currentUser.staffRole === "Manager") && (
+              <Link
+                to="/dashboard/messages"
+                className="hover:text-green-300 transition duration-300 relative"
+              >
+                <Bell size={20} />
+                {unreadNotifications > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {unreadNotifications}
+                  </span>
+                )}
+              </Link>
+            )}
 
           {/* Auth Items */}
           {isAuthenticated ? (
@@ -221,21 +232,24 @@ const Navbar = () => {
           </Link>
 
           {/* Notifications for staff in mobile menu */}
-          {currentUser && currentUser.role === "staff" && (
-            <Link
-              to="/dashboard/messages"
-              className="block py-2 px-4 hover:bg-green-700 transition duration-300 flex items-center"
-              onClick={() => setIsOpen(false)}
-            >
-              <Bell size={16} className="mr-2" />
-              Notifications
-              {unreadNotifications > 0 && (
-                <span className="ml-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {unreadNotifications}
-                </span>
-              )}
-            </Link>
-          )}
+          {currentUser &&
+            currentUser.role === "staff" &&
+            (currentUser.staffType !== "Gift Shop Clerk" ||
+              currentUser.staffRole === "Manager") && (
+              <Link
+                to="/dashboard/messages"
+                className="block py-2 px-4 hover:bg-green-700 transition duration-300 flex items-center"
+                onClick={() => setIsOpen(false)}
+              >
+                <Bell size={16} className="mr-2" />
+                Notifications
+                {unreadNotifications > 0 && (
+                  <span className="ml-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {unreadNotifications}
+                  </span>
+                )}
+              </Link>
+            )}
 
           {/* Auth Items for Mobile */}
           <div className="border-t border-gray-700 my-2"></div>
