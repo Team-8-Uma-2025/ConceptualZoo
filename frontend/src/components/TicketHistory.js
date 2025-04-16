@@ -258,7 +258,7 @@ const TicketHistory = () => {
             </h3>
             <div className="flex justify-center">
               <QRCodeCanvas
-                value={`http://localhost:5000/api/tickets/use/${selectedTicketForQR.TicketID}`} // Replace with window.location.origin in production
+                 value={`${window.location.origin}/api/tickets/use/${selectedTicketForQR.TicketID}`}
                 size={256}
                 bgColor="#ffffff"
                 fgColor="#000000"
