@@ -138,7 +138,8 @@ const StaffManagement = () => {
       Username: '',
       Password: '',
       Sex: '',
-      Birthdate: ''
+      Birthdate: '',
+      SSN: ''
     });
   };
 
@@ -224,7 +225,7 @@ const StaffManagement = () => {
         password: formData.Password,
         sex: formData.Sex,
         birthdate: formData.Birthdate,
-        ssn: '123-45-6789' // Placeholder - in a real app you'd handle this securely
+        ssn: formData.SSN
       };
 
       await axios.post('/api/auth/register-staff', newStaffData, {
@@ -504,6 +505,17 @@ const StaffManagement = () => {
                       />
                     </div>
                     <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">SSN*</label>
+                      <input
+                        type="ssn"
+                        name="SSN"
+                        value={formData.SSN}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded"
+                        required
+                      />
+                    </div>
+                    <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Role*</label>
                       <select
                         name="Role"
@@ -543,8 +555,9 @@ const StaffManagement = () => {
                         required
                       >
                         <option value="">Select</option>
-                        <option value="M">Male</option>
-                        <option value="F">Female</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+
                       </select>
                     </div>
                     <div>
