@@ -13,25 +13,11 @@ module.exports = (pool) => {
     next();
   };
 
-  const isAdmin = (req, res, next) => {
-    if (req.user.role !== 'staff' || req.user.staffType !== 'Admin') {
-      return res.status(403).json({ error: 'Access denied. Requires admin privileges.' });
-    }
-    next();
-  }
-
-  const isManager = (req, res, next) => {
-    if(req.user.role != 'staff' || (req.user.staffRole === 'Manager' && req.user.staffType !== 'Admin')) {
-      return res.status(403).json({error: 'Access denied. Requires manager privileges.'});
-    }
-    next();
-  }
-
-  // Get manager's supervisees (manager only)
-  router.get('/', authenticateToken, isManager, async (req, res) => {
+  // Get all staff members (admin only)
+  router.get('/', authenticateToken, isAdminOrManager, async (req, res) => {
     try {
       const [staff] = await pool.query(
-        'SELECT Staff, Name, Role, StaffType, Username FROM staff WHERE staff.SupervisorID = ' + (req.user.id).toString()
+        'SELECT Staff, Name, Role, StaffType, Username FROM staff'
       );
 
       res.json(staff);
@@ -40,18 +26,6 @@ module.exports = (pool) => {
       res.status(500).json({ error: 'Failed to fetch staff members: ' + err.message });
     }
   });
-
-   // Get all staff (admin only)
-   router.get('/', authenticateToken, isAdmin, async (req, res) => {
-    try {
-      const [staff] = await pool.query('SELECT Staff, Name, Role, StaffType, Username FROM staff');
-      res.json(staff);
-    }
-    catch(err) {
-      console.error(err);
-      res.status(500).json({ error: 'Failed to fetch staff members: ' + err.message });
-    }
-   });
 
   // get all staff that are 'Zookeeper'
   router.get('/zookeepers', async (req, res) => {
