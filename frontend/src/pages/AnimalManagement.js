@@ -517,67 +517,91 @@ const AnimalManagement = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth*</label>
                       <input
                         type="date"
                         name="DateOfBirth"
                         value={formData.DateOfBirth}
                         onChange={handleChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded"
+                        required
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Gender*</label>
                       <select
                         name="Gender"
                         value={formData.Gender}
                         onChange={handleChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded"
+                        required
                       >
                         <option value="">Select</option>
-                        <option value="M">Male</option>
-                        <option value="F">Female</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Unknown">Unknown</option>
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Health Status</label>
-                      <input
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Health Status*</label>
+                      <select
                         type="text"
                         name="HealthStatus"
                         value={formData.HealthStatus}
                         onChange={handleChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded"
-                      />
+                        required
+                       >
+                        <option value="">Select</option>
+                        <option value="Healthy">Healthy</option>
+                        <option value="Sick">Sick</option>
+                        <option value="Recovering">Recovering</option>
+                        <option value="Dead">Dead</option>
+                      </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Last Vet Checkup</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Last Vet Checkup*</label>
                       <input
                         type="date"
                         name="LastVetCheckup"
                         value={formData.LastVetCheckup}
                         onChange={handleChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded"
+                        required
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Enclosure ID</label>
-                      <input
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Enclosure ID*</label>
+                      <select
                         type="text"
                         name="EnclosureID"
                         value={formData.EnclosureID}
                         onChange={handleChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded"
-                      />
+                        required
+                      >
+                      {enclosureList.map(enclosure => (
+                      <option key={enclosure} value={enclosure}>
+                        {enclosure === '' ? 'Select' : enclosure}
+                      </option>
+                      ))}
+                      </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Danger Level</label>
-                      <input
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Danger Level*</label>
+                      <select
                         type="text"
                         name="DangerLevel"
                         value={formData.DangerLevel}
                         onChange={handleChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded"
-                      />
+                        required
+                      >
+                        <option value="">Select</option>
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                      </select>
                     </div>
                     <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
@@ -647,7 +671,7 @@ const AnimalManagement = () => {
                         value={formData.Species}
                         onChange={handleChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded"
-                        required
+                        disabled
                       />
                     </div>
                     <div>
@@ -658,6 +682,7 @@ const AnimalManagement = () => {
                         value={formData.DateOfBirth}
                         onChange={handleChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded"
+                        disabled
                       />
                     </div>
                     <div>
@@ -667,21 +692,30 @@ const AnimalManagement = () => {
                         value={formData.Gender}
                         onChange={handleChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded"
+                        disabled
                       >
                         <option value="">Select</option>
-                        <option value="M">Male</option>
-                        <option value="F">Female</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Unknown">Unknown</option>
                       </select>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Health Status</label>
-                      <input
+                      <select
                         type="text"
                         name="HealthStatus"
                         value={formData.HealthStatus}
                         onChange={handleChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded"
-                      />
+                        disabled
+                       >
+                        <option value="">Select</option>
+                        <option value="Healthy">Healthy</option>
+                        <option value="Sick">Sick</option>
+                        <option value="Recovering">Recovering</option>
+                        <option value="Dead">Dead</option>
+                      </select>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Last Vet Checkup</label>
@@ -691,27 +725,40 @@ const AnimalManagement = () => {
                         value={formData.LastVetCheckup}
                         onChange={handleChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded"
+                        disabled
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Enclosure ID</label>
-                      <input
+                      <select
                         type="text"
                         name="EnclosureID"
                         value={formData.EnclosureID}
                         onChange={handleChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded"
-                      />
+                      >
+                      {enclosureList.map(enclosure => (
+                      <option key={enclosure} value={enclosure}>
+                        {enclosure === '' ? 'Select' : enclosure}
+                      </option>
+                      ))}
+                      </select>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Danger Level</label>
-                      <input
+                      <select
                         type="text"
                         name="DangerLevel"
                         value={formData.DangerLevel}
                         onChange={handleChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded"
-                      />
+                        required
+                      >
+                        <option value="">Select</option>
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                      </select>
                     </div>
                     <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
