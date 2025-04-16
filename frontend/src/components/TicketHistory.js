@@ -3,6 +3,7 @@ import axios from "axios";
 import { Ticket, ChevronDown, ChevronUp, Calendar } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { QRCodeCanvas } from "qrcode.react"; // Import QRCodeCanvas from qrcode.react
+import API_URL from "../config/api";
 
 const TicketHistory = () => {
   const { currentUser } = useAuth();
@@ -258,7 +259,7 @@ const TicketHistory = () => {
             </h3>
             <div className="flex justify-center">
               <QRCodeCanvas
-                 value={`${window.location.origin}/api/tickets/use/${selectedTicketForQR.TicketID}`}
+                 value={`${API_URL}/api/tickets/use/${selectedTicketForQR.TicketID}`}
                 size={256}
                 bgColor="#ffffff"
                 fgColor="#000000"
