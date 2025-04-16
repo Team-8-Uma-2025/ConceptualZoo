@@ -26,6 +26,132 @@ module.exports = (pool) => {
       res.status(500).json({ error: 'Server error' });
     }
   });
+
+  // enclsoure animal report with filters
+  router.get('/report', async (req, res) => {
+    try {
+      // filters
+      const {type, minCapacity, maxCapacity, vetAfter, vetBefore} = req.query;
+
+      // base query (joins enclosures and animals tables)
+      let query = `
+      SELECT 
+        e.EnclosureID,
+        e.Name AS EnclosureName,
+        e.Type AS EnclosureType,
+        e.Capacity,
+        e.Location,
+        a.AnimalID,
+        a.Name AS AnimalName,
+        a.Species,
+        a.Gender,
+        a.HealthStatus,
+        a.DangerLevel,
+        a.LastVetCheckup
+      FROM enclosures e
+      LEFT JOIN animals a ON e.EnclosureID = a.EnclosureID
+      `;
+
+      
+      const conditions = [];
+      const values = [];
+
+      // if user adds a enclosure type filter
+      if(type) {
+        conditions.push(`e.Type = ?`);
+        values.push(type);
+      }
+      // add where section to query if type filter exists
+      if (conditions.length > 0) {
+        query += ` WHERE ` + conditions.join(' AND ');
+      }
+      query += ` ORDER BY e.Type, e.Name`; // group output
+
+      const [rows] = await pool.query(query, values); // execute query
+
+
+      // organize report by type and enclosure
+      const grouped = {};
+      
+      for(const row of rows) {
+        const enclosureType = row.EnclosureType;
+        if (!grouped[enclosureType]) grouped[enclosureType] = {};
+
+        const enclosureID = row.EnclosureID;
+        if (!grouped[enclosureType][enclosureID]) {
+          grouped[enclosureType][enclosureID] = {
+            EnclosureID: enclosureID,
+            Name: row.EnclosureName,
+            Type: enclosureType,
+            Location: row.Location,
+            Capacity: row.Capacity,
+            Animals: [],
+            HealthBreakdown: {},
+            CapacityUsage: 0,
+          };
+        }
+
+        // push animals and track their health, if there are animals in an enclosure
+        if(row.AnimalID){
+          const checkupDate = row.LastVetCheckup ? new Date(row.LastVetCheckup) : null;
+          const vetAfterDate = vetAfter ? new Date(vetAfter) : null;
+          const vetBeforeDate = vetBefore ? new Date(vetBefore) : null;
+
+          if (
+            (vetAfterDate && (!checkupDate || checkupDate < vetAfterDate)) ||
+            (vetBeforeDate && (!checkupDate || checkupDate > vetBeforeDate))
+          ) {
+            continue;
+          }
+
+
+          grouped[enclosureType][enclosureID].Animals.push({
+            AnimalID: row.AnimalID,
+            Name: row.AnimalName,
+            Species: row.Species,
+            Gender: row.Gender,
+            HealthStatus: row.HealthStatus,
+            DangerLevel: row.DangerLevel,
+            LastVetCheckup: row.LastVetCheckup
+          });
+
+          const health = row.HealthStatus || 'Unknown';
+          grouped[enclosureType][enclosureID].HealthBreakdown[health] = 
+            (grouped[enclosureType][enclosureID].HealthBreakdown[health] || 0) + 1;
+        }
+
+      }
+
+      // calculate capacity and apply a min-max filter
+      for (const type in grouped) {
+        for (const id in grouped[type]) {
+          const enclosure = grouped[type][id];
+          const count = enclosure.Animals.length;
+          enclosure.CapacityUsage = Math.round((count / enclosure.Capacity) * 100);
+  
+          // Apply capacity filter if present
+          if (
+            (minCapacity !== undefined && enclosure.CapacityUsage < parseInt(minCapacity)) ||
+            (maxCapacity !== undefined && enclosure.CapacityUsage > parseInt(maxCapacity))
+          ) {
+            delete grouped[type][id];
+          }
+        }
+  
+        // Remove empty groups after filtering
+        if (Object.keys(grouped[type]).length === 0) {
+          delete grouped[type];
+        }
+      }
+
+      res.json(grouped);
+
+    } catch (err) {
+      console.error('Error generating report:', err);
+      res.status(500).json({ error: 'Failed to generate report' });
+    }
+
+  });
   
   // Get enclosure by ID
   router.get('/:id', async (req, res) => {

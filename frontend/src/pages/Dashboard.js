@@ -73,11 +73,10 @@ const PaginationControls = ({
       <button
         onClick={goToPrevPage}
         disabled={currentPage === 1}
-        className={`p-2 rounded-full ${
-          currentPage === 1
+        className={`p-2 rounded-full ${currentPage === 1
             ? "text-gray-400 cursor-not-allowed"
             : "text-gray-700 hover:bg-purple-100"
-        }`}
+          }`}
         aria-label="Previous page"
       >
         <ChevronLeft size={20} />
@@ -88,11 +87,10 @@ const PaginationControls = ({
           <button
             key={i}
             onClick={() => paginate(i + 1)}
-            className={`px-3 py-1 rounded-md ${
-              currentPage === i + 1
+            className={`px-3 py-1 rounded-md ${currentPage === i + 1
                 ? "bg-purple-600 text-white font-medium"
                 : "bg-gray-100 text-gray-700 hover:bg-purple-100"
-            }`}
+              }`}
           >
             {i + 1}
           </button>
@@ -102,11 +100,10 @@ const PaginationControls = ({
       <button
         onClick={goToNextPage}
         disabled={currentPage === totalPages}
-        className={`p-2 rounded-full ${
-          currentPage === totalPages
+        className={`p-2 rounded-full ${currentPage === totalPages
             ? "text-gray-400 cursor-not-allowed"
             : "text-gray-700 hover:bg-purple-100"
-        }`}
+          }`}
         aria-label="Next page"
       >
         <ChevronRight size={20} />
@@ -141,17 +138,14 @@ const Dashboard = () => {
     // Define access rules in a more organized way
     const accessRules = {
       notifications: true, // All staff have access
-      staffManagement: staffRole === "Manager",
-      sickAnimals:
-        staffType === "Vet" ||
-        (staffType === "Zookeeper" && staffRole === "Manager"), // zookeeper manager possibly
-      enclosures: staffType === "Zookeeper" || staffType === "Vet",
-      attractions: staffType === "Zookeeper",
-      giftShop: staffType === "Gift Shop Clerk" || staffType === "Admin",
-      revenue: staffRole === "Manager" && staffType === "Admin",
-      animalManagement:
-        staffRole === "Manager" &&
-        (staffType === "Admin" || staffType === "Zookeeper"),
+      staffManagement: staffRole === 'Manager',
+      sickAnimals: staffType === 'Vet' || (staffType === 'Zookeeper' && staffRole === 'Manager'), // zookeeper manager possibly
+      enclosures: staffType === 'Zookeeper' || staffType === 'Vet'|| staffType === 'Admin',
+      attractions: staffType === 'Zookeeper' || staffType === 'Admin',
+      giftShop: staffType === 'Gift Shop Clerk' || staffType === 'Admin',
+      revenue: staffRole === 'Manager' && staffType === 'Admin',
+      animalManagement: staffRole === 'Manager' && (staffType === 'Admin' || staffType === 'Zookeeper')
+
     };
 
     return accessRules[moduleType] || false;
@@ -406,8 +400,8 @@ const Dashboard = () => {
     availableModules.length === 1
       ? "grid-cols-1"
       : availableModules.length === 2
-      ? "grid-cols-1 md:grid-cols-2"
-      : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3";
+        ? "grid-cols-1 md:grid-cols-2"
+        : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3";
 
   // Helper function to format date
   const formatDateTime = (dateString) => {
@@ -503,11 +497,12 @@ const Dashboard = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <Link
-                              to={`/dashboard/animals/${animal.AnimalID}`}
+                              to={`/dashboard/enclosures/${animal.EnclosureID}?obs=${animal.AnimalID}`}
                               className="text-green-600 hover:text-green-900"
                             >
                               View
                             </Link>
+
                           </td>
                         </tr>
                       ))}
@@ -528,76 +523,6 @@ const Dashboard = () => {
                 icon={<Home size={24} className="mr-2 text-green-600" />}
                 isExpanded={expandedSection === "enclosures"}
                 toggleFn={() => toggleSection("enclosures")}
-              >
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          ID
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Name
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Type
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Location
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Capacity
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {enclosures.map((enclosure) => (
-                        <tr key={enclosure.EnclosureID}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {enclosure.EnclosureID}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {enclosure.Name}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {enclosure.Type}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {enclosure.Location}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {enclosure.Capacity}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <Link
-                              to={`/dashboard/enclosures/${enclosure.EnclosureID}`}
-                              className="text-green-600 hover:text-green-900"
-                            >
-                              View
-                            </Link>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </ExpandableSection>
-            )}
-
-            {/* Attractions Section (Zookeepers and Managers) */}
-            {hasModuleAccess("attractions") && attractions.length > 0 && (
-              <ExpandableSection
-                title={
-                  currentUser.staffType === "Zookeeper"
-                    ? "Your Assigned Attractions"
-                    : "Attractions Overview"
-                }
-                icon={<Calendar size={24} className="mr-2 text-rose-600" />}
-                isExpanded={expandedSection === "attractions"}
-                toggleFn={() => toggleSection("attractions")}
               >
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
