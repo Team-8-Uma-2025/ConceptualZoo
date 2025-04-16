@@ -165,7 +165,6 @@ const StaffManagement = () => {
       Password: '',
       Sex: '',
       Birthdate: '',
-      SSN: '',
       SSN: ''
     });
   };
@@ -607,17 +606,6 @@ const StaffManagement = () => {
                         type="password"
                         name="Password"
                         value={formData.Password}
-                        onChange={handleChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">SSN*</label>
-                      <input
-                        type="ssn"
-                        name="SSN"
-                        value={formData.SSN}
                         onChange={handleChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded"
                         required
