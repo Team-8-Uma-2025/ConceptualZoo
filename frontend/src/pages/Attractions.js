@@ -28,6 +28,21 @@ const Attractions = () => {
     fetchAttractions();
 
   }, [] );
+
+  // if the attraction has an end date (limited time attraction)
+  const formatDateTime = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+  }
+
   
   return (
     <div className="bg-gray-100 min-h-screen">
@@ -78,6 +93,12 @@ const Attractions = () => {
                 <div className="text-sm text-gray-500 mb-4 font-['Mukta_Mahee'] italic">
                   Location: {attraction.Location}
                 </div>
+                {attraction.EndTimeStamp && (
+                  <div className="text-sm text-gray-500 font-['Mukta_Mahee']">
+                    From: {formatDateTime(attraction.StartTimeStamp)}<br />
+                    To: {formatDateTime(attraction.EndTimeStamp)}
+                </div>
+                )}
               </div>
             </div>
           ))}; 

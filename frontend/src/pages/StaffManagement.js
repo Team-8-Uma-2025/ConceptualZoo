@@ -4,9 +4,9 @@ import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  Users, User, Search, Edit, Trash2, Plus,
-  ChevronDown, ChevronUp, X, Save, ArrowLeft,
-  ChevronLeft, ChevronRight
+  Users, User, Search, Edit, Trash2, Plus, X, Save,
+  // ChevronDown, ChevronUp, X, Save, ArrowLeft,
+  // ChevronLeft, ChevronRight
 } from 'lucide-react';
 
 const StaffManagement = () => {
@@ -32,7 +32,8 @@ const StaffManagement = () => {
     Username: '',
     Password: '',
     Sex: '',
-    Birthdate: ''
+    Birthdate: '',
+    SSN: ''
   });
 
   // State for filtering
@@ -43,6 +44,30 @@ const StaffManagement = () => {
   // State for pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [staffPerPage] = useState(8); // Same as in Dashboard
+
+  // Check if current manager can modify the selected staff
+  const canModifyStaff = useCallback((staff) => {
+    // No staff selected yet
+    if (!staff) return false;
+
+    // Current user must be a Manager
+    if (!currentUser || currentUser.role !== 'staff' || currentUser.staffRole !== 'Manager') {
+      return false;
+    }
+
+    // Admin Managers can modify anyone
+    if (currentUser.staffType === 'Admin') {
+      return true;
+    }
+
+    // Other Managers can only modify staff (not managers) of their own StaffType
+    if (staff.Role === 'Manager') {
+      return false; // Cannot modify other managers
+    }
+
+    // Can only modify staff of their own StaffType
+    return staff.StaffType === currentUser.staffType;
+  }, [currentUser]);
 
   // Fetch staff members
   const fetchStaffMembers = useCallback(async () => {
@@ -82,7 +107,8 @@ const StaffManagement = () => {
         Username: response.data.Username || '',
         Password: '', // Don't populate password for security
         Sex: response.data.Sex || '',
-        Birthdate: response.data.Birthdate ? new Date(response.data.Birthdate).toISOString().split('T')[0] : ''
+        Birthdate: response.data.Birthdate ? new Date(response.data.Birthdate).toISOString().split('T')[0] : '',
+        SSN: response.data.SSN || '' // Include SSN
       });
 
       setError(null);
@@ -138,11 +164,16 @@ const StaffManagement = () => {
       Username: '',
       Password: '',
       Sex: '',
-      Birthdate: ''
+      Birthdate: '',
+      SSN: ''
     });
   };
 
   const handleEditStaff = () => {
+    if (!canModifyStaff(selectedStaff)) {
+      setError('You do not have permission to edit this staff member.');
+      return;
+    }
     setIsEditing(true);
     setIsAdding(false);
   };
@@ -150,6 +181,7 @@ const StaffManagement = () => {
   const handleCancel = () => {
     setIsEditing(false);
     setIsAdding(false);
+    setError(null);
 
     if (selectedStaff) {
       // Restore form data from selected staff
@@ -162,7 +194,8 @@ const StaffManagement = () => {
         Username: selectedStaff.Username || '',
         Password: '', // Don't populate password for security
         Sex: selectedStaff.Sex || '',
-        Birthdate: selectedStaff.Birthdate ? new Date(selectedStaff.Birthdate).toISOString().split('T')[0] : ''
+        Birthdate: selectedStaff.Birthdate ? new Date(selectedStaff.Birthdate).toISOString().split('T')[0] : '',
+        SSN: selectedStaff.SSN || '' // Include SSN when restoring data
       });
     }
   };
@@ -178,15 +211,23 @@ const StaffManagement = () => {
   const handleSubmitEdit = async (e) => {
     e.preventDefault();
 
+    if (!canModifyStaff(selectedStaff)) {
+      setError('You do not have permission to update this staff member.');
+      return;
+    }
+
     try {
       setLoading(true);
+
+      // Handle empty string for SupervisorID - convert to null
+      const supervisorID = formData.SupervisorID === '' ? null : formData.SupervisorID;
 
       // Only include fields that can be updated
       const updateData = {
         name: formData.Name,
         role: formData.Role,
         address: formData.Address,
-        supervisorID: formData.SupervisorID
+        supervisorID: supervisorID
       };
 
       await axios.put(`/api/staff/${selectedStaff.Staff}`, updateData, {
@@ -201,7 +242,7 @@ const StaffManagement = () => {
       setError(null);
     } catch (err) {
       console.error('Failed to update staff:', err);
-      setError('Unable to update staff. Please try again later.');
+      setError(`Unable to update staff: ${err.response?.data?.error || err.message}`);
     } finally {
       setLoading(false);
     }
@@ -209,6 +250,18 @@ const StaffManagement = () => {
 
   const handleSubmitAdd = async (e) => {
     e.preventDefault();
+
+    // Managers can only add staff of their own type unless they are Admin
+    if (currentUser.staffType !== 'Admin' && formData.StaffType !== currentUser.staffType) {
+      setError(`As a ${currentUser.staffType} manager, you can only add ${currentUser.staffType} staff.`);
+      return;
+    }
+
+    // Non-admin managers cannot add other managers
+    if (currentUser.staffType !== 'Admin' && formData.Role === 'Manager') {
+      setError('Only Admin managers can add new managers.');
+      return;
+    }
 
     try {
       setLoading(true);
@@ -224,7 +277,7 @@ const StaffManagement = () => {
         password: formData.Password,
         sex: formData.Sex,
         birthdate: formData.Birthdate,
-        ssn: '123-45-6789' // Placeholder - in a real app you'd handle this securely
+        ssn: formData.SSN // Placeholder - in a real app you'd handle this securely
       };
 
       await axios.post('/api/auth/register-staff', newStaffData, {
@@ -245,11 +298,24 @@ const StaffManagement = () => {
   };
 
   const handleDeleteStaff = async (staffId) => {
-    if (!window.confirm('Are you sure you want to delete this staff member? This action cannot be undone.')) {
-      return;
-    }
-
+    // Fetch the staff details first to check permissions
     try {
+      const response = await axios.get(`/api/staff/${staffId}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+
+      const staffToDelete = response.data;
+
+      // Check if current manager can delete this staff
+      if (!canModifyStaff(staffToDelete)) {
+        setError('You do not have permission to delete this staff member.');
+        return;
+      }
+
+      if (!window.confirm('Are you sure you want to delete this staff member? This action cannot be undone.')) {
+        return;
+      }
+
       setLoading(true);
 
       // This would need to be implemented in your backend
@@ -301,6 +367,26 @@ const StaffManagement = () => {
   const roles = ['All', ...new Set(staffMembers.map(staff => staff.Role))];
   const types = ['All', ...new Set(staffMembers.map(staff => staff.StaffType))];
 
+  // For new staff, restrict options based on manager type
+  const getAvailableStaffTypes = () => {
+    if (currentUser && currentUser.staffType === 'Admin') {
+      return ['Zookeeper', 'Vet', 'Gift Shop Clerk', 'Admin'];
+    } else if (currentUser) {
+      // Non-admin managers can only add staff of their own type
+      return [currentUser.staffType];
+    }
+    return [];
+  };
+
+  const getAvailableRoles = () => {
+    if (currentUser && currentUser.staffType === 'Admin') {
+      return ['Manager', 'Staff'];
+    } else {
+      // Non-admin managers can only add staff, not managers
+      return ['Staff'];
+    }
+  };
+
   // Check permission
   if (!currentUser || currentUser.role !== 'staff' || currentUser.staffRole !== 'Manager') {
     return (
@@ -323,6 +409,11 @@ const StaffManagement = () => {
           </h1>
           <p className="text-gray-600 font-['Lora']">
             Manage zoo staff members, roles, and assignments
+          </p>
+          <p className="text-purple-600 mt-2 font-['Lora'] text-sm">
+            {currentUser.staffType === 'Admin'
+              ? 'You have admin privileges to manage all staff.'
+              : `As a ${currentUser.staffType} manager, you can only modify ${currentUser.staffType} staff.`}
           </p>
         </div>
 
@@ -482,6 +573,23 @@ const StaffManagement = () => {
                       />
                     </div>
                     <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">SSN*</label>
+                      <input
+                        value={formData.SSN}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded"
+                        type="password"
+                        name="SSN"
+                        inputMode="numeric"
+                        pattern="^(?!000|666)[0-8][0-9]{2}-(?!00)[0-9]{2}-(?!0000)[0-9]{4}$"
+                        placeholder="XXX-XX-XXXX"
+                        aria-describedby="ssn-help ssn-error"
+                        maxLength="11"
+                        autoComplete="off"
+                        required
+                      />
+                    </div>
+                    <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Username*</label>
                       <input
                         type="text"
@@ -513,8 +621,9 @@ const StaffManagement = () => {
                         required
                       >
                         <option value="">Select Role</option>
-                        <option value="Manager">Manager</option>
-                        <option value="Staff">Staff</option>
+                        {getAvailableRoles().map(role => (
+                          <option key={role} value={role}>{role}</option>
+                        ))}
                       </select>
                     </div>
                     <div>
@@ -527,10 +636,9 @@ const StaffManagement = () => {
                         required
                       >
                         <option value="">Select Type</option>
-                        <option value="Zookeeper">Zookeeper</option>
-                        <option value="Vet">Veterinarian</option>
-                        <option value="Gift Shop Clerk">Gift Shop Clerk</option>
-                        <option value="Admin">Admin</option>
+                        {getAvailableStaffTypes().map(type => (
+                          <option key={type} value={type}>{type}</option>
+                        ))}
                       </select>
                     </div>
                     <div>
@@ -543,8 +651,8 @@ const StaffManagement = () => {
                         required
                       >
                         <option value="">Select</option>
-                        <option value="M">Male</option>
-                        <option value="F">Female</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
                       </select>
                     </div>
                     <div>
@@ -654,8 +762,9 @@ const StaffManagement = () => {
                         className="w-full px-3 py-2 border border-gray-300 rounded"
                         required
                       >
-                        <option value="Manager">Manager</option>
-                        <option value="Staff">Staff</option>
+                        {getAvailableRoles().map(role => (
+                          <option key={role} value={role}>{role}</option>
+                        ))}
                       </select>
                     </div>
                     <div>
@@ -725,20 +834,30 @@ const StaffManagement = () => {
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-xl font-semibold font-['Roboto_Flex']">Staff Details</h2>
                   <div className="flex space-x-2">
-                    <button
-                      onClick={handleEditStaff}
-                      className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded flex items-center"
-                    >
-                      <Edit size={16} className="mr-1" />
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDeleteStaff(selectedStaff.Staff)}
-                      className="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded flex items-center"
-                    >
-                      <Trash2 size={16} className="mr-1" />
-                      Delete
-                    </button>
+                    {canModifyStaff(selectedStaff) ? (
+                      <>
+                        <button
+                          onClick={handleEditStaff}
+                          className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded flex items-center"
+                        >
+                          <Edit size={16} className="mr-1" />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteStaff(selectedStaff.Staff)}
+                          className="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded flex items-center"
+                        >
+                          <Trash2 size={16} className="mr-1" />
+                          Delete
+                        </button>
+                      </>
+                    ) : (
+                      <span className="text-sm text-gray-500 italic">
+                        {currentUser.staffType !== 'Admin' && selectedStaff.Role === 'Manager'
+                          ? "Cannot modify other managers"
+                          : `Cannot modify ${selectedStaff.StaffType} staff`}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -800,7 +919,12 @@ const StaffManagement = () => {
                   <h3 className="text-lg font-semibold mb-4 font-['Mukta_Mahee']">Assignments</h3>
 
                   {/* Implemented assignments section with loading states */}
-                  <StaffAssignments staffId={selectedStaff.Staff} />
+                  <StaffAssignments
+                    staffId={selectedStaff.Staff}
+                    canModify={canModifyStaff(selectedStaff)}
+                    staffType={selectedStaff.StaffType}
+                    currentUserType={currentUser.staffType}
+                  />
                 </div>
               </div>
             ) : (
@@ -829,7 +953,7 @@ const StaffManagement = () => {
 };
 
 // Staff Assignments component to show enclosures and attractions
-const StaffAssignments = ({ staffId }) => {
+const StaffAssignments = ({ staffId, canModify, staffType, currentUserType }) => {
   const [enclosures, setEnclosures] = useState([]);
   const [attractions, setAttractions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -876,6 +1000,12 @@ const StaffAssignments = ({ staffId }) => {
   }, [staffId]);
 
   const openAssignModal = async (type) => {
+    // Check if user has permission to assign
+    if (!canModify) {
+      setError(`You don't have permission to assign this staff member.`);
+      return;
+    }
+
     setAssignmentType(type);
     setLoading(true);
 
@@ -921,6 +1051,13 @@ const StaffAssignments = ({ staffId }) => {
   const handleAssign = async () => {
     if (!selectedOptionId) return;
 
+    // Double check permission
+    if (!canModify) {
+      setError(`You don't have permission to assign this staff member.`);
+      setShowAssignModal(false);
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -962,6 +1099,12 @@ const StaffAssignments = ({ staffId }) => {
   };
 
   const handleRemoveAssignment = async (type, id) => {
+    // Check permission first
+    if (!canModify) {
+      setError(`You don't have permission to modify this staff member's assignments.`);
+      return;
+    }
+
     if (!window.confirm(`Are you sure you want to remove this ${type} assignment?`)) {
       return;
     }
@@ -1022,23 +1165,25 @@ const StaffAssignments = ({ staffId }) => {
 
   return (
     <div>
-      {/* Assignment buttons */}
-      <div className="flex space-x-2 mb-4">
-        <button
-          onClick={() => openAssignModal('enclosure')}
-          className="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded-md text-sm flex items-center"
-        >
-          <Plus size={16} className="mr-1" />
-          Assign to Enclosure
-        </button>
-        <button
-          onClick={() => openAssignModal('attraction')}
-          className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded-md text-sm flex items-center"
-        >
-          <Plus size={16} className="mr-1" />
-          Assign to Attraction
-        </button>
-      </div>
+      {/* Assignment buttons - Only show if user can modify this staff */}
+      {canModify && (
+        <div className="flex space-x-2 mb-4">
+          <button
+            onClick={() => openAssignModal('enclosure')}
+            className="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded-md text-sm flex items-center"
+          >
+            <Plus size={16} className="mr-1" />
+            Assign to Enclosure
+          </button>
+          <button
+            onClick={() => openAssignModal('attraction')}
+            className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded-md text-sm flex items-center"
+          >
+            <Plus size={16} className="mr-1" />
+            Assign to Attraction
+          </button>
+        </div>
+      )}
 
       {/* Enclosures */}
       <div className="mb-6">
@@ -1063,13 +1208,15 @@ const StaffAssignments = ({ staffId }) => {
                     Relation: {enclosure.StaffRelation}
                   </div>
                 </div>
-                <button
-                  onClick={() => handleRemoveAssignment('enclosure', enclosure.EnclosureID)}
-                  className="text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-50"
-                  title="Remove assignment"
-                >
-                  <X size={18} />
-                </button>
+                {canModify && (
+                  <button
+                    onClick={() => handleRemoveAssignment('enclosure', enclosure.EnclosureID)}
+                    className="text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-50"
+                    title="Remove assignment"
+                  >
+                    <X size={18} />
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -1101,13 +1248,15 @@ const StaffAssignments = ({ staffId }) => {
                     )}
                   </div>
                 </div>
-                <button
-                  onClick={() => handleRemoveAssignment('attraction', attraction.AttractionID)}
-                  className="text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-50"
-                  title="Remove assignment"
-                >
-                  <X size={18} />
-                </button>
+                {canModify && (
+                  <button
+                    onClick={() => handleRemoveAssignment('attraction', attraction.AttractionID)}
+                    className="text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-50"
+                    title="Remove assignment"
+                  >
+                    <X size={18} />
+                  </button>
+                )}
               </div>
             ))}
           </div>
