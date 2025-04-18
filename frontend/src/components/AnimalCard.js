@@ -1,6 +1,5 @@
-// src/components/AnimalCard.js
 import React, { useState, useEffect } from 'react';
-import { ClipboardList, MoreHorizontal, Activity, HeartPulse } from 'lucide-react';
+import { ClipboardList, Activity, HeartPulse } from 'lucide-react';
 import AnimalObservationModal from './AnimalObservationModal';
 import EditAnimalModal from './EditAnimalModal';
 import HealthStatusModal from './HealthStatusModal';
@@ -13,7 +12,6 @@ const AnimalCard = ({ animal, refreshAnimals, autoOpenObservations = false }) =>
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isHealthModalOpen, setIsHealthModalOpen] = useState(false);
   const [isCheckupModalOpen, setIsCheckupModalOpen] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Check user permissions
   const isAdmin = currentUser?.staffType === 'Admin';
@@ -21,8 +19,8 @@ const AnimalCard = ({ animal, refreshAnimals, autoOpenObservations = false }) =>
   const isZookeeper = currentUser?.staffType === 'Zookeeper';
   const isVet = currentUser?.staffType === 'Vet';
   
-  // Check if user can edit/delete (only managers and admins)
-  const canEditDelete = isAdmin || (isZookeeper && isManager);
+  // Only managers and admins can edit
+  const canEdit = isAdmin || (isZookeeper && isManager);
   
   // Check if user can update health status (zookeepers and vets)
   const canUpdateHealth = isZookeeper || isVet;
@@ -30,7 +28,7 @@ const AnimalCard = ({ animal, refreshAnimals, autoOpenObservations = false }) =>
   // Check if user can perform checkups (only vets)
   const canPerformCheckup = isVet;
 
-  // Auto-open the observations modal if the autoOpenObservations prop is true
+  // Auto-open the observations modal if requested
   useEffect(() => {
     if (autoOpenObservations) {
       setIsModalOpen(true);
@@ -40,92 +38,25 @@ const AnimalCard = ({ animal, refreshAnimals, autoOpenObservations = false }) =>
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
 
-  const openEditModal = () => {
-    setIsMenuOpen(false);
-    setIsEditModalOpen(true);
-  };
-
+  const openEditModal = () => setIsEditModalOpen(true);
   const closeEditModal = () => setIsEditModalOpen(false);
   
-  const openHealthModal = () => {
-    setIsMenuOpen(false);
-    setIsHealthModalOpen(true);
-  };
-  
+  const openHealthModal = () => setIsHealthModalOpen(true);
   const closeHealthModal = () => setIsHealthModalOpen(false);
   
-  const openCheckupModal = () => {
-    setIsMenuOpen(false);
-    setIsCheckupModalOpen(true);
-  };
-  
+  const openCheckupModal = () => setIsCheckupModalOpen(true);
   const closeCheckupModal = () => setIsCheckupModalOpen(false);
-
-  const handleDelete = async () => {
-    setIsMenuOpen(false);
-    if (window.confirm('Are you sure you want to delete this animal?')) {
-      try {
-        const response = await fetch(`/api/animals/${animal.AnimalID}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
-        const data = await response.json();
-        if (response.ok) {
-          alert('Animal deleted successfully');
-          refreshAnimals(); // Refresh the list of animals after deletion
-        } else {
-          alert(data.error || 'Error deleting animal');
-        }
-      } catch (err) {
-        console.error(err);
-        alert('Error deleting animal');
-      }
-    }
-  };
 
   return (
     <div className="relative bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition duration-300">
-      {/* Dropdown trigger - only show if the user can perform any actions */}
-      {(canEditDelete || canUpdateHealth || canPerformCheckup) && (
-        <button 
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="absolute top-2 right-2 text-gray-600 hover:text-gray-800 p-1"
+      {/* Edit button */}
+      {canEdit && (
+        <button
+          onClick={openEditModal}
+          className="absolute top-2 right-2 bg-green-700 hover:bg-green-600 text-white px-3 py-1 rounded transition duration-300 text-sm font-['Mukta_Mahee']"
         >
-          <MoreHorizontal size={20} />
+          Edit
         </button>
-      )}
-      
-      {/* Dropdown Menu */}
-      {isMenuOpen && (
-        <div className="absolute top-8 right-2 bg-white border rounded shadow-md z-10">
-          {/* Edit and Delete options are only available to managers and admins */}
-          {canEditDelete && (
-            <>
-              <button onClick={openEditModal} className="block w-full text-left px-4 py-2 hover:bg-gray-100">
-                Edit
-              </button>
-              <button onClick={handleDelete} className="block w-full text-left px-4 py-2 hover:bg-gray-100">
-                Delete
-              </button>
-            </>
-          )}
-          
-          {/* Health Status update option for zookeepers and vets */}
-          {canUpdateHealth && (
-            <button onClick={openHealthModal} className="block w-full text-left px-4 py-2 hover:bg-gray-100">
-              Update Health Status
-            </button>
-          )}
-          
-          {/* Checkup option only for vets */}
-          {canPerformCheckup && (
-            <button onClick={openCheckupModal} className="block w-full text-left px-4 py-2 hover:bg-gray-100">
-              Perform Checkup
-            </button>
-          )}
-        </div>
       )}
       
       {/* Animal Details */}
@@ -156,7 +87,7 @@ const AnimalCard = ({ animal, refreshAnimals, autoOpenObservations = false }) =>
             Last Checkup: {new Date(animal.LastVetCheckup).toLocaleDateString()}
           </span>
           <div className="flex space-x-2">
-            {/* Show checkup button for vets directly in the card for quick access */}
+            {/* Checkup button */}
             {canPerformCheckup && (
               <button 
                 onClick={openCheckupModal}
@@ -167,7 +98,7 @@ const AnimalCard = ({ animal, refreshAnimals, autoOpenObservations = false }) =>
               </button>
             )}
             
-            {/* Health status button for zookeepers directly in the card */}
+            {/* Health button */}
             {canUpdateHealth && !canPerformCheckup && (
               <button 
                 onClick={openHealthModal}
@@ -178,7 +109,7 @@ const AnimalCard = ({ animal, refreshAnimals, autoOpenObservations = false }) =>
               </button>
             )}
             
-            {/* Observations button for all staff */}
+            {/* Observations button */}
             <button 
               onClick={openModal}
               className="bg-green-700 hover:bg-green-600 text-white px-3 py-1 rounded flex items-center transition duration-300 text-sm font-['Mukta_Mahee']"
@@ -190,14 +121,13 @@ const AnimalCard = ({ animal, refreshAnimals, autoOpenObservations = false }) =>
         </div>
       </div>
       
-      {/* Modal for animal observations */}
+      {/* Modals */}
       <AnimalObservationModal 
         animal={animal}
         isOpen={isModalOpen}
         onClose={closeModal}
       />
 
-      {/* Modal for editing the animal */}
       <EditAnimalModal 
         animal={animal}
         isOpen={isEditModalOpen}
@@ -205,7 +135,6 @@ const AnimalCard = ({ animal, refreshAnimals, autoOpenObservations = false }) =>
         refreshAnimals={refreshAnimals}
       />
       
-      {/* Modal for updating health status */}
       {canUpdateHealth && (
         <HealthStatusModal
           animal={animal}
@@ -215,7 +144,6 @@ const AnimalCard = ({ animal, refreshAnimals, autoOpenObservations = false }) =>
         />
       )}
       
-      {/* Modal for performing checkups */}
       {canPerformCheckup && (
         <VetCheckupModal
           animal={animal}

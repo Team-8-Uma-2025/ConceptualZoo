@@ -1,5 +1,4 @@
-// src/components/EditAnimalModal.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 const EditAnimalModal = ({ animal, isOpen, onClose, refreshAnimals }) => {
@@ -13,6 +12,25 @@ const EditAnimalModal = ({ animal, isOpen, onClose, refreshAnimals }) => {
     EnclosureID: animal.EnclosureID,
     DangerLevel: animal.DangerLevel,
   });
+  const [enclosures, setEnclosures] = useState([]);
+
+  useEffect(() => {
+    // Fetch available enclosures
+    const fetchEnclosures = async () => {
+      try {
+        const res = await axios.get('/api/enclosures', {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        });
+        setEnclosures(res.data);
+      } catch (err) {
+        console.error('Failed to load enclosures:', err);
+      }
+    };
+
+    if (isOpen) {
+      fetchEnclosures();
+    }
+  }, [isOpen]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -22,13 +40,15 @@ const EditAnimalModal = ({ animal, isOpen, onClose, refreshAnimals }) => {
     e.preventDefault();
 
     try {
+      const payload = {
+        ...formData,
+        DateOfBirth: formData.DateOfBirth?.split('T')[0],
+        LastVetCheckup: formData.LastVetCheckup?.split('T')[0],
+      };
+
       const response = await axios.put(
         `/api/animals/${animal.AnimalID}`,
-        {
-          ...formData,
-          DateOfBirth: formData.DateOfBirth?.split('T')[0],
-          LastVetCheckup: formData.LastVetCheckup?.split('T')[0],
-        },
+        payload,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -57,33 +77,91 @@ const EditAnimalModal = ({ animal, isOpen, onClose, refreshAnimals }) => {
       <div className="bg-white w-full max-w-2xl rounded-2xl shadow-xl p-8 space-y-6">
         <h2 className="text-3xl font-bold text-gray-800">Edit Animal</h2>
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[
-            { label: "Name", name: "Name", type: "text" },
-            { label: "Species", name: "Species", type: "text" },
-            { label: "Date of Birth", name: "DateOfBirth", type: "date", value: formData.DateOfBirth?.split('T')[0] },
-            { label: "Gender", name: "Gender", type: "text" },
-            { label: "Last Vet Checkup", name: "LastVetCheckup", type: "date", value: formData.LastVetCheckup?.split('T')[0] },
-            { label: "Enclosure ID", name: "EnclosureID", type: "number" }
-          ].map(({ label, name, type, value }) => (
-            <div key={name}>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-              <input
-                type={type}
-                name={name}
-                value={value !== undefined ? value : formData[name]}
-                onChange={handleChange}
-                className="w-full rounded-lg border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none p-2"
-              />
-            </div>
-          ))}
+          {/* Name editable */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+            <input
+              type="text"
+              name="Name"
+              value={formData.Name}
+              onChange={handleChange}
+              className="w-full rounded-lg border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none p-2"
+            />
+          </div>
 
+          {/* Species disabled */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Species</label>
+            <input
+              type="text"
+              name="Species"
+              value={formData.Species}
+              disabled
+              className="w-full rounded-lg border-gray-300 bg-gray-100 text-gray-600 shadow-sm p-2"
+            />
+          </div>
+
+          {/* Date of Birth disabled */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+            <input
+              type="date"
+              name="DateOfBirth"
+              value={formData.DateOfBirth?.split('T')[0] || ''}
+              disabled
+              className="w-full rounded-lg border-gray-300 bg-gray-100 text-gray-600 shadow-sm p-2"
+            />
+          </div>
+
+          {/* Gender disabled */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+            <input
+              type="text"
+              name="Gender"
+              value={formData.Gender}
+              disabled
+              className="w-full rounded-lg border-gray-300 bg-gray-100 text-gray-600 shadow-sm p-2"
+            />
+          </div>
+
+          {/* Last Vet Checkup disabled */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Last Vet Checkup</label>
+            <input
+              type="date"
+              name="LastVetCheckup"
+              value={formData.LastVetCheckup?.split('T')[0] || ''}
+              disabled
+              className="w-full rounded-lg border-gray-300 bg-gray-100 text-gray-600 shadow-sm p-2"
+            />
+          </div>
+
+          {/* Enclosure dropdown */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Enclosure</label>
+            <select
+              name="EnclosureID"
+              value={formData.EnclosureID}
+              onChange={handleChange}
+              className="w-full rounded-lg border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none p-2"
+            >
+              {enclosures.map(enc => (
+                <option key={enc.EnclosureID} value={enc.EnclosureID}>
+                  {enc.Name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Health Status disabled */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Health Status</label>
             <select
               name="HealthStatus"
               value={formData.HealthStatus}
-              onChange={handleChange}
-              className="w-full rounded-lg border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none p-2"
+              disabled
+              className="w-full rounded-lg border-gray-300 bg-gray-100 text-gray-600 shadow-sm p-2"
             >
               <option value="Healthy">Healthy</option>
               <option value="Sick">Sick</option>
@@ -91,6 +169,7 @@ const EditAnimalModal = ({ animal, isOpen, onClose, refreshAnimals }) => {
             </select>
           </div>
 
+          {/* Danger Level editable */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Danger Level</label>
             <select
@@ -105,6 +184,7 @@ const EditAnimalModal = ({ animal, isOpen, onClose, refreshAnimals }) => {
             </select>
           </div>
 
+          {/* Actions */}
           <div className="col-span-full flex justify-end gap-3 pt-4">
             <button
               type="button"
