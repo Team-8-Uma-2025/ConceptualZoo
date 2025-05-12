@@ -1,13 +1,13 @@
 # ConceptualZoo Project
 
-A full-stack application built with React, Node.js, Express, and MySQL for the Team 8 Zoo DB project.
+A full-stack application built with React, Node.js, and MySQL for the Team 8 Zoo DB project.
 
 ## Project Structure
 
 ```
 my-fullstack-app/
 ├── frontend/  (React application with Tailwind CSS)
-├── backend/   (Node.js and Express API)
+├── backend/   (Node.js)
 ```
 
 ## Prerequisites
@@ -82,6 +82,7 @@ npm start
 ```
 
 The application should now be running:
+
 - Frontend: [http://localhost:3000](http://localhost:3000)
 - Backend API: [http://localhost:5000](http://localhost:5000)
 
@@ -114,6 +115,7 @@ If you're having trouble connecting to the database on your backend:
 
 - If you're adding a new feature or fixing a bug, create a new branch off `main` and open a pull request.
 - Make sure to update the README or document any changes that might affect the setup or usage of the project.
+
 ### 6. Pushing Changes to GitHub
 
 Before pushing any changes to the repository, make sure to pull the latest changes from the remote repository to avoid conflicts.
@@ -131,7 +133,6 @@ git add .
 git commit -m "Your commit message"
 git push origin main
 ```
-
 
 ## Deployment
 
